@@ -3,7 +3,7 @@ import { clientApi, reclamationApi, type Acheteur, type Fournisseur, type Produi
 import { StarRating, getCat, imgUrl, fmtDA, Spinner, magasinOuvert, hhmm } from '../lib/shared'
 import { catEmoji } from '../lib/categories'
 import { LogoOrania } from '../components/Logo'
-import { MapPicker } from '../components/Map'
+import { MapPicker, MapView } from '../components/Map'
 
 interface CartItem { produit: Produit; quantite: number }
 type CPage = 'login' | 'stores' | 'menu'
@@ -16,27 +16,27 @@ export function ClientApp({ onExit }: { onExit: () => void }) {
 
   // restaurer la session ET la dernière page/magasin visités
   useEffect(() => {
-    const saved = sessionStorage.getItem('acheteur')
+    const saved = localStorage.getItem('acheteur')
     if (saved) {
       try {
         setAcheteur(JSON.parse(saved))
-        const savedStore = sessionStorage.getItem('client_store')
-        const savedPage = sessionStorage.getItem('client_page') as CPage | null
+        const savedStore = localStorage.getItem('client_store')
+        const savedPage = localStorage.getItem('client_page') as CPage | null
         if (savedPage === 'menu' && savedStore) {
           setStore(JSON.parse(savedStore)); setPage('menu')
         } else {
           setPage('stores')
         }
-      } catch { sessionStorage.removeItem('acheteur') }
+      } catch { localStorage.removeItem('acheteur') }
     }
   }, [])
 
-  const goStores = () => { sessionStorage.setItem('client_page', 'stores'); sessionStorage.removeItem('client_store'); setStore(null); setPage('stores') }
-  const goMenu = (s: Fournisseur) => { sessionStorage.setItem('client_page', 'menu'); sessionStorage.setItem('client_store', JSON.stringify(s)); setStore(s); setPage('menu') }
+  const goStores = () => { localStorage.setItem('client_page', 'stores'); localStorage.removeItem('client_store'); setStore(null); setPage('stores') }
+  const goMenu = (s: Fournisseur) => { localStorage.setItem('client_page', 'menu'); localStorage.setItem('client_store', JSON.stringify(s)); setStore(s); setPage('menu') }
 
-  const login = (a: Acheteur) => { setAcheteur(a); sessionStorage.setItem('client_page', 'stores'); setPage('stores') }
+  const login = (a: Acheteur) => { setAcheteur(a); localStorage.setItem('client_page', 'stores'); setPage('stores') }
   const logout = () => {
-    sessionStorage.removeItem('acheteur'); sessionStorage.removeItem('client_page'); sessionStorage.removeItem('client_store')
+    localStorage.removeItem('acheteur'); localStorage.removeItem('client_page'); localStorage.removeItem('client_store')
     setAcheteur(null); setStore(null); onExit()
   }
 
@@ -55,7 +55,7 @@ function LoginPage({ onLogin, onExit }: { onLogin: (a: Acheteur) => void; onExit
     setLoading(true); setError('')
     try {
       const data = await clientApi.login(nom.trim(), tel.trim())
-      sessionStorage.setItem('acheteur', JSON.stringify(data)); onLogin(data)
+      localStorage.setItem('acheteur', JSON.stringify(data)); onLogin(data)
     } catch { setError('Impossible de se connecter. Réessayez.') } finally { setLoading(false) }
   }
 
@@ -199,15 +199,14 @@ function StoresPage({ acheteur, onSelect, onLogout }: { acheteur: Acheteur; onSe
   return (
     <div className="min-h-screen bg-stone-50">
       <div className="bg-white border-b border-stone-100 sticky top-0 z-20 shadow-sm shadow-stone-50">
-        <div className="px-4 pt-4 pb-2 flex items-center justify-between max-w-lg mx-auto">
-          <div>
-            <div className="flex items-center gap-2"><LogoOrania size={28} /><h1 className="font-extrabold text-stone-900 text-lg">Orania</h1></div>
-            <p className="text-xs text-stone-400 ml-8">Bonjour, {acheteur.nom} 👋</p>
+        <div className="px-4 pt-4 pb-2 flex items-center gap-3 max-w-lg mx-auto">
+          <button onClick={onLogout} title="Retour à l'accueil"
+            className="shrink-0 w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700 text-lg font-bold">←</button>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2"><LogoOrania size={26} /><h1 className="font-extrabold text-stone-900 text-lg truncate">Orania</h1></div>
+            <p className="text-xs text-stone-400 ml-8 truncate">Bonjour, {acheteur.nom} 👋</p>
           </div>
-          <div className="flex items-center gap-1">
-            <button onClick={() => setShowCompte(true)} className="text-xs text-stone-500 hover:text-amber-600 transition-colors px-3 py-1.5 rounded-xl hover:bg-amber-50">👤 Mon compte</button>
-            <button onClick={onLogout} className="text-xs text-stone-400 hover:text-red-500 transition-colors px-3 py-1.5 rounded-xl hover:bg-red-50">Déconnexion</button>
-          </div>
+          <button onClick={() => setShowCompte(true)} className="shrink-0 text-xs text-stone-500 hover:text-amber-600 transition-colors px-3 py-1.5 rounded-xl hover:bg-amber-50">👤 Compte</button>
         </div>
         {showCompte && <CompteModal acheteur={acheteur} onClose={() => setShowCompte(false)} />}
 
@@ -426,6 +425,10 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
             {store.heure_ouverture && <span>🕐 {hhmm(store.heure_ouverture)}–{hhmm(store.heure_fermeture)}</span>}
           </div>
         </div>
+      )}
+
+      {store.latitude != null && store.longitude != null && (
+        <LocalisationMagasin store={store} />
       )}
 
       {store.presentation && <PourquoiNousChoisir texte={store.presentation} />}
@@ -672,6 +675,32 @@ function PourquoiNousChoisir({ texte }: { texte: string }) {
       {open && (
         <div className="bg-white border border-amber-100 rounded-2xl p-4 mt-2 animate-in">
           <p className="text-sm text-stone-600 leading-relaxed whitespace-pre-line">{texte}</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+
+// ─── Localisation + itinéraire du magasin (client) ─────────────────────────────
+function LocalisationMagasin({ store }: { store: Fournisseur }) {
+  const [open, setOpen] = useState(false)
+  const gmaps = `https://www.google.com/maps/dir/?api=1&destination=${store.latitude},${store.longitude}`
+  return (
+    <div className="max-w-lg mx-auto px-4 pt-4">
+      <button onClick={() => setOpen((v) => !v)}
+        className="w-full bg-white border border-stone-200 rounded-2xl px-4 py-3.5 flex items-center justify-between shadow-sm active:scale-[0.98] transition-all">
+        <span className="font-bold text-stone-700 flex items-center gap-2">🗺️ Où se trouve ce commerce ?</span>
+        <span style={{ display: 'inline-block', transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .2s' }} className="text-stone-400">▼</span>
+      </button>
+      {open && (
+        <div className="mt-2">
+          <MapView lat={store.latitude!} lng={store.longitude!} height={220} />
+          <a href={gmaps} target="_blank" rel="noopener"
+            className="mt-2 flex items-center justify-center gap-2 w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-2xl transition-all shadow-lg shadow-amber-500/30">
+            🧭 Voir l'itinéraire pour récupérer ma commande
+          </a>
+          <p className="text-[11px] text-stone-400 text-center mt-1.5">Ouvre Google Maps avec le trajet et la distance jusqu'au commerce.</p>
         </div>
       )}
     </div>

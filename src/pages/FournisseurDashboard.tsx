@@ -14,12 +14,14 @@ export function FournisseurDashboard({ session, onLogout }: { session: Fournisse
     <div className="min-h-screen bg-stone-50">
       {/* Top bar */}
       <div className="bg-stone-800 text-white sticky top-0 z-20 shadow-md">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2 min-w-0">
+        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
+          <button onClick={onLogout} title="Retour à l'accueil"
+            className="shrink-0 w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 transition-all flex items-center justify-center text-white text-lg font-bold">←</button>
+          <div className="flex items-center gap-2 min-w-0 flex-1">
             <span className="text-xl">🏪</span>
             <h1 className="font-bold truncate">{session.nom}</h1>
           </div>
-          <button onClick={onLogout} className="text-xs text-stone-300 hover:text-white px-3 py-1.5 rounded-xl hover:bg-white/10 transition-colors">
+          <button onClick={onLogout} className="shrink-0 text-xs text-stone-300 hover:text-white px-3 py-1.5 rounded-xl hover:bg-white/10 transition-colors">
             Déconnexion
           </button>
         </div>
@@ -635,7 +637,7 @@ function InfosTab({ session }: { session: FournisseurSession }) {
       })
       // mettre à jour la session stockée
       const s = { ...session, nom, categorie, adresse, telephone, latitude: position?.lat, longitude: position?.lng, heure_ouverture: ouverture, heure_fermeture: fermeture, presentation }
-      sessionStorage.setItem('fournisseur', JSON.stringify(s))
+      localStorage.setItem('fournisseur', JSON.stringify(s))
       setDone(true)
       setTimeout(() => location.reload(), 800)
     } catch { setError('Échec de l\'enregistrement.') } finally { setSaving(false) }

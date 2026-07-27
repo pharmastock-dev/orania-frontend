@@ -23,7 +23,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <h1 className="text-xl font-bold text-stone-800 mb-2">Une erreur est survenue</h1>
           <p className="text-stone-500 text-sm mb-1">La page n'a pas pu s'afficher.</p>
           <p className="text-stone-400 text-xs mb-6 max-w-sm break-words font-mono bg-stone-100 rounded-lg px-3 py-2">{this.state.message}</p>
-          <button onClick={() => { try { sessionStorage.removeItem('fournisseur'); sessionStorage.removeItem('acheteur') } catch {}; location.href = location.pathname }}
+          <button onClick={() => { try { localStorage.removeItem('fournisseur'); localStorage.removeItem('acheteur') } catch {}; location.href = location.pathname }}
             className="bg-amber-500 hover:bg-amber-600 text-white font-bold px-6 py-3 rounded-2xl transition-all">Recharger</button>
         </div>
       )

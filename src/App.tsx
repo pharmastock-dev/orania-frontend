@@ -14,14 +14,14 @@ export default function App() {
 
   // Restaurer une session fournisseur
   useEffect(() => {
-    const saved = sessionStorage.getItem('fournisseur')
+    const saved = localStorage.getItem('fournisseur')
     if (saved) { try { setFSession(JSON.parse(saved)); setPortail('fournisseur') } catch {} }
   }, [])
 
   const loginFournisseur = (s: FournisseurSession) => {
-    sessionStorage.setItem('fournisseur', JSON.stringify(s)); setFSession(s); setPortail('fournisseur')
+    localStorage.setItem('fournisseur', JSON.stringify(s)); setFSession(s); setPortail('fournisseur')
   }
-  const logoutFournisseur = () => { sessionStorage.removeItem('fournisseur'); setFSession(null); setPortail('accueil') }
+  const logoutFournisseur = () => { localStorage.removeItem('fournisseur'); setFSession(null); setPortail('accueil') }
 
   if (portail === 'client') return <ClientApp onExit={() => setPortail('accueil')} />
 
