@@ -1,0 +1,64 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Nunito:wght@400;500;600;700&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --font-display: 'Plus Jakarta Sans', sans-serif;
+  --font-body: 'Nunito', sans-serif;
+
+  /* ─── Palette Orania ─── */
+  /* Orange principal #FF6B00 (boutons, actions) — mappé sur "amber" */
+  --color-amber-50: #fff4ec;
+  --color-amber-100: #ffe4d1;
+  --color-amber-200: #ffc9a3;
+  --color-amber-400: #ff8c3a;
+  --color-amber-500: #ff6b00;
+  --color-amber-600: #e85f00;
+  --color-amber-700: #c24e00;
+
+  /* Bleu foncé #12355B (logo, barres de nav, confiance) — mappé sur "stone" */
+  --color-stone-50: #f4f6f9;
+  --color-stone-100: #e4e9f0;
+  --color-stone-200: #c9d3e0;
+  --color-stone-300: #9fb0c6;
+  --color-stone-400: #64789a;
+  --color-stone-500: #3a557a;
+  --color-stone-600: #24456b;
+  --color-stone-700: #1a3c5e;
+  --color-stone-800: #12355b;
+  --color-stone-900: #0d2743;
+
+  /* Vert succès #2EAF61 */
+  --color-emerald-50: #eafaf0;
+  --color-emerald-100: #d0f3de;
+  --color-emerald-500: #2eaf61;
+  --color-emerald-600: #249a52;
+  --color-emerald-700: #1c7d42;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background-color: #F7F8FA;
+  color: #1c1917;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}

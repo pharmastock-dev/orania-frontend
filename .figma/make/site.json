@@ -1,0 +1,10 @@
+{
+  "description": "Facilitates multi-vendor ordering and cash payments for Algerian customers to browse, order, and rate local shops across various categories with ease.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
