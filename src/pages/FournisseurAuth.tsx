@@ -12,6 +12,8 @@ export interface FournisseurSession {
   heure_ouverture?: string | null
   heure_fermeture?: string | null
   presentation?: string | null
+  latitude?: number | null
+  longitude?: number | null
   abonnement_fin?: string
 }
 
@@ -60,7 +62,7 @@ function LoginForm({ onLogin, goRegister }: { onLogin: (s: FournisseurSession) =
       if (r.succes && r.fournisseur_id) {
         onLogin({ id: r.fournisseur_id, nom: r.nom || '', telephone: r.telephone, adresse: r.adresse,
           categorie: r.categorie, heure_ouverture: r.heure_ouverture, heure_fermeture: r.heure_fermeture,
-          presentation: r.presentation, abonnement_fin: r.abonnement_fin })
+          presentation: r.presentation, latitude: r.latitude, longitude: r.longitude, abonnement_fin: r.abonnement_fin })
       } else {
         setError(r.message || 'Échec de connexion')
       }

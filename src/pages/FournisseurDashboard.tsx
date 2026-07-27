@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { fournisseurApi, reclamationApi, type Commande, type Produit, type Livreur, type LigneCommande, type Evaluation } from '../lib/api'
 import { StarRating, Spinner, fmtDA, fmtDateHeure, statutInfo, imgUrl, estTerminee } from '../lib/shared'
+import { MapView, MapPicker } from '../components/Map'
 import { CATEGORIES_PRODUITS, catEmoji } from '../lib/categories'
 import type { FournisseurSession } from './FournisseurAuth'
 
@@ -192,6 +193,7 @@ function CommandeCard({ c, lignes, livreurs, corbeille, onChange }: {
 }) {
   const [busy, setBusy] = useState(false)
   const [selLivreur, setSelLivreur] = useState<number>(c.livreur_id || (livreurs[0]?.id ?? 0))
+  const [showMap, setShowMap] = useState(false)
   const st = statutInfo(c.statut)
 
   const act = async (fn: () => Promise<any>) => { setBusy(true); try { await fn() } finally { setBusy(false); onChange() } }
@@ -316,10 +318,19 @@ function CommandeCard({ c, lignes, livreurs, corbeille, onChange }: {
             )}
             {c.livreur_nom && <p className="text-xs text-stone-500">Livreur : <b>{c.livreur_nom}</b></p>}
             {c.avec_livraison && c.acheteur_latitude != null && c.acheteur_longitude != null && (
-              <a href={`https://www.google.com/maps?q=${c.acheteur_latitude},${c.acheteur_longitude}`} target="_blank" rel="noopener"
-                className="flex items-center justify-center gap-2 w-full bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-semibold py-2 rounded-xl transition-all">
-                📍 Voir la localisation du client
-              </a>
+              <div>
+                <button onClick={() => setShowMap((v) => !v)}
+                  className="flex items-center justify-center gap-2 w-full bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-semibold py-2 rounded-xl transition-all">
+                  📍 {showMap ? 'Masquer la carte' : 'Voir la localisation du client'}
+                </button>
+                {showMap && (
+                  <div className="mt-2">
+                    <MapView lat={c.acheteur_latitude} lng={c.acheteur_longitude} />
+                    <a href={`https://www.google.com/maps?q=${c.acheteur_latitude},${c.acheteur_longitude}`} target="_blank" rel="noopener"
+                      className="block text-center text-xs text-blue-600 hover:underline mt-1.5">Ouvrir dans Google Maps (itinéraire) →</a>
+                  </div>
+                )}
+              </div>
             )}
             {c.avec_livraison && c.acheteur_latitude == null && (
               <p className="text-[11px] text-stone-400 text-center">📍 Localisation non partagée par le client</p>
@@ -606,6 +617,9 @@ function InfosTab({ session }: { session: FournisseurSession }) {
   const [ouverture, setOuverture] = useState((session.heure_ouverture || '').slice(0, 5))
   const [fermeture, setFermeture] = useState((session.heure_fermeture || '').slice(0, 5))
   const [presentation, setPresentation] = useState(session.presentation || '')
+  const [position, setPosition] = useState<{ lat: number; lng: number } | null>(
+    session.latitude != null && session.longitude != null ? { lat: session.latitude, lng: session.longitude } : null
+  )
   const [saving, setSaving] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
@@ -615,11 +629,12 @@ function InfosTab({ session }: { session: FournisseurSession }) {
     try {
       await fournisseurApi.modifierInfos(session.id, {
         nom, categorie, adresse, telephone,
+        latitude: position?.lat, longitude: position?.lng,
         heure_ouverture: ouverture, heure_fermeture: fermeture,
         presentation,
       })
       // mettre à jour la session stockée
-      const s = { ...session, nom, categorie, adresse, telephone, heure_ouverture: ouverture, heure_fermeture: fermeture, presentation }
+      const s = { ...session, nom, categorie, adresse, telephone, latitude: position?.lat, longitude: position?.lng, heure_ouverture: ouverture, heure_fermeture: fermeture, presentation }
       sessionStorage.setItem('fournisseur', JSON.stringify(s))
       setDone(true)
       setTimeout(() => location.reload(), 800)
@@ -672,6 +687,13 @@ function InfosTab({ session }: { session: FournisseurSession }) {
             onChange={(e) => setPresentation(e.target.value)}
             placeholder="Présentez votre commerce : votre histoire, vos spécialités, ce qui vous rend unique, vos garanties…" />
           <p className="text-[11px] text-stone-400 mt-1">Ce texte sera visible par les clients sur votre page.</p>
+        </div>
+
+        <div>
+          <label className={labelCls}>📍 Localisation de mon commerce</label>
+          <p className="text-[11px] text-stone-400 mb-2">Placez le marqueur sur l'emplacement exact de votre commerce. Cela permet de calculer la distance avec les clients.</p>
+          <MapPicker value={position} onChange={setPosition} />
+          {position && <p className="text-[11px] text-emerald-600 mt-1.5 font-semibold">✓ Position enregistrée</p>}
         </div>
 
         {error && <div className="bg-red-50 border border-red-100 text-red-500 text-sm rounded-2xl px-4 py-3">{error}</div>}

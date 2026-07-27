@@ -3,6 +3,7 @@ import { clientApi, reclamationApi, type Acheteur, type Fournisseur, type Produi
 import { StarRating, getCat, imgUrl, fmtDA, Spinner, magasinOuvert, hhmm } from '../lib/shared'
 import { catEmoji } from '../lib/categories'
 import { LogoOrania } from '../components/Logo'
+import { MapPicker } from '../components/Map'
 
 interface CartItem { produit: Produit; quantite: number }
 type CPage = 'login' | 'stores' | 'menu'
@@ -291,6 +292,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
   const [cart, setCart] = useState<CartItem[]>([])
   const [showSheet, setShowSheet] = useState(false)
   const [livraison, setLivraison] = useState(true)
+  const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null)
   const [ordering, setOrdering] = useState(false)
   const [orderCode, setOrderCode] = useState<string | null>(null)
   const [showReviews, setShowReviews] = useState(false)
@@ -324,14 +326,18 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
 
   const placeOrder = async () => {
     setOrdering(true)
-    // pour la livraison : tenter de récupérer la position GPS du client
+    // pour la livraison : position choisie sur la carte en priorité, sinon GPS
     let pos: { latitude?: number; longitude?: number } = {}
-    if (livraison && navigator.geolocation) {
-      try {
-        const p = await new Promise<GeolocationPosition>((res, rej) =>
-          navigator.geolocation.getCurrentPosition(res, rej, { timeout: 6000 }))
-        pos = { latitude: p.coords.latitude, longitude: p.coords.longitude }
-      } catch {}
+    if (livraison) {
+      if (position) {
+        pos = { latitude: position.lat, longitude: position.lng }
+      } else if (navigator.geolocation) {
+        try {
+          const p = await new Promise<GeolocationPosition>((res, rej) =>
+            navigator.geolocation.getCurrentPosition(res, rej, { timeout: 6000 }))
+          pos = { latitude: p.coords.latitude, longitude: p.coords.longitude }
+        } catch {}
+      }
     }
     try {
       const cmd = await clientApi.commander({
@@ -559,6 +565,14 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
                 <button key={label} onClick={() => setLivraison(val)} className={`flex flex-col items-center gap-1.5 py-4 rounded-2xl border-2 font-semibold text-sm transition-all ${livraison === val ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-stone-200 text-stone-500 hover:border-stone-300'}`}><span className="text-xl">{emoji}</span>{label}</button>
               ))}
             </div>
+            {livraison && (
+              <div className="mb-5">
+                <p className="text-xs font-bold text-stone-500 uppercase tracking-widest mb-2">📍 Votre position de livraison</p>
+                <p className="text-[11px] text-stone-400 mb-2">Déplacez le marqueur ou cliquez sur la carte pour indiquer où livrer.</p>
+                <MapPicker value={position} onChange={setPosition} />
+                {position && <p className="text-[11px] text-emerald-600 mt-1.5 font-semibold">✓ Position enregistrée</p>}
+              </div>
+            )}
             <button onClick={placeOrder} disabled={ordering} className="w-full bg-amber-500 hover:bg-amber-600 text-white font-extrabold py-4 rounded-2xl transition-all shadow-lg shadow-amber-200 disabled:opacity-60 text-base">{ordering ? 'Envoi…' : 'Confirmer la commande'}</button>
           </div>
         </div>
