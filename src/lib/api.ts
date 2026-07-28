@@ -1,7 +1,7 @@
 // ─── API centralisée ───────────────────────────────────────────────────────
 // Tous les appels au backend FastAPI passent par ici. Aligné sur main.py.
 
-export const API = 'https://orania-backend.onrender.com'
+export const API = 'http://127.0.0.1:8000'
 
 async function req(path: string, options?: RequestInit) {
   const res = await fetch(`${API}${path}`, {
@@ -175,6 +175,7 @@ export const fournisseurApi = {
   note: (fid: number): Promise<{ moyenne: number; nombre: number }> => req(`/fournisseurs/${fid}/note`),
   modifierInfos: (fid: number, payload: { nom?: string; categorie?: string; adresse?: string; telephone?: string; latitude?: number; longitude?: number; heure_ouverture?: string; heure_fermeture?: string; presentation?: string }): Promise<any> =>
     req(`/fournisseurs/${fid}/infos`, { method: 'PUT', body: JSON.stringify(payload) }),
+  getInfos: (fid: number): Promise<any> => req(`/fournisseurs/${fid}/infos`),
   evaluations: (fid: number): Promise<Evaluation[]> => req(`/fournisseurs/${fid}/evaluations`),
   supprimerAvis: (eid: number): Promise<any> => req(`/evaluations/${eid}`, { method: 'DELETE' }),
   uploadImageProduit: async (pid: number, file: File): Promise<any> => {

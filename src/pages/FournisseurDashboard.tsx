@@ -370,8 +370,12 @@ function ProduitsTab({ fid }: { fid: number }) {
   const charger = useCallback(async () => {
     setLoading(true)
     try {
-      const prods = await fournisseurApi.produits(fid)
+      const [prods, infos] = await Promise.all([
+        fournisseurApi.produits(fid),
+        fournisseurApi.getInfos(fid).catch(() => null),
+      ])
       setProduits(Array.isArray(prods) ? prods : [])
+      if (infos && infos.image_url) setMagasinImg(imgUrl(infos.image_url) + '?t=' + Date.now())
     } finally { setLoading(false) }
   }, [fid])
 
