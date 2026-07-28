@@ -58,7 +58,7 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-5 py-10 relative"
       style={{ backgroundImage: 'url(/background.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
-      <div className="absolute inset-0 bg-black/40" />
+      <div className="absolute inset-0 bg-[#12355B]/20" />
       <div className="relative z-10 w-full flex flex-col items-center">
       <div className="mb-10 text-center">
         <div className="w-28 h-28 bg-white rounded-[28px] flex items-center justify-center mx-auto mb-5 shadow-lg shadow-stone-200 border border-stone-100"><LogoOrania size={80} /></div>
