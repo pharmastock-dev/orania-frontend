@@ -1,7 +1,7 @@
 // ─── API centralisée ───────────────────────────────────────────────────────
 // Tous les appels au backend FastAPI passent par ici. Aligné sur main.py.
 
-export const API = 'https://orania-backend.onrender.com'
+export const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
 
 async function req(path: string, options?: RequestInit) {
   const res = await fetch(`${API}${path}`, {
