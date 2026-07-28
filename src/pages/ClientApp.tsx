@@ -32,7 +32,24 @@ export function ClientApp({ onExit }: { onExit: () => void }) {
   }, [])
 
   const goStores = () => { localStorage.setItem('client_page', 'stores'); localStorage.removeItem('client_store'); setStore(null); setPage('stores') }
-  const goMenu = (s: Fournisseur) => { localStorage.setItem('client_page', 'menu'); localStorage.setItem('client_store', JSON.stringify(s)); setStore(s); setPage('menu') }
+  const goMenu = (s: Fournisseur) => {
+    localStorage.setItem('client_page', 'menu'); localStorage.setItem('client_store', JSON.stringify(s))
+    window.history.pushState({ page: 'menu' }, '')  // ajoute une entrée pour le bouton retour du téléphone
+    setStore(s); setPage('menu')
+  }
+
+  // bouton retour physique du téléphone : revenir à la page précédente, pas quitter
+  useEffect(() => {
+    const onPop = () => {
+      // si on est dans le menu, revenir à la liste des magasins
+      setPage((cur) => {
+        if (cur === 'menu') { setStore(null); localStorage.setItem('client_page', 'stores'); localStorage.removeItem('client_store'); return 'stores' }
+        return cur
+      })
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
 
   const login = (a: Acheteur) => { setAcheteur(a); localStorage.setItem('client_page', 'stores'); setPage('stores') }
   const logout = () => {
@@ -379,7 +396,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
     return (
       <div className="min-h-screen bg-stone-50 flex flex-col">
         <div className="bg-white border-b border-stone-100 px-4 py-3.5 flex items-center gap-3">
-          <button onClick={onBack} className="w-9 h-9 rounded-xl bg-stone-100 hover:bg-stone-200 transition-colors flex items-center justify-center text-stone-600 text-sm font-bold">←</button>
+          <button onClick={onBack} title="Retour" className="w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700 text-lg font-bold shrink-0">←</button>
           <h2 className="font-extrabold text-stone-800 truncate">{store.nom}</h2>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
@@ -403,7 +420,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
     <div className="min-h-screen bg-stone-50 pb-36">
       <div className="bg-white border-b border-stone-100 sticky top-0 z-20 shadow-sm shadow-stone-50">
         <div className="px-4 py-3.5 flex items-center gap-3 max-w-lg mx-auto">
-          <button onClick={onBack} className="w-9 h-9 rounded-xl bg-stone-100 hover:bg-stone-200 transition-colors flex items-center justify-center text-stone-600 text-sm font-bold shrink-0">←</button>
+          <button onClick={onBack} title="Retour" className="w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700 text-lg font-bold shrink-0">←</button>
           <div className="flex-1 min-w-0">
             <h2 className="font-extrabold text-stone-800 truncate text-base">{store.nom}</h2>
             <div className="flex items-center gap-2">

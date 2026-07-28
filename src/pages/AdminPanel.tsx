@@ -58,9 +58,11 @@ function AdminDashboard({ onExit }: { onExit: () => void }) {
   return (
     <div className="min-h-screen bg-stone-100">
       <div className="bg-stone-900 text-white sticky top-0 z-20">
-        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2"><span className="text-xl">⚙️</span><h1 className="font-bold">Administration</h1></div>
-          <button onClick={onExit} className="text-xs text-stone-400 hover:text-white px-3 py-1.5 rounded-xl hover:bg-white/10">Quitter</button>
+        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-3">
+          <button onClick={onExit} title="Retour à l'accueil"
+            className="shrink-0 w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 transition-all flex items-center justify-center text-white text-lg font-bold">←</button>
+          <div className="flex items-center gap-2 flex-1"><span className="text-xl">⚙️</span><h1 className="font-bold">Administration</h1></div>
+          <button onClick={onExit} className="shrink-0 text-xs text-stone-400 hover:text-white px-3 py-1.5 rounded-xl hover:bg-white/10">Quitter</button>
         </div>
       </div>
 

@@ -23,6 +23,25 @@ export default function App() {
   }
   const logoutFournisseur = () => { localStorage.removeItem('fournisseur'); setFSession(null); setPortail('accueil') }
 
+  // ouvrir un portail en ajoutant une entrée d'historique (pour le bouton retour du téléphone)
+  const ouvrirPortail = (p: Portail) => {
+    window.history.pushState({ portail: p }, '')
+    setPortail(p)
+  }
+
+  // bouton retour physique du téléphone : revenir à l'accueil au lieu de quitter
+  useEffect(() => {
+    const onPop = () => {
+      setPortail((cur) => {
+        // si un fournisseur est connecté, le bouton retour ne le déconnecte pas depuis l'accueil
+        if (cur !== 'accueil') return 'accueil'
+        return cur
+      })
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+
   if (portail === 'client') return <ClientApp onExit={() => setPortail('accueil')} />
 
   if (portail === 'fournisseur') {
@@ -37,21 +56,25 @@ export default function App() {
 
   // ─── Accueil : choix du portail ──────────────────────────────────────────
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#F7F8FA] px-5 py-10">
+    <div className="min-h-screen flex flex-col items-center justify-center px-5 py-10 relative"
+      style={{ backgroundImage: 'url(/background.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
+      <div className="absolute inset-0 bg-black/40" />
+      <div className="relative z-10 w-full flex flex-col items-center">
       <div className="mb-10 text-center">
         <div className="w-28 h-28 bg-white rounded-[28px] flex items-center justify-center mx-auto mb-5 shadow-lg shadow-stone-200 border border-stone-100"><LogoOrania size={80} /></div>
-        <h1 className="text-4xl font-extrabold text-stone-800 tracking-tight">Orania</h1>
-        <p className="text-stone-500 text-sm mt-2">Tout Oran, en un clic</p>
+        <h1 className="text-4xl font-extrabold text-white tracking-tight">Orania</h1>
+        <p className="text-white/90 text-sm mt-2">Tout Oran, en un clic</p>
       </div>
 
       <div className="w-full max-w-md space-y-3">
-        <PortailCard emoji="🛍️" titre="Je suis un client" sous="Commander auprès des commerces" accent="bg-amber-500" onClick={() => setPortail('client')} />
-        <PortailCard emoji="🏪" titre="Je suis un commerçant" sous="Gérer mon commerce et mes commandes" accent="bg-stone-800" onClick={() => setPortail('fournisseur')} />
-        <PortailCard emoji="⚙️" titre="Administration" sous="Gérer les abonnements" accent="bg-stone-600" onClick={() => setPortail('admin')} />
-        <PortailCard emoji="📞" titre="Contact" sous="Nous contacter / assistance" accent="bg-emerald-500" onClick={() => setPortail('contact')} />
+        <PortailCard emoji="🛍️" titre="Je suis un client" sous="Commander auprès des commerces" accent="bg-amber-500" onClick={() => ouvrirPortail('client')} />
+        <PortailCard emoji="🏪" titre="Je suis un commerçant" sous="Gérer mon commerce et mes commandes" accent="bg-stone-800" onClick={() => ouvrirPortail('fournisseur')} />
+        <PortailCard emoji="⚙️" titre="Administration" sous="Gérer les abonnements" accent="bg-stone-600" onClick={() => ouvrirPortail('admin')} />
+        <PortailCard emoji="📞" titre="Contact" sous="Nous contacter / assistance" accent="bg-emerald-500" onClick={() => ouvrirPortail('contact')} />
       </div>
 
-      <p className="text-stone-400 text-xs mt-10">💵 Paiement en espèces uniquement</p>
+      <p className="text-white/80 text-xs mt-10">💵 Paiement en espèces uniquement</p>
+      </div>
     </div>
   )
 }
