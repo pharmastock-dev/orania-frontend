@@ -5,7 +5,7 @@ import { MapView, MapPicker } from '../components/Map'
 import { CATEGORIES_PRODUITS, catEmoji } from '../lib/categories'
 import type { FournisseurSession } from './FournisseurAuth'
 
-type Tab = 'commandes' | 'produits' | 'livreurs' | 'avis' | 'infos'
+type Tab = 'commandes' | 'produits' | 'livreurs' | 'avis' | 'stats' | 'infos'
 
 export function FournisseurDashboard({ session, onLogout }: { session: FournisseurSession; onLogout: () => void }) {
   const [tab, setTab] = useState<Tab>('commandes')
@@ -32,6 +32,7 @@ export function FournisseurDashboard({ session, onLogout }: { session: Fournisse
             ['produits', '🍽️ Menu'],
             ['livreurs', '🛵 Livreurs'],
             ['avis', '⭐ Avis'],
+            ['stats', '📊 Statistiques'],
             ['infos', '🏪 Mon commerce'],
           ] as [Tab, string][]).map(([key, label]) => (
             <button key={key} onClick={() => setTab(key)}
@@ -49,6 +50,7 @@ export function FournisseurDashboard({ session, onLogout }: { session: Fournisse
         {tab === 'produits' && <ProduitsTab fid={session.id} />}
         {tab === 'livreurs' && <LivreursTab fid={session.id} />}
         {tab === 'avis' && <AvisTab fid={session.id} />}
+        {tab === 'stats' && <StatsTab fid={session.id} />}
         {tab === 'infos' && <InfosTab session={session} />}
       </div>
     </div>
@@ -795,6 +797,83 @@ function ReclamationFournisseur({ session }: { session: FournisseurSession }) {
           </button>
         </>
       )}
+    </div>
+  )
+}
+
+
+// ─── Statistiques du commerce ───────────────────────────────────────────────
+function StatsTab({ fid }: { fid: number }) {
+  const [stats, setStats] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [periode, setPeriode] = useState('tout')
+
+  useEffect(() => {
+    setLoading(true)
+    fournisseurApi.statistiques(fid, periode)
+      .then((d) => setStats(d))
+      .catch(() => setStats(null))
+      .finally(() => setLoading(false))
+  }, [fid, periode])
+
+  const periodes: [string, string][] = [
+    ['jour', "Aujourd'hui"], ['semaine', '7 jours'], ['mois', '30 jours'], ['tout', 'Tout'],
+  ]
+
+  return (
+    <div className="space-y-5">
+      {/* Filtre période */}
+      <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+        {periodes.map(([k, label]) => (
+          <button key={k} onClick={() => setPeriode(k)}
+            className={`shrink-0 text-xs font-semibold px-4 py-2 rounded-xl transition-all ${periode === k ? 'bg-stone-800 text-white' : 'bg-white text-stone-500 border border-stone-200'}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {loading ? <Spinner label="Chargement des statistiques…" /> : !stats ? (
+        <p className="text-center text-stone-400 py-10">Aucune donnée disponible.</p>
+      ) : (
+        <>
+          {/* Cartes principales */}
+          <div className="grid grid-cols-2 gap-3">
+            <StatCard label="Commandes" valeur={String(stats.nb_commandes)} sous={`${stats.nb_terminees} terminées`} accent="bg-blue-50 text-blue-600" />
+            <StatCard label="Chiffre d'affaires" valeur={fmtDA(stats.chiffre_affaires)} sous="total encaissé" accent="bg-emerald-50 text-emerald-600" />
+            <StatCard label="Panier moyen" valeur={fmtDA(stats.panier_moyen)} sous="par commande" accent="bg-amber-50 text-amber-600" />
+            <StatCard label="Note moyenne" valeur={stats.note_moyenne != null ? `★ ${stats.note_moyenne}` : '—'} sous={`${stats.nb_avis} avis`} accent="bg-yellow-50 text-yellow-600" />
+            <StatCard label="Produits" valeur={String(stats.nb_produits)} sous={`${stats.nb_promos} en promo`} accent="bg-purple-50 text-purple-600" />
+            <StatCard label="En promo" valeur={String(stats.nb_promos)} sous="produits réduits" accent="bg-pink-50 text-pink-600" />
+          </div>
+
+          {/* Répartition par statut */}
+          {stats.par_statut && Object.keys(stats.par_statut).length > 0 && (
+            <div className="bg-white rounded-2xl border border-stone-100 p-4">
+              <p className="text-sm font-bold text-stone-700 mb-3">Commandes par statut</p>
+              <div className="space-y-2">
+                {Object.entries(stats.par_statut).map(([statut, nb]) => (
+                  <div key={statut} className="flex items-center justify-between text-sm">
+                    <span className="text-stone-500 capitalize">{statut}</span>
+                    <span className="font-bold text-stone-800">{String(nb)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <p className="text-[11px] text-stone-400 text-center">Les vues et clics seront disponibles prochainement.</p>
+        </>
+      )}
+    </div>
+  )
+}
+
+function StatCard({ label, valeur, sous, accent }: { label: string; valeur: string; sous?: string; accent: string }) {
+  return (
+    <div className="bg-white rounded-2xl border border-stone-100 p-4">
+      <div className={`inline-block text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full mb-2 ${accent}`}>{label}</div>
+      <p className="text-2xl font-extrabold text-stone-800 leading-none">{valeur}</p>
+      {sous && <p className="text-[11px] text-stone-400 mt-1">{sous}</p>}
     </div>
   )
 }

@@ -180,6 +180,7 @@ export const fournisseurApi = {
   supprimerCommande: (cid: number): Promise<any> => req(`/commandes/${cid}/supprimer`, { method: 'PUT' }),
   restaurerCommande: (cid: number): Promise<any> => req(`/commandes/${cid}/restaurer`, { method: 'PUT' }),
   note: (fid: number): Promise<{ moyenne: number; nombre: number }> => req(`/fournisseurs/${fid}/note`),
+  statistiques: (fid: number, periode: string): Promise<any> => req(`/fournisseurs/${fid}/statistiques?periode=${periode}`),
   modifierInfos: (fid: number, payload: { nom?: string; categorie?: string; adresse?: string; telephone?: string; latitude?: number; longitude?: number; heure_ouverture?: string; heure_fermeture?: string; presentation?: string; livraison_gratuite?: boolean; frais_min?: number; frais_max?: number }): Promise<any> =>
     req(`/fournisseurs/${fid}/infos`, { method: 'PUT', body: JSON.stringify(payload) }),
   getInfos: (fid: number): Promise<any> => req(`/fournisseurs/${fid}/infos`),
