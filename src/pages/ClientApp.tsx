@@ -351,6 +351,18 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
   const [filtreCat, setFiltreCat] = useState('Tous')
   const [monAvisId, setMonAvisId] = useState<number | null>(null)
   const [editingAvis, setEditingAvis] = useState(false)
+  const [maPos, setMaPos] = useState<{ lat: number; lng: number } | null>(null)
+
+  // récupérer la position pour estimer temps + distance
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setMaPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => {}, { timeout: 6000 }
+      )
+    }
+  }, [])
+  const distMenu = distanceKm(maPos?.lat, maPos?.lng, store.latitude, store.longitude)
 
   const chargerAvis = () => clientApi.avis(store.id).then((a) => setAvis(Array.isArray(a) ? a : [])).catch(() => {})
 
@@ -466,6 +478,27 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
       </div>
 
       {banner && <div className="relative h-40 bg-amber-50 overflow-hidden max-w-lg mx-auto"><img src={banner} alt={store.nom} className="w-full h-full object-cover" /><div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" /></div>}
+
+      {/* Barre infos livraison : frais | temps | note */}
+      <div className="max-w-lg mx-auto px-4 pt-3">
+        <div className="bg-white rounded-2xl border border-stone-100 shadow-sm grid grid-cols-3 divide-x divide-stone-100">
+          <div className="px-2 py-3 text-center">
+            <p className="text-[10px] text-stone-400 uppercase tracking-wide mb-0.5">Livraison</p>
+            <p className="text-sm font-bold text-stone-800">
+              {store.livraison_gratuite ? <span className="text-emerald-600">Gratuite</span>
+                : (store.frais_min != null ? `${store.frais_min}${store.frais_max && store.frais_max !== store.frais_min ? '–'+store.frais_max : ''} DA` : '—')}
+            </p>
+          </div>
+          <div className="px-2 py-3 text-center">
+            <p className="text-[10px] text-stone-400 uppercase tracking-wide mb-0.5">Temps</p>
+            <p className="text-sm font-bold text-stone-800">{tempsLivraison(distMenu) || '—'}</p>
+          </div>
+          <div className="px-2 py-3 text-center">
+            <p className="text-[10px] text-stone-400 uppercase tracking-wide mb-0.5">Note</p>
+            <p className="text-sm font-bold text-stone-800">{store.note_moyenne ? `★ ${store.note_moyenne.toFixed(1)}` : '—'}</p>
+          </div>
+        </div>
+      </div>
 
       {(store.adresse || store.telephone || store.heure_ouverture) && (
         <div className="max-w-lg mx-auto px-4 pt-4">

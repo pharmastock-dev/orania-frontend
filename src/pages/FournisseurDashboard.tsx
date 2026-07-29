@@ -636,14 +636,19 @@ function InfosTab({ session }: { session: FournisseurSession }) {
   const sauver = async () => {
     setSaving(true); setError(''); setDone(false)
     try {
+      const payloadFrais = livraisonGratuite
+        ? {}
+        : {
+            frais_min: fraisMin !== '' ? Number(fraisMin) : undefined,
+            frais_max: fraisMax !== '' ? Number(fraisMax) : undefined,
+          }
       await fournisseurApi.modifierInfos(session.id, {
         nom, categorie, adresse, telephone,
         latitude: position?.lat, longitude: position?.lng,
         heure_ouverture: ouverture, heure_fermeture: fermeture,
         presentation,
         livraison_gratuite: livraisonGratuite,
-        frais_min: livraisonGratuite ? undefined : (fraisMin ? Number(fraisMin) : undefined),
-        frais_max: livraisonGratuite ? undefined : (fraisMax ? Number(fraisMax) : undefined),
+        ...payloadFrais,
       })
       // mettre à jour la session stockée
       const s = { ...session, nom, categorie, adresse, telephone, latitude: position?.lat, longitude: position?.lng, heure_ouverture: ouverture, heure_fermeture: fermeture, presentation, livraison_gratuite: livraisonGratuite, frais_min: fraisMin ? Number(fraisMin) : null, frais_max: fraisMax ? Number(fraisMax) : null }

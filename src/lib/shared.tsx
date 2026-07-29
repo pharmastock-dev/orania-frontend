@@ -101,10 +101,10 @@ export const statutInfo = (s: string) =>
 // distanceKm : distance client<->magasin. Retourne une fourchette lisible, ex "20–26 min".
 export function tempsLivraison(distanceKm?: number | null): string | null {
   if (distanceKm == null || isNaN(distanceKm)) return null
-  const preparation = 12 // minutes de préparation moyennes
-  const trajet = Math.round(distanceKm * 2) // 1 km = 2 min
+  const preparation = 5 // préparation moyenne (min)
+  const trajet = distanceKm * 2 // 1 km = 2 min (moto)
   const total = preparation + trajet
-  const min = Math.max(10, total - 3)
-  const max = total + 5
+  const min = Math.max(5, Math.round(total))
+  const max = Math.round(total) + 4
   return `${min}–${max} min`
 }
