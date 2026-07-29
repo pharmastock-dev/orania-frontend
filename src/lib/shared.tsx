@@ -96,3 +96,15 @@ export function magasinOuvert(ouv?: string | null, fer?: string | null): boolean
 }
 export const statutInfo = (s: string) =>
   STATUTS[s] ?? { label: s, bg: 'bg-stone-100', text: 'text-stone-600' }
+
+// ─── Temps de livraison estimé (moto : 1 km ≈ 2 min + préparation) ──────────
+// distanceKm : distance client<->magasin. Retourne une fourchette lisible, ex "20–26 min".
+export function tempsLivraison(distanceKm?: number | null): string | null {
+  if (distanceKm == null || isNaN(distanceKm)) return null
+  const preparation = 12 // minutes de préparation moyennes
+  const trajet = Math.round(distanceKm * 2) // 1 km = 2 min
+  const total = preparation + trajet
+  const min = Math.max(10, total - 3)
+  const max = total + 5
+  return `${min}–${max} min`
+}

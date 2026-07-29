@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { clientApi, reclamationApi, type Acheteur, type Fournisseur, type Produit, type Avis } from '../lib/api'
-import { StarRating, getCat, imgUrl, fmtDA, Spinner, magasinOuvert, hhmm } from '../lib/shared'
+import { StarRating, getCat, imgUrl, fmtDA, Spinner, magasinOuvert, hhmm, tempsLivraison } from '../lib/shared'
 import { catEmoji } from '../lib/categories'
 import { LogoOrania } from '../components/Logo'
 import { MapPicker, MapView } from '../components/Map'
@@ -149,6 +149,15 @@ function StoreCard({ store, distance, onClick }: { store: Fournisseur; distance?
           {store.heure_ouverture && <p className="text-[11px] text-stone-400">🕐 {hhmm(store.heure_ouverture)}–{hhmm(store.heure_fermeture)}</p>}
           {distance != null && <p className="text-[11px] text-amber-600 font-semibold">📍 {distance < 1 ? Math.round(distance * 1000) + ' m' : distance.toFixed(1) + ' km'}</p>}
         </div>
+        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+          {distance != null && tempsLivraison(distance) && (
+            <span className="text-[11px] text-stone-600 font-medium bg-stone-100 px-2 py-0.5 rounded-full">🛵 {tempsLivraison(distance)}</span>
+          )}
+          {store.livraison_gratuite
+            ? <span className="text-[11px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full">Livraison gratuite</span>
+            : (store.frais_min != null && <span className="text-[11px] text-stone-600 font-medium bg-stone-100 px-2 py-0.5 rounded-full">Livraison {store.frais_min}{store.frais_max && store.frais_max !== store.frais_min ? `–${store.frais_max}` : ''} DA</span>)
+          }
+        </div>
       </div>
     </button>
   )
@@ -173,6 +182,7 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
   const [search, setSearch] = useState(''); const [cat, setCat] = useState('Tous')
   const [tri, setTri] = useState<TriMode>('distance')
   const [filtreOuvert, setFiltreOuvert] = useState<'tous' | 'ouvert' | 'ferme'>('tous')
+  const [filtreGratuit, setFiltreGratuit] = useState(false)
   const [showFiltre, setShowFiltre] = useState(false)
   const [maPos, setMaPos] = useState<{ lat: number; lng: number } | null>(null)
   const [posErr, setPosErr] = useState(false)
@@ -215,6 +225,9 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
       if (filtreOuvert === 'ferme') return o === false
       return true
     })
+  }
+  if (filtreGratuit) {
+    filtered = filtered.filter((s) => s.livraison_gratuite === true)
   }
 
   // tri
@@ -291,6 +304,10 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
                   : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
               }`}>{label}</button>
           ))}
+          <button onClick={() => setFiltreGratuit((v) => !v)}
+            className={`shrink-0 text-xs font-semibold px-4 py-1.5 rounded-full transition-all ${filtreGratuit ? 'bg-emerald-500 text-white' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}>
+            🛵 Livraison gratuite
+          </button>
         </div>
       </div>
 

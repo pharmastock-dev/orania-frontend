@@ -626,6 +626,9 @@ function InfosTab({ session }: { session: FournisseurSession }) {
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(
     session.latitude != null && session.longitude != null ? { lat: session.latitude, lng: session.longitude } : null
   )
+  const [livraisonGratuite, setLivraisonGratuite] = useState(!!session.livraison_gratuite)
+  const [fraisMin, setFraisMin] = useState(session.frais_min != null ? String(session.frais_min) : '')
+  const [fraisMax, setFraisMax] = useState(session.frais_max != null ? String(session.frais_max) : '')
   const [saving, setSaving] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
@@ -638,9 +641,12 @@ function InfosTab({ session }: { session: FournisseurSession }) {
         latitude: position?.lat, longitude: position?.lng,
         heure_ouverture: ouverture, heure_fermeture: fermeture,
         presentation,
+        livraison_gratuite: livraisonGratuite,
+        frais_min: livraisonGratuite ? undefined : (fraisMin ? Number(fraisMin) : undefined),
+        frais_max: livraisonGratuite ? undefined : (fraisMax ? Number(fraisMax) : undefined),
       })
       // mettre à jour la session stockée
-      const s = { ...session, nom, categorie, adresse, telephone, latitude: position?.lat, longitude: position?.lng, heure_ouverture: ouverture, heure_fermeture: fermeture, presentation }
+      const s = { ...session, nom, categorie, adresse, telephone, latitude: position?.lat, longitude: position?.lng, heure_ouverture: ouverture, heure_fermeture: fermeture, presentation, livraison_gratuite: livraisonGratuite, frais_min: fraisMin ? Number(fraisMin) : null, frais_max: fraisMax ? Number(fraisMax) : null }
       localStorage.setItem('fournisseur', JSON.stringify(s))
       setDone(true)
       setTimeout(() => location.reload(), 800)
@@ -693,6 +699,28 @@ function InfosTab({ session }: { session: FournisseurSession }) {
             onChange={(e) => setPresentation(e.target.value)}
             placeholder="Présentez votre commerce : votre histoire, vos spécialités, ce qui vous rend unique, vos garanties…" />
           <p className="text-[11px] text-stone-400 mt-1">Ce texte sera visible par les clients sur votre page.</p>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-stone-100 p-4">
+          <p className="text-sm font-bold text-stone-700 mb-3">🛵 Livraison</p>
+          <label className="flex items-center gap-3 cursor-pointer mb-3">
+            <input type="checkbox" checked={livraisonGratuite} onChange={(e) => setLivraisonGratuite(e.target.checked)} className="w-5 h-5 accent-emerald-500" />
+            <span className="text-sm text-stone-700 font-medium">Livraison gratuite</span>
+          </label>
+          {!livraisonGratuite && (
+            <div className="flex gap-2 items-center">
+              <div className="flex-1">
+                <label className="text-[11px] text-stone-400">Frais min (DA)</label>
+                <input value={fraisMin} onChange={(e) => setFraisMin(e.target.value.replace(/[^0-9]/g, ''))} placeholder="100" className={inputCls} />
+              </div>
+              <span className="text-stone-300 mt-4">—</span>
+              <div className="flex-1">
+                <label className="text-[11px] text-stone-400">Frais max (DA)</label>
+                <input value={fraisMax} onChange={(e) => setFraisMax(e.target.value.replace(/[^0-9]/g, ''))} placeholder="200" className={inputCls} />
+              </div>
+            </div>
+          )}
+          <p className="text-[11px] text-stone-400 mt-2">Le temps de livraison est calculé automatiquement selon la distance (moto).</p>
         </div>
 
         <div>

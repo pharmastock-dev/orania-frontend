@@ -31,6 +31,9 @@ export interface Fournisseur {
   adresse?: string | null
   telephone?: string | null
   presentation?: string | null
+  livraison_gratuite?: boolean | null
+  frais_min?: number | null
+  frais_max?: number | null
   note_moyenne?: number | null
   nb_avis?: number
   latitude?: number | null
@@ -136,6 +139,9 @@ export interface LoginFournisseurResult {
   presentation?: string | null
   latitude?: number | null
   longitude?: number | null
+  livraison_gratuite?: boolean | null
+  frais_min?: number | null
+  frais_max?: number | null
   abonnement_fin?: string
 }
 
@@ -173,7 +179,7 @@ export const fournisseurApi = {
   supprimerCommande: (cid: number): Promise<any> => req(`/commandes/${cid}/supprimer`, { method: 'PUT' }),
   restaurerCommande: (cid: number): Promise<any> => req(`/commandes/${cid}/restaurer`, { method: 'PUT' }),
   note: (fid: number): Promise<{ moyenne: number; nombre: number }> => req(`/fournisseurs/${fid}/note`),
-  modifierInfos: (fid: number, payload: { nom?: string; categorie?: string; adresse?: string; telephone?: string; latitude?: number; longitude?: number; heure_ouverture?: string; heure_fermeture?: string; presentation?: string }): Promise<any> =>
+  modifierInfos: (fid: number, payload: { nom?: string; categorie?: string; adresse?: string; telephone?: string; latitude?: number; longitude?: number; heure_ouverture?: string; heure_fermeture?: string; presentation?: string; livraison_gratuite?: boolean; frais_min?: number; frais_max?: number }): Promise<any> =>
     req(`/fournisseurs/${fid}/infos`, { method: 'PUT', body: JSON.stringify(payload) }),
   getInfos: (fid: number): Promise<any> => req(`/fournisseurs/${fid}/infos`),
   evaluations: (fid: number): Promise<Evaluation[]> => req(`/fournisseurs/${fid}/evaluations`),
