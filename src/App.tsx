@@ -25,18 +25,23 @@ export default function App() {
 
   // ouvrir un portail en ajoutant une entrée d'historique (pour le bouton retour du téléphone)
   const ouvrirPortail = (p: Portail) => {
-    window.history.pushState({ portail: p }, '')
+    window.history.pushState({ level: 'portail' }, '')
     setPortail(p)
   }
 
-  // bouton retour physique du téléphone : revenir à l'accueil au lieu de quitter
+  // Bouton retour physique / flèche navigateur, au niveau des portails.
+  // window.__oraniaBackDepth compte les sous-écrans internes ouverts (ex: menu magasin).
+  // Tant qu'il en reste, on ne remonte PAS à l'accueil : le portail les ferme lui-même.
   useEffect(() => {
+    ;(window as any).__oraniaBackDepth = 0
     const onPop = () => {
-      setPortail((cur) => {
-        // si un fournisseur est connecté, le bouton retour ne le déconnecte pas depuis l'accueil
-        if (cur !== 'accueil') return 'accueil'
-        return cur
-      })
+      const d = (window as any).__oraniaBackDepth || 0
+      if (d > 0) {
+        // un sous-écran est ouvert : le portail va le fermer via son propre listener
+        ;(window as any).__oraniaBackDepth = d - 1
+        return
+      }
+      setPortail((cur) => (cur !== 'accueil' ? 'accueil' : cur))
     }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)

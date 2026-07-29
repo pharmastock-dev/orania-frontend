@@ -27,36 +27,34 @@ export function ClientApp({ onExit }: { onExit: () => void }) {
         } else {
           setPage('stores')
         }
-        // empiler un état de base pour que le bouton retour du téléphone reste dans l'app
-        window.history.pushState({ clientPage: 'base' }, '')
       } catch { localStorage.removeItem('acheteur') }
     }
   }, [])
 
   const goStores = () => {
     localStorage.setItem('client_page', 'stores'); localStorage.removeItem('client_store')
+    // on ferme le sous-écran via l'UI : reculer dans l'historique (déclenche popstate géré)
+    if (((window as any).__oraniaBackDepth || 0) > 0) { window.history.back(); return }
     setStore(null); setPage('stores')
   }
   const goMenu = (s: Fournisseur) => {
     localStorage.setItem('client_page', 'menu'); localStorage.setItem('client_store', JSON.stringify(s))
-    // empiler un état "menu" : le bouton retour du téléphone reviendra aux magasins
+    // signaler à App qu'un sous-écran est ouvert (le bouton retour reviendra aux magasins)
+    ;(window as any).__oraniaBackDepth = ((window as any).__oraniaBackDepth || 0) + 1
     window.history.pushState({ clientPage: 'menu' }, '')
     setStore(s); setPage('menu')
   }
 
-  // bouton retour physique du téléphone
+  // bouton retour physique (téléphone) ou flèche navigateur (PC)
   useEffect(() => {
     const onPop = () => {
       setPage((cur) => {
         if (cur === 'menu') {
-          // du menu -> revenir à la liste des magasins (NE PAS quitter)
+          // fermer le menu et revenir à la liste des magasins
           setStore(null)
           localStorage.setItem('client_page', 'stores'); localStorage.removeItem('client_store')
-          window.history.pushState({ clientPage: 'base' }, '')  // ré-empiler pour rester dans l'app
           return 'stores'
         }
-        // depuis la liste des magasins -> ré-empiler pour ne pas sortir brutalement
-        window.history.pushState({ clientPage: 'base' }, '')
         return cur
       })
     }
@@ -66,7 +64,6 @@ export function ClientApp({ onExit }: { onExit: () => void }) {
 
   const login = (a: Acheteur) => {
     setAcheteur(a); localStorage.setItem('client_page', 'stores'); setPage('stores')
-    window.history.pushState({ clientPage: 'base' }, '')
   }
   // retour à l'accueil SANS effacer le compte (le client reste connecté)
   const retourAccueil = () => { onExit() }
