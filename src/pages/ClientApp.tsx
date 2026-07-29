@@ -27,23 +27,36 @@ export function ClientApp({ onExit }: { onExit: () => void }) {
         } else {
           setPage('stores')
         }
+        // empiler un état de base pour que le bouton retour du téléphone reste dans l'app
+        window.history.pushState({ clientPage: 'base' }, '')
       } catch { localStorage.removeItem('acheteur') }
     }
   }, [])
 
-  const goStores = () => { localStorage.setItem('client_page', 'stores'); localStorage.removeItem('client_store'); setStore(null); setPage('stores') }
+  const goStores = () => {
+    localStorage.setItem('client_page', 'stores'); localStorage.removeItem('client_store')
+    setStore(null); setPage('stores')
+  }
   const goMenu = (s: Fournisseur) => {
     localStorage.setItem('client_page', 'menu'); localStorage.setItem('client_store', JSON.stringify(s))
-    window.history.pushState({ page: 'menu' }, '')  // ajoute une entrée pour le bouton retour du téléphone
+    // empiler un état "menu" : le bouton retour du téléphone reviendra aux magasins
+    window.history.pushState({ clientPage: 'menu' }, '')
     setStore(s); setPage('menu')
   }
 
-  // bouton retour physique du téléphone : revenir à la page précédente, pas quitter
+  // bouton retour physique du téléphone
   useEffect(() => {
     const onPop = () => {
-      // si on est dans le menu, revenir à la liste des magasins
       setPage((cur) => {
-        if (cur === 'menu') { setStore(null); localStorage.setItem('client_page', 'stores'); localStorage.removeItem('client_store'); return 'stores' }
+        if (cur === 'menu') {
+          // du menu -> revenir à la liste des magasins (NE PAS quitter)
+          setStore(null)
+          localStorage.setItem('client_page', 'stores'); localStorage.removeItem('client_store')
+          window.history.pushState({ clientPage: 'base' }, '')  // ré-empiler pour rester dans l'app
+          return 'stores'
+        }
+        // depuis la liste des magasins -> ré-empiler pour ne pas sortir brutalement
+        window.history.pushState({ clientPage: 'base' }, '')
         return cur
       })
     }
@@ -51,7 +64,13 @@ export function ClientApp({ onExit }: { onExit: () => void }) {
     return () => window.removeEventListener('popstate', onPop)
   }, [])
 
-  const login = (a: Acheteur) => { setAcheteur(a); localStorage.setItem('client_page', 'stores'); setPage('stores') }
+  const login = (a: Acheteur) => {
+    setAcheteur(a); localStorage.setItem('client_page', 'stores'); setPage('stores')
+    window.history.pushState({ clientPage: 'base' }, '')
+  }
+  // retour à l'accueil SANS effacer le compte (le client reste connecté)
+  const retourAccueil = () => { onExit() }
+  // déconnexion complète : efface le compte, il faudra re-saisir nom+téléphone
   const logout = () => {
     localStorage.removeItem('acheteur'); localStorage.removeItem('client_page'); localStorage.removeItem('client_store')
     setAcheteur(null); setStore(null); onExit()
@@ -59,7 +78,7 @@ export function ClientApp({ onExit }: { onExit: () => void }) {
 
   if (page === 'login' || !acheteur) return <LoginPage onLogin={login} onExit={onExit} />
   if (page === 'menu' && store) return <MenuPage acheteur={acheteur} store={store} onBack={goStores} />
-  return <StoresPage acheteur={acheteur} onSelect={goMenu} onLogout={logout} />
+  return <StoresPage acheteur={acheteur} onSelect={goMenu} onRetour={retourAccueil} onLogout={logout} />
 }
 
 // ─── Login ────────────────────────────────────────────────────────────────────
@@ -150,7 +169,7 @@ function distanceKm(la1?: number | null, lo1?: number | null, la2?: number | nul
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
-function StoresPage({ acheteur, onSelect, onLogout }: { acheteur: Acheteur; onSelect: (s: Fournisseur) => void; onLogout: () => void }) {
+function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Acheteur; onSelect: (s: Fournisseur) => void; onRetour: () => void; onLogout: () => void }) {
   const [showCompte, setShowCompte] = useState(false)
   const [stores, setStores] = useState<Fournisseur[]>([])
   const [loading, setLoading] = useState(true); const [error, setError] = useState(false)
@@ -217,7 +236,7 @@ function StoresPage({ acheteur, onSelect, onLogout }: { acheteur: Acheteur; onSe
     <div className="min-h-screen bg-stone-50">
       <div className="bg-white border-b border-stone-100 sticky top-0 z-20 shadow-sm shadow-stone-50">
         <div className="px-4 pt-4 pb-2 flex items-center gap-3 max-w-lg mx-auto">
-          <button onClick={onLogout} title="Retour à l'accueil"
+          <button onClick={onRetour} title="Retour à l'accueil"
             className="shrink-0 w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700 text-lg font-bold">←</button>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2"><LogoOrania size={26} /><h1 className="font-extrabold text-stone-900 text-lg truncate">Orania</h1></div>
@@ -225,7 +244,7 @@ function StoresPage({ acheteur, onSelect, onLogout }: { acheteur: Acheteur; onSe
           </div>
           <button onClick={() => setShowCompte(true)} className="shrink-0 text-xs text-stone-500 hover:text-amber-600 transition-colors px-3 py-1.5 rounded-xl hover:bg-amber-50">👤 Compte</button>
         </div>
-        {showCompte && <CompteModal acheteur={acheteur} onClose={() => setShowCompte(false)} />}
+        {showCompte && <CompteModal acheteur={acheteur} onClose={() => setShowCompte(false)} onLogout={onLogout} />}
 
         {/* Barre recherche + bouton filtre */}
         <div className="px-4 pb-3 pt-1 max-w-lg mx-auto flex gap-2">
@@ -617,7 +636,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
 }
 
 // ─── Modale compte + réclamation (client) ──────────────────────────────────────
-function CompteModal({ acheteur, onClose }: { acheteur: Acheteur; onClose: () => void }) {
+function CompteModal({ acheteur, onClose, onLogout }: { acheteur: Acheteur; onClose: () => void; onLogout: () => void }) {
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
@@ -673,6 +692,12 @@ function CompteModal({ acheteur, onClose }: { acheteur: Acheteur; onClose: () =>
             </button>
           </>
         )}
+
+        {/* Déconnexion : efface le compte, il faudra re-saisir nom+téléphone */}
+        <button onClick={() => { if (confirm('Se déconnecter ? Vous devrez ressaisir votre nom et téléphone.')) onLogout() }}
+          className="w-full mt-4 border border-red-200 text-red-500 hover:bg-red-50 font-semibold py-3 rounded-2xl transition-all">
+          🚪 Se déconnecter
+        </button>
       </div>
     </div>
   )
