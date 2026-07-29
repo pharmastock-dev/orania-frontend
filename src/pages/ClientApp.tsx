@@ -338,7 +338,14 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
   const [produits, setProduits] = useState<Produit[]>([])
   const [avis, setAvis] = useState<Avis[]>([])
   const [loading, setLoading] = useState(true)
-  const [cart, setCart] = useState<CartItem[]>([])
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    // restaurer le panier seulement s'il appartient à CE magasin
+    try {
+      const raw = localStorage.getItem('orania_cart')
+      if (raw) { const parsed = JSON.parse(raw); if (parsed.storeId === store.id) return parsed.items || [] }
+    } catch {}
+    return []
+  })
   const [showSheet, setShowSheet] = useState(false)
   const [livraison, setLivraison] = useState(true)
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null)
@@ -379,7 +386,29 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
       .catch(() => setLoading(false))
   }, [store.id, acheteur.id])
 
-  const add = (p: Produit) => setCart((prev) => { const f = prev.find((i) => i.produit.id === p.id); return f ? prev.map((i) => i.produit.id === p.id ? { ...i, quantite: i.quantite + 1 } : i) : [...prev, { produit: p, quantite: 1 }] })
+  // sauvegarder le panier + le magasin auquel il appartient
+  useEffect(() => {
+    if (cart.length > 0) localStorage.setItem('orania_cart', JSON.stringify({ storeId: store.id, storeName: store.nom, items: cart }))
+    else localStorage.removeItem('orania_cart')
+  }, [cart, store.id, store.nom])
+
+  // ajouter un produit — avertir si le panier contient déjà des produits d'un AUTRE magasin
+  const add = (p: Produit) => {
+    try {
+      const raw = localStorage.getItem('orania_cart')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (parsed.storeId && parsed.storeId !== store.id && (parsed.items?.length > 0)) {
+          const ok = window.confirm(`Votre panier contient déjà des produits de « ${parsed.storeName || 'un autre commerce'} ».\n\nVous ne pouvez commander que d'un seul commerce à la fois. Vider le panier précédent et commander ici ?`)
+          if (!ok) return
+          localStorage.removeItem('orania_cart')
+          setCart([{ produit: p, quantite: 1 }])
+          return
+        }
+      }
+    } catch {}
+    setCart((prev) => { const f = prev.find((i) => i.produit.id === p.id); return f ? prev.map((i) => i.produit.id === p.id ? { ...i, quantite: i.quantite + 1 } : i) : [...prev, { produit: p, quantite: 1 }] })
+  }
   const remove = (id: number) => setCart((prev) => { const f = prev.find((i) => i.produit.id === id); return f && f.quantite > 1 ? prev.map((i) => i.produit.id === id ? { ...i, quantite: i.quantite - 1 } : i) : prev.filter((i) => i.produit.id !== id) })
   const qty = (id: number) => cart.find((i) => i.produit.id === id)?.quantite ?? 0
   const prixEff = (p: Produit) => Number(p.prix_promo != null ? p.prix_promo : p.prix)
@@ -409,7 +438,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
       })
       setOrderCode(cmd.code_confirmation || '------')
     } catch { setOrderCode('------') }
-    setCart([]); setShowSheet(false); setOrdering(false)
+    setCart([]); localStorage.removeItem('orania_cart'); setShowSheet(false); setOrdering(false)
   }
 
   const submitAvis = async () => {
