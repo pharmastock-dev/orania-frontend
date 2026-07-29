@@ -464,11 +464,17 @@ function ProduitRow({ p, onChange }: { p: Produit; onChange: () => void }) {
   const [editing, setEditing] = useState(false)
   const [nom, setNom] = useState(p.nom)
   const [prix, setPrix] = useState(String(p.prix))
+  const [prixPromo, setPrixPromo] = useState(p.prix_promo != null ? String(p.prix_promo) : '')
   const [categorie, setCategorie] = useState(p.categorie || 'Autre')
   const [ingredients, setIngredients] = useState(p.ingredients || '')
   const [img, setImg] = useState<string | null>(imgUrl(p.image_url))
 
-  const sauver = async () => { await fournisseurApi.modifierProduit(p.id, { nom, prix: Number(prix), categorie, ingredients }); setEditing(false); onChange() }
+  const sauver = async () => {
+    const payload: any = { nom, prix: Number(prix), categorie, ingredients }
+    if (prixPromo.trim() === '') payload.retirer_promo = true
+    else payload.prix_promo = Number(prixPromo)
+    await fournisseurApi.modifierProduit(p.id, payload); setEditing(false); onChange()
+  }
   const toggleDispo = async () => { await fournisseurApi.modifierProduit(p.id, { disponible: !p.disponible }); onChange() }
   const supprimer = async () => { if (confirm(`Supprimer "${p.nom}" ?`)) { await fournisseurApi.supprimerProduit(p.id); onChange() } }
   const upload = async (file: File) => { const r = await fournisseurApi.uploadImageProduit(p.id, file); if (r.image_url) setImg(imgUrl(r.image_url) + '?t=' + Date.now()) }
@@ -481,7 +487,8 @@ function ProduitRow({ p, onChange }: { p: Produit; onChange: () => void }) {
       {editing ? (
         <div className="flex-1 flex flex-wrap gap-2">
           <input value={nom} onChange={(e) => setNom(e.target.value)} className="flex-1 min-w-[100px] text-sm border border-stone-200 rounded-lg px-2 py-1.5" />
-          <input value={prix} onChange={(e) => setPrix(e.target.value)} type="number" className="w-20 text-sm border border-stone-200 rounded-lg px-2 py-1.5" />
+          <input value={prix} onChange={(e) => setPrix(e.target.value)} type="number" placeholder="Prix" className="w-20 text-sm border border-stone-200 rounded-lg px-2 py-1.5" />
+          <input value={prixPromo} onChange={(e) => setPrixPromo(e.target.value)} type="number" placeholder="Promo" className="w-20 text-sm border border-pink-200 bg-pink-50 rounded-lg px-2 py-1.5" title="Prix promo (laisser vide = pas de promo)" />
           <input list="cats-produits-edit" value={categorie} onChange={(e) => setCategorie(e.target.value)}
             placeholder="Type" className="w-24 text-sm border border-stone-200 rounded-lg px-2 py-1.5 bg-white" />
           <datalist id="cats-produits-edit">
@@ -494,8 +501,12 @@ function ProduitRow({ p, onChange }: { p: Produit; onChange: () => void }) {
       ) : (
         <>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-stone-800 text-sm truncate">{p.nom}</p>
-            <p className="text-amber-600 font-bold text-sm">{fmtDA(p.prix)}</p>
+            <p className="font-semibold text-stone-800 text-sm truncate">{p.nom}
+              {p.prix_promo != null && <span className="ml-1.5 text-[10px] bg-pink-100 text-pink-600 font-bold px-1.5 py-0.5 rounded-full align-middle">PROMO</span>}
+            </p>
+            {p.prix_promo != null
+              ? <p className="text-sm"><span className="text-pink-600 font-bold">{fmtDA(p.prix_promo)}</span> <span className="text-stone-400 line-through text-xs">{fmtDA(p.prix)}</span></p>
+              : <p className="text-amber-600 font-bold text-sm">{fmtDA(p.prix)}</p>}
             {p.ingredients && <p className="text-[11px] text-stone-400 truncate">🧾 {p.ingredients}</p>}
             {!p.disponible && <span className="text-[10px] text-red-400 font-semibold">Indisponible</span>}
           </div>

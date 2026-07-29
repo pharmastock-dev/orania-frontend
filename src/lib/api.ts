@@ -48,6 +48,7 @@ export interface Produit {
   id: number
   nom: string
   prix: number
+  prix_promo?: number | null
   categorie?: string | null
   ingredients?: string | null
   image_url?: string | null
@@ -160,9 +161,9 @@ export const fournisseurApi = {
   }): Promise<RegisterResult> => req('/fournisseurs', { method: 'POST', body: JSON.stringify(payload) }),
   produits: (fid: number): Promise<Produit[]> => req(`/fournisseurs/${fid}/produits`),
   ajouterProduit: (payload: {
-    fournisseur_id: number; nom: string; prix: number; categorie?: string; ingredients?: string; disponible: boolean
+    fournisseur_id: number; nom: string; prix: number; prix_promo?: number; categorie?: string; ingredients?: string; disponible: boolean
   }): Promise<any> => req('/produits', { method: 'POST', body: JSON.stringify(payload) }),
-  modifierProduit: (pid: number, payload: { nom?: string; prix?: number; categorie?: string; ingredients?: string; disponible?: boolean }): Promise<any> =>
+  modifierProduit: (pid: number, payload: { nom?: string; prix?: number; prix_promo?: number; retirer_promo?: boolean; categorie?: string; ingredients?: string; disponible?: boolean }): Promise<any> =>
     req(`/produits/${pid}`, { method: 'PUT', body: JSON.stringify(payload) }),
   supprimerProduit: (pid: number): Promise<any> => req(`/produits/${pid}`, { method: 'DELETE' }),
   livreurs: (fid: number): Promise<Livreur[]> => req(`/fournisseurs/${fid}/livreurs`),

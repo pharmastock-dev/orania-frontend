@@ -382,8 +382,9 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
   const add = (p: Produit) => setCart((prev) => { const f = prev.find((i) => i.produit.id === p.id); return f ? prev.map((i) => i.produit.id === p.id ? { ...i, quantite: i.quantite + 1 } : i) : [...prev, { produit: p, quantite: 1 }] })
   const remove = (id: number) => setCart((prev) => { const f = prev.find((i) => i.produit.id === id); return f && f.quantite > 1 ? prev.map((i) => i.produit.id === id ? { ...i, quantite: i.quantite - 1 } : i) : prev.filter((i) => i.produit.id !== id) })
   const qty = (id: number) => cart.find((i) => i.produit.id === id)?.quantite ?? 0
+  const prixEff = (p: Produit) => Number(p.prix_promo != null ? p.prix_promo : p.prix)
   const totalItems = cart.reduce((s, i) => s + i.quantite, 0)
-  const totalPrice = cart.reduce((s, i) => s + Number(i.produit.prix) * i.quantite, 0)
+  const totalPrice = cart.reduce((s, i) => s + prixEff(i.produit) * i.quantite, 0)
 
   const placeOrder = async () => {
     setOrdering(true)
@@ -524,6 +525,10 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
             <>
             {cats.length > 1 && (
               <div className="flex gap-2 overflow-x-auto scrollbar-hide -mt-2">
+                <button onClick={() => setFiltreCat('__promo__')}
+                  className={`shrink-0 text-xs font-bold px-4 py-1.5 rounded-full transition-all ${filtreCat === '__promo__' ? 'bg-pink-500 text-white shadow-sm' : 'bg-pink-50 text-pink-600'}`}>
+                  🔥 Promotions
+                </button>
                 {['Tous', ...cats].map((c) => (
                   <button key={c} onClick={() => setFiltreCat(c)}
                     className={`shrink-0 text-xs font-semibold px-4 py-1.5 rounded-full transition-all ${filtreCat === c ? 'bg-amber-500 text-white shadow-sm' : 'bg-stone-100 text-stone-500'}`}>
@@ -532,20 +537,27 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
                 ))}
               </div>
             )}
-            {cats.filter((cat) => filtreCat === 'Tous' || cat === filtreCat).map((cat) => (
+            {cats.filter((cat) => filtreCat === 'Tous' || filtreCat === '__promo__' || cat === filtreCat).map((cat) => {
+              const items = filtreCat === '__promo__' ? groupes[cat].filter((p) => p.prix_promo != null) : groupes[cat]
+              if (items.length === 0) return null
+              return (
               <div key={cat}>
                 <h3 className="text-[11px] font-bold uppercase tracking-widest text-stone-400 mb-3 flex items-center gap-2"><span className="flex-1 h-px bg-stone-100" />{catEmoji(cat)} {cat}<span className="flex-1 h-px bg-stone-100" /></h3>
                 <div className="space-y-3">
-                  {groupes[cat].map((p) => {
+                  {items.map((p) => {
                     const q = qty(p.id); const pimg = imgUrl(p.image_url)
                     return (
                       <div key={p.id} className={`bg-white rounded-2xl p-4 flex gap-3 shadow-sm border border-stone-100 transition-opacity ${!p.disponible ? 'opacity-45' : ''}`}>
                         {pimg && <div className="rounded-xl bg-amber-50 overflow-hidden shrink-0" style={{ width: 70, height: 70 }}><img src={pimg} alt={p.nom} className="w-full h-full object-cover" /></div>}
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-stone-800 text-sm">{p.nom}</p>
+                          <p className="font-bold text-stone-800 text-sm">{p.nom}
+                            {p.prix_promo != null && <span className="ml-1.5 text-[9px] bg-pink-100 text-pink-600 font-bold px-1.5 py-0.5 rounded-full align-middle">PROMO</span>}
+                          </p>
                           {p.ingredients && <p className="text-[11px] text-stone-400 mt-0.5 leading-snug">🧾 {p.ingredients}</p>}
                           {!p.disponible && <span className="inline-block mt-1 text-[10px] font-semibold bg-red-50 text-red-400 px-2 py-0.5 rounded-full">Indisponible</span>}
-                          <p className="text-amber-600 font-extrabold text-sm mt-1.5">{fmtDA(p.prix)}</p>
+                          {p.prix_promo != null
+                            ? <p className="mt-1.5 text-sm"><span className="text-pink-600 font-extrabold">{fmtDA(p.prix_promo)}</span> <span className="text-stone-400 line-through text-xs ml-1">{fmtDA(p.prix)}</span></p>
+                            : <p className="text-amber-600 font-extrabold text-sm mt-1.5">{fmtDA(p.prix)}</p>}
                         </div>
                         {p.disponible && (
                           <div className="flex items-center gap-2 shrink-0 self-center">
@@ -565,7 +577,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
                   })}
                 </div>
               </div>
-            ))}
+            )})}
             </>
           )}
 
@@ -639,7 +651,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
               {cart.map((item) => (
                 <div key={item.produit.id} className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2"><span className="bg-amber-100 text-amber-700 font-bold text-xs w-5 h-5 rounded-full flex items-center justify-center">{item.quantite}</span><span className="text-stone-700">{item.produit.nom}</span></div>
-                  <span className="text-stone-500 font-semibold">{fmtDA(Number(item.produit.prix) * item.quantite)}</span>
+                  <span className="text-stone-500 font-semibold">{fmtDA(prixEff(item.produit) * item.quantite)}</span>
                 </div>
               ))}
             </div>
