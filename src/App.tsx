@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { ShoppingBag, Store, Shield, Headphones, ChevronRight, Banknote, Phone, MessageCircle, Mail, MapPin, ArrowLeft } from 'lucide-react'
 import { ClientApp } from './pages/ClientApp'
 import { FournisseurAuth, type FournisseurSession } from './pages/FournisseurAuth'
 import { FournisseurDashboard } from './pages/FournisseurDashboard'
@@ -72,56 +73,58 @@ export default function App() {
       </div>
 
       <div className="w-full max-w-md space-y-3">
-        <PortailCard emoji="🛍️" titre="Je suis un client" sous="Commander auprès des commerces" accent="bg-amber-500" onClick={() => ouvrirPortail('client')} />
-        <PortailCard emoji="🏪" titre="Je suis un commerçant" sous="Gérer mon commerce et mes commandes" accent="bg-stone-800" onClick={() => ouvrirPortail('fournisseur')} />
-        <PortailCard emoji="⚙️" titre="Administration" sous="Gérer les abonnements" accent="bg-stone-600" onClick={() => ouvrirPortail('admin')} />
-        <PortailCard emoji="📞" titre="Contact" sous="Nous contacter / assistance" accent="bg-emerald-500" onClick={() => ouvrirPortail('contact')} />
+        <PortailCard Icon={ShoppingBag} titre="Je suis un client" sous="Commander auprès des commerces" accent="bg-amber-500" onClick={() => ouvrirPortail('client')} />
+        <PortailCard Icon={Store} titre="Je suis un commerçant" sous="Gérer mon commerce et mes commandes" accent="bg-[#12355B]" onClick={() => ouvrirPortail('fournisseur')} />
+        <PortailCard Icon={Shield} titre="Administration" sous="Gérer les abonnements" accent="bg-stone-600" onClick={() => ouvrirPortail('admin')} />
+        <PortailCard Icon={Headphones} titre="Contact" sous="Nous contacter / assistance" accent="bg-emerald-500" onClick={() => ouvrirPortail('contact')} />
       </div>
 
-      <p className="text-white/80 text-xs mt-10">💵 Paiement en espèces uniquement</p>
+      <p className="text-white/80 text-xs mt-10 flex items-center justify-center gap-1.5"><Banknote size={15} /> Paiement en espèces uniquement</p>
       </div>
     </div>
   )
 }
 
-function PortailCard({ emoji, titre, sous, accent, onClick }: { emoji: string; titre: string; sous: string; accent: string; onClick: () => void }) {
+function PortailCard({ Icon, titre, sous, accent, onClick }: { Icon: React.ComponentType<{ size?: number; className?: string }>; titre: string; sous: string; accent: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="group w-full bg-white hover:bg-stone-50 border border-stone-100 rounded-2xl p-5 flex items-center gap-4 transition-all active:scale-[0.98] text-left shadow-sm hover:shadow-md">
-      <div className={`w-14 h-14 ${accent} rounded-2xl flex items-center justify-center shrink-0 text-2xl shadow-md`}>{emoji}</div>
-      <div className="flex-1">
-        <p className="font-bold text-stone-800 text-base">{titre}</p>
-        <p className="text-stone-500 text-sm">{sous}</p>
+    <button onClick={onClick} className="group w-full bg-white hover:bg-stone-50/80 border border-stone-100 rounded-xl px-5 py-4 flex items-center gap-4 transition-all active:scale-[0.99] text-left shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
+      <div className={`w-12 h-12 ${accent} rounded-xl flex items-center justify-center shrink-0 text-white`}>
+        <Icon size={22} />
       </div>
-      <span className="text-stone-300 group-hover:text-amber-500 group-hover:translate-x-1 transition-all text-xl">→</span>
+      <div className="flex-1 min-w-0">
+        <p className="font-bold text-stone-800 text-[15px] leading-tight">{titre}</p>
+        <p className="text-stone-400 text-[13px] mt-0.5">{sous}</p>
+      </div>
+      <ChevronRight size={20} className="text-stone-300 group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all shrink-0" />
     </button>
   )
 }
 
 
 function ContactPage({ onExit }: { onExit: () => void }) {
-  const rows: [string, string, string][] = [
-    ['📞', 'Téléphone', CONTACT.telephone],
-    ['💬', 'WhatsApp', CONTACT.whatsapp],
-    ['✉️', 'Email', CONTACT.email],
-    ['📍', 'Adresse', CONTACT.adresse],
-  ].filter((r) => r[2]) as [string, string, string][]
+  const rows = ([
+    [Phone, 'Téléphone', CONTACT.telephone],
+    [MessageCircle, 'WhatsApp', CONTACT.whatsapp],
+    [Mail, 'Email', CONTACT.email],
+    [MapPin, 'Adresse', CONTACT.adresse],
+  ] as [React.ComponentType<{ size?: number; className?: string }>, string, string][]).filter((r) => r[2])
 
   return (
     <div className="min-h-screen bg-[#F7F8FA] flex flex-col items-center justify-center px-5 py-10">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-emerald-500 rounded-[24px] flex items-center justify-center mx-auto mb-4 shadow-xl"><span className="text-4xl">📞</span></div>
+          <div className="w-20 h-20 bg-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg text-white"><Headphones size={34} /></div>
           <h1 className="text-2xl font-extrabold text-stone-800">Contact</h1>
           <p className="text-stone-500 text-sm mt-1">{CONTACT.nomApp} — {CONTACT.slogan}</p>
         </div>
 
-        <div className="bg-white rounded-3xl p-4 space-y-1 shadow-sm border border-stone-100">
-          {rows.map(([emoji, label, value]) => {
+        <div className="bg-white rounded-2xl p-4 space-y-1 shadow-[0_1px_3px_rgba(0,0,0,0.04)] border border-stone-100">
+          {rows.map(([Icon, label, value]) => {
             const href = label === 'Téléphone' || label === 'WhatsApp' ? `tel:${value.replace(/\s/g, '')}`
               : label === 'Email' ? `mailto:${value}` : undefined
             const inner = (
-              <div className="flex items-center gap-3 p-3 rounded-2xl hover:bg-stone-50 transition-colors">
-                <div className="w-11 h-11 bg-stone-100 rounded-xl flex items-center justify-center text-xl shrink-0">{emoji}</div>
+              <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-stone-50 transition-colors">
+                <div className="w-11 h-11 bg-stone-100 rounded-xl flex items-center justify-center text-stone-600 shrink-0"><Icon size={19} /></div>
                 <div className="min-w-0"><p className="text-[11px] text-stone-400 uppercase tracking-widest">{label}</p><p className="text-stone-800 font-semibold truncate">{value}</p></div>
               </div>
             )
@@ -136,7 +139,7 @@ function ContactPage({ onExit }: { onExit: () => void }) {
           </div>
         )}
 
-        <button onClick={onExit} className="w-full text-stone-400 hover:text-stone-700 text-sm py-4 mt-4 transition-colors">← Retour à l'accueil</button>
+        <button onClick={onExit} className="w-full flex items-center justify-center gap-1.5 text-stone-400 hover:text-stone-700 text-sm py-4 mt-4 transition-colors"><ArrowLeft size={16} /> Retour à l'accueil</button>
       </div>
     </div>
   )

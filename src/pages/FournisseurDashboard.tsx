@@ -4,6 +4,7 @@ import { StarRating, Spinner, fmtDA, fmtDateHeure, statutInfo, imgUrl, estTermin
 import { MapView, MapPicker } from '../components/Map'
 import { CATEGORIES_PRODUITS, catEmoji } from '../lib/categories'
 import type { FournisseurSession } from './FournisseurAuth'
+import { ArrowLeft, Package, UtensilsCrossed, Bike, Star, BarChart3, Store, Camera, Eye, EyeOff, Pencil, Trash2, Check, X, Plus } from 'lucide-react'
 
 type Tab = 'commandes' | 'produits' | 'livreurs' | 'avis' | 'stats' | 'infos'
 
@@ -13,12 +14,14 @@ export function FournisseurDashboard({ session, onLogout }: { session: Fournisse
   return (
     <div className="min-h-screen bg-stone-50">
       {/* Top bar */}
-      <div className="bg-stone-800 text-white sticky top-0 z-20 shadow-md">
+      <div className="bg-[#12355B] text-white sticky top-0 z-20 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
           <button onClick={onLogout} title="Retour à l'accueil"
-            className="shrink-0 w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 transition-all flex items-center justify-center text-white text-lg font-bold">←</button>
+            className="shrink-0 w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 transition-all flex items-center justify-center text-white">
+            <ArrowLeft size={20} />
+          </button>
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            <span className="text-xl">🏪</span>
+            <Store size={20} />
             <h1 className="font-bold truncate">{session.nom}</h1>
           </div>
           <button onClick={onLogout} className="shrink-0 text-xs text-stone-300 hover:text-white px-3 py-1.5 rounded-xl hover:bg-white/10 transition-colors">
@@ -28,18 +31,18 @@ export function FournisseurDashboard({ session, onLogout }: { session: Fournisse
         {/* Tabs */}
         <div className="max-w-3xl mx-auto px-2 flex gap-1 overflow-x-auto scrollbar-hide">
           {([
-            ['commandes', '📦 Commandes'],
-            ['produits', '🍽️ Menu'],
-            ['livreurs', '🛵 Livreurs'],
-            ['avis', '⭐ Avis'],
-            ['stats', '📊 Statistiques'],
-            ['infos', '🏪 Mon commerce'],
-          ] as [Tab, string][]).map(([key, label]) => (
+            ['commandes', 'Commandes', Package],
+            ['produits', 'Menu', UtensilsCrossed],
+            ['livreurs', 'Livreurs', Bike],
+            ['avis', 'Avis', Star],
+            ['stats', 'Statistiques', BarChart3],
+            ['infos', 'Mon commerce', Store],
+          ] as [Tab, string, React.ComponentType<{ size?: number }>][]).map(([key, label, Icon]) => (
             <button key={key} onClick={() => setTab(key)}
-              className={`shrink-0 px-4 py-2.5 text-sm font-semibold border-b-2 transition-all ${
+              className={`shrink-0 px-4 py-2.5 text-sm font-semibold border-b-2 transition-all flex items-center gap-1.5 ${
                 tab === key ? 'border-amber-400 text-white' : 'border-transparent text-stone-400 hover:text-stone-200'
               }`}>
-              {label}
+              <Icon size={16} /> {label}
             </button>
           ))}
         </div>
@@ -497,8 +500,8 @@ function ProduitRow({ p, onChange }: { p: Produit; onChange: () => void }) {
             {CATEGORIES_PRODUITS.map((c) => <option key={c} value={c} />)}
           </datalist>
           <input value={ingredients} onChange={(e) => setIngredients(e.target.value)} placeholder="Ingrédients…" className="w-full text-sm border border-stone-200 rounded-lg px-2 py-1.5" />
-          <button onClick={sauver} className="bg-emerald-500 text-white text-xs font-semibold px-3 rounded-lg">✓</button>
-          <button onClick={() => setEditing(false)} className="bg-stone-200 text-stone-600 text-xs font-semibold px-3 rounded-lg">✕</button>
+          <button onClick={sauver} className="bg-emerald-500 text-white px-3 rounded-lg flex items-center"><Check size={16} /></button>
+          <button onClick={() => setEditing(false)} className="bg-stone-200 text-stone-600 px-3 rounded-lg flex items-center"><X size={16} /></button>
         </div>
       ) : (
         <>
@@ -513,12 +516,12 @@ function ProduitRow({ p, onChange }: { p: Produit; onChange: () => void }) {
             {!p.disponible && <span className="text-[10px] text-red-400 font-semibold">Indisponible</span>}
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            <label className="text-xs bg-stone-100 hover:bg-stone-200 text-stone-600 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors">📷
+            <label className="bg-stone-100 hover:bg-stone-200 text-stone-600 p-2 rounded-lg cursor-pointer transition-colors flex items-center"><Camera size={15} />
               <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
             </label>
-            <button onClick={toggleDispo} className="text-xs bg-stone-100 hover:bg-stone-200 text-stone-600 px-2.5 py-1.5 rounded-lg transition-colors">{p.disponible ? '👁️' : '🚫'}</button>
-            <button onClick={() => setEditing(true)} className="text-xs bg-stone-100 hover:bg-stone-200 text-stone-600 px-2.5 py-1.5 rounded-lg transition-colors">✏️</button>
-            <button onClick={supprimer} className="text-xs bg-red-50 hover:bg-red-100 text-red-500 px-2.5 py-1.5 rounded-lg transition-colors">🗑️</button>
+            <button onClick={toggleDispo} className="bg-stone-100 hover:bg-stone-200 text-stone-600 p-2 rounded-lg transition-colors flex items-center">{p.disponible ? <Eye size={15} /> : <EyeOff size={15} />}</button>
+            <button onClick={() => setEditing(true)} className="bg-stone-100 hover:bg-stone-200 text-stone-600 p-2 rounded-lg transition-colors flex items-center"><Pencil size={15} /></button>
+            <button onClick={supprimer} className="bg-red-50 hover:bg-red-100 text-red-500 p-2 rounded-lg transition-colors flex items-center"><Trash2 size={15} /></button>
           </div>
         </>
       )}

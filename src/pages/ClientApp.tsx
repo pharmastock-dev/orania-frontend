@@ -4,6 +4,7 @@ import { StarRating, getCat, imgUrl, fmtDA, Spinner, magasinOuvert, hhmm, tempsL
 import { catEmoji } from '../lib/categories'
 import { LogoOrania } from '../components/Logo'
 import { MapPicker, MapView } from '../components/Map'
+import { ArrowLeft, Search, MapPin, Clock, Bike, Flame, User, Phone, Sparkles, Map as MapIcon, Navigation, ChevronDown, Store, Utensils, ReceiptText } from 'lucide-react'
 
 interface CartItem { produit: Produit; quantite: number }
 type CPage = 'login' | 'stores' | 'menu'
@@ -121,7 +122,7 @@ function LoginPage({ onLogin, onExit }: { onLogin: (a: Acheteur) => void; onExit
         </div>
         <div className="mt-7 pt-5 border-t border-stone-100 text-center">
           <p className="text-xs text-stone-400">💵 Paiement uniquement en <strong>espèces</strong></p>
-          <button onClick={onExit} className="text-xs text-stone-300 hover:text-stone-500 mt-2 transition-colors">← Changer d'espace</button>
+          <button onClick={onExit} className="text-xs text-stone-300 hover:text-stone-500 mt-2 transition-colors inline-flex items-center gap-1"><ArrowLeft size={13} /> Changer d'espace</button>
         </div>
       </div>
     </div>
@@ -135,7 +136,7 @@ function StoreCard({ store, distance, onClick }: { store: Fournisseur; distance?
     <button onClick={onClick} className="group w-full bg-white rounded-3xl overflow-hidden shadow-sm border border-stone-100 hover:shadow-md hover:border-amber-200 active:scale-[0.98] transition-all text-left">
       <div className="relative h-36 bg-amber-50 overflow-hidden">
         {photo ? <img src={photo} alt={store.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-          : <div className="w-full h-full flex items-center justify-center"><span className="text-6xl opacity-30">🏪</span></div>}
+          : <div className="w-full h-full flex items-center justify-center"><Store size={48} className="opacity-25" /></div>}
         {open !== null && <span className={`absolute top-2.5 right-2.5 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm ${open ? 'bg-emerald-500 text-white' : 'bg-stone-400/80 text-white'}`}>{open ? '● Ouvert' : '● Fermé'}</span>}
         <span className={`absolute bottom-2.5 left-2.5 text-[10px] font-semibold px-2.5 py-1 rounded-full ${colors.bg} ${colors.text}`}>{store.categorie}</span>
       </div>
@@ -146,12 +147,12 @@ function StoreCard({ store, distance, onClick }: { store: Fournisseur; distance?
           <span className="text-xs text-stone-400">{store.note_moyenne ? store.note_moyenne.toFixed(1) : '—'}{store.nb_avis ? ` · ${store.nb_avis} avis` : ''}</span>
         </div>
         <div className="flex items-center gap-2 mt-1">
-          {store.heure_ouverture && <p className="text-[11px] text-stone-400">🕐 {hhmm(store.heure_ouverture)}–{hhmm(store.heure_fermeture)}</p>}
-          {distance != null && <p className="text-[11px] text-amber-600 font-semibold">📍 {distance < 1 ? Math.round(distance * 1000) + ' m' : distance.toFixed(1) + ' km'}</p>}
+          {store.heure_ouverture && <p className="text-[11px] text-stone-400"><Clock size={11} className="inline mr-0.5" />{hhmm(store.heure_ouverture)}–{hhmm(store.heure_fermeture)}</p>}
+          {distance != null && <p className="text-[11px] text-amber-600 font-semibold"><MapPin size={11} className="inline mr-0.5" />{distance < 1 ? Math.round(distance * 1000) + ' m' : distance.toFixed(1) + ' km'}</p>}
         </div>
         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
           {distance != null && tempsLivraison(distance) && (
-            <span className="text-[11px] text-stone-600 font-medium bg-stone-100 px-2 py-0.5 rounded-full">🛵 {tempsLivraison(distance)}</span>
+            <span className="text-[11px] text-stone-600 font-medium bg-stone-100 px-2 py-0.5 rounded-full"><Bike size={11} className="inline mr-0.5" />{tempsLivraison(distance)}</span>
           )}
           {store.livraison_gratuite
             ? <span className="text-[11px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full">Livraison gratuite</span>
@@ -247,19 +248,19 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
       <div className="bg-white border-b border-stone-100 sticky top-0 z-20 shadow-sm shadow-stone-50">
         <div className="px-4 pt-4 pb-2 flex items-center gap-3 max-w-lg mx-auto">
           <button onClick={onRetour} title="Retour à l'accueil"
-            className="shrink-0 w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700 text-lg font-bold">←</button>
+            className="shrink-0 w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700"><ArrowLeft size={20} /></button>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2"><LogoOrania size={26} /><h1 className="font-extrabold text-stone-900 text-lg truncate">Orania</h1></div>
             <p className="text-xs text-stone-400 ml-8 truncate">Bonjour, {acheteur.nom} 👋</p>
           </div>
-          <button onClick={() => setShowCompte(true)} className="shrink-0 text-xs text-stone-500 hover:text-amber-600 transition-colors px-3 py-1.5 rounded-xl hover:bg-amber-50">👤 Compte</button>
+          <button onClick={() => setShowCompte(true)} className="shrink-0 text-xs text-stone-500 hover:text-amber-600 transition-colors px-3 py-1.5 rounded-xl hover:bg-amber-50"><><User size={14} className="inline mr-1" />Compte</></button>
         </div>
         {showCompte && <CompteModal acheteur={acheteur} onClose={() => setShowCompte(false)} onLogout={onLogout} />}
 
         {/* Barre recherche + bouton filtre */}
         <div className="px-4 pb-3 pt-1 max-w-lg mx-auto flex gap-2">
           <div className="relative flex-1">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 text-base pointer-events-none">🔍</span>
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 text-base pointer-events-none"><Search size={16} /></span>
             <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Chercher : pizza, thé, sushi…"
               className="w-full pl-10 pr-4 py-3 bg-stone-100 border border-transparent rounded-2xl text-sm text-stone-700 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all" />
             {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600">✕</button>}
@@ -306,7 +307,7 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
           ))}
           <button onClick={() => setFiltreGratuit((v) => !v)}
             className={`shrink-0 text-xs font-semibold px-4 py-1.5 rounded-full transition-all ${filtreGratuit ? 'bg-emerald-500 text-white' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}>
-            🛵 Livraison gratuite
+            <><Bike size={13} className="inline mr-1" />Livraison gratuite</>
           </button>
         </div>
       </div>
@@ -471,7 +472,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
     return (
       <div className="min-h-screen bg-stone-50 flex flex-col">
         <div className="bg-white border-b border-stone-100 px-4 py-3.5 flex items-center gap-3">
-          <button onClick={onBack} title="Retour" className="w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700 text-lg font-bold shrink-0">←</button>
+          <button onClick={onBack} title="Retour" className="w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700 shrink-0"><ArrowLeft size={20} /></button>
           <h2 className="font-extrabold text-stone-800 truncate">{store.nom}</h2>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
@@ -482,10 +483,10 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
           {store.heure_ouverture && (
             <div className="bg-white border border-stone-200 rounded-2xl px-6 py-4 mb-8">
               <p className="text-xs text-stone-400 uppercase tracking-widest mb-1">Horaires</p>
-              <p className="text-lg font-bold text-stone-700">🕐 {hhmm(store.heure_ouverture)} – {hhmm(store.heure_fermeture)}</p>
+              <p className="text-lg font-bold text-stone-700"><Clock size={11} className="inline mr-0.5" />{hhmm(store.heure_ouverture)} – {hhmm(store.heure_fermeture)}</p>
             </div>
           )}
-          <button onClick={onBack} className="bg-amber-500 hover:bg-amber-600 text-white font-bold px-8 py-3.5 rounded-2xl transition-all shadow-lg shadow-amber-200">← Retour aux commerces</button>
+          <button onClick={onBack} className="bg-amber-500 hover:bg-amber-600 text-white font-bold px-8 py-3.5 rounded-2xl transition-all shadow-lg shadow-amber-200 inline-flex items-center gap-1.5"><ArrowLeft size={16} /> Retour aux commerces</button>
         </div>
       </div>
     )
@@ -495,7 +496,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
     <div className="min-h-screen bg-stone-50 pb-36">
       <div className="bg-white border-b border-stone-100 sticky top-0 z-20 shadow-sm shadow-stone-50">
         <div className="px-4 py-3.5 flex items-center gap-3 max-w-lg mx-auto">
-          <button onClick={onBack} title="Retour" className="w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700 text-lg font-bold shrink-0">←</button>
+          <button onClick={onBack} title="Retour" className="w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700 shrink-0"><ArrowLeft size={20} /></button>
           <div className="flex-1 min-w-0">
             <h2 className="font-extrabold text-stone-800 truncate text-base">{store.nom}</h2>
             <div className="flex items-center gap-2">
@@ -533,9 +534,9 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
       {(store.adresse || store.telephone || store.heure_ouverture) && (
         <div className="max-w-lg mx-auto px-4 pt-4">
           <div className="bg-white rounded-2xl border border-stone-100 p-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-stone-500">
-            {store.adresse && <span>📍 {store.adresse}</span>}
-            {store.telephone && <a href={`tel:${store.telephone}`} className="text-blue-600 hover:underline">📞 {store.telephone}</a>}
-            {store.heure_ouverture && <span>🕐 {hhmm(store.heure_ouverture)}–{hhmm(store.heure_fermeture)}</span>}
+            {store.adresse && <span><MapPin size={13} className="inline mr-1" />{store.adresse}</span>}
+            {store.telephone && <a href={`tel:${store.telephone}`} className="text-blue-600 hover:underline"><Phone size={13} className="inline mr-1" />{store.telephone}</a>}
+            {store.heure_ouverture && <span><Clock size={11} className="inline mr-0.5" />{hhmm(store.heure_ouverture)}–{hhmm(store.heure_fermeture)}</span>}
           </div>
         </div>
       )}
@@ -549,14 +550,14 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
       {loading ? <Spinner /> : (
         <div className="px-4 py-5 space-y-7 max-w-lg mx-auto">
           {produits.length === 0 ? (
-            <div className="text-center py-12"><p className="text-4xl mb-3">🍽️</p><p className="text-stone-500">Aucun produit disponible</p></div>
+            <div className="text-center py-12"><div className="flex justify-center mb-3"><Utensils size={40} className="text-stone-300" /></div><p className="text-stone-500">Aucun produit disponible</p></div>
           ) : (
             <>
             {cats.length > 1 && (
               <div className="flex gap-2 overflow-x-auto scrollbar-hide -mt-2">
                 <button onClick={() => setFiltreCat('__promo__')}
                   className={`shrink-0 text-xs font-bold px-4 py-1.5 rounded-full transition-all ${filtreCat === '__promo__' ? 'bg-pink-500 text-white shadow-sm' : 'bg-pink-50 text-pink-600'}`}>
-                  🔥 Promotions
+                  <><Flame size={13} className="inline mr-1" />Promotions</>
                 </button>
                 {['Tous', ...cats].map((c) => (
                   <button key={c} onClick={() => setFiltreCat(c)}
@@ -582,7 +583,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
                           <p className="font-bold text-stone-800 text-sm">{p.nom}
                             {p.prix_promo != null && <span className="ml-1.5 text-[9px] bg-pink-100 text-pink-600 font-bold px-1.5 py-0.5 rounded-full align-middle">PROMO</span>}
                           </p>
-                          {p.ingredients && <p className="text-[11px] text-stone-400 mt-0.5 leading-snug">🧾 {p.ingredients}</p>}
+                          {p.ingredients && <p className="text-[11px] text-stone-400 mt-0.5 leading-snug"><ReceiptText size={11} className="inline mr-0.5" />{p.ingredients}</p>}
                           {!p.disponible && <span className="inline-block mt-1 text-[10px] font-semibold bg-red-50 text-red-400 px-2 py-0.5 rounded-full">Indisponible</span>}
                           {p.prix_promo != null
                             ? <p className="mt-1.5 text-sm"><span className="text-pink-600 font-extrabold">{fmtDA(p.prix_promo)}</span> <span className="text-stone-400 line-through text-xs ml-1">{fmtDA(p.prix)}</span></p>
@@ -614,7 +615,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
           <div className="bg-white rounded-3xl shadow-sm border border-stone-100 overflow-hidden">
             <button className="w-full flex items-center justify-between px-5 py-4" onClick={() => setShowReviews((v) => !v)}>
               <div className="flex items-center gap-2"><span className="text-base">⭐</span><span className="font-bold text-stone-800">Avis clients</span>{avis.length > 0 && <span className="text-xs bg-amber-100 text-amber-700 font-semibold px-2 py-0.5 rounded-full">{avis.length}</span>}</div>
-              <span className="text-stone-400 text-sm" style={{ display: 'inline-block', transform: showReviews ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+              <span className="text-stone-400" style={{ display: 'inline-block', transform: showReviews ? 'rotate(180deg)' : 'rotate(0deg)' }}><ChevronDown size={16} /></span>
             </button>
             {showReviews && (
               <div className="px-5 pb-5 space-y-5">
@@ -799,8 +800,8 @@ function PourquoiNousChoisir({ texte }: { texte: string }) {
     <div className="max-w-lg mx-auto px-4 pt-4">
       <button onClick={() => setOpen((v) => !v)}
         className="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-2xl px-4 py-3.5 flex items-center justify-between shadow-lg shadow-amber-200/50 active:scale-[0.98] transition-all">
-        <span className="font-bold flex items-center gap-2">✨ Pourquoi nous choisir ?</span>
-        <span style={{ display: 'inline-block', transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .2s' }}>▼</span>
+        <span className="font-bold flex items-center gap-2">Pourquoi nous choisir ?</span>
+        <span style={{ display: 'inline-block', transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .2s' }}><ChevronDown size={16} /></span>
       </button>
       {open && (
         <div className="bg-white border border-amber-100 rounded-2xl p-4 mt-2 animate-in">
@@ -820,15 +821,15 @@ function LocalisationMagasin({ store }: { store: Fournisseur }) {
     <div className="max-w-lg mx-auto px-4 pt-4">
       <button onClick={() => setOpen((v) => !v)}
         className="w-full bg-white border border-stone-200 rounded-2xl px-4 py-3.5 flex items-center justify-between shadow-sm active:scale-[0.98] transition-all">
-        <span className="font-bold text-stone-700 flex items-center gap-2">🗺️ Où se trouve ce commerce ?</span>
-        <span style={{ display: 'inline-block', transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .2s' }} className="text-stone-400">▼</span>
+        <span className="font-bold text-stone-700 flex items-center gap-2"><><MapIcon size={16} className="inline mr-1.5" />Où se trouve ce commerce ?</></span>
+        <span style={{ display: 'inline-block', transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .2s' }} className="text-stone-400"><ChevronDown size={16} /></span>
       </button>
       {open && (
         <div className="mt-2">
           <MapView lat={store.latitude!} lng={store.longitude!} height={220} />
           <a href={gmaps} target="_blank" rel="noopener"
             className="mt-2 flex items-center justify-center gap-2 w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-2xl transition-all shadow-lg shadow-amber-500/30">
-            🧭 Voir l'itinéraire pour récupérer ma commande
+            <><Navigation size={16} className="inline mr-1.5" />Voir l'itinéraire pour récupérer ma commande</>
           </a>
           <p className="text-[11px] text-stone-400 text-center mt-1.5">Ouvre Google Maps avec le trajet et la distance jusqu'au commerce.</p>
         </div>
