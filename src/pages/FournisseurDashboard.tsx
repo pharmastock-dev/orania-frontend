@@ -4,7 +4,7 @@ import { StarRating, Spinner, fmtDA, fmtDateHeure, statutInfo, imgUrl, estTermin
 import { MapView, MapPicker } from '../components/Map'
 import { CATEGORIES_PRODUITS, catEmoji } from '../lib/categories'
 import type { FournisseurSession } from './FournisseurAuth'
-import { ArrowLeft, Package, UtensilsCrossed, Bike, Star, BarChart3, Store, Camera, Eye, EyeOff, Pencil, Trash2, Check, X, Plus } from 'lucide-react'
+import { ArrowLeft, Package, UtensilsCrossed, Bike, Star, BarChart3, Store, Camera, Eye, EyeOff, Pencil, Trash2, Check, X } from 'lucide-react'
 
 type Tab = 'commandes' | 'produits' | 'livreurs' | 'avis' | 'stats' | 'infos'
 

@@ -4,7 +4,7 @@ import { StarRating, getCat, imgUrl, fmtDA, Spinner, magasinOuvert, hhmm, tempsL
 import { catEmoji } from '../lib/categories'
 import { LogoOrania } from '../components/Logo'
 import { MapPicker, MapView } from '../components/Map'
-import { ArrowLeft, Search, MapPin, Clock, Bike, Flame, User, Phone, Sparkles, Map as MapIcon, Navigation, ChevronDown, Store, Utensils, ReceiptText, History, Star } from 'lucide-react'
+import { ArrowLeft, Search, MapPin, Clock, Bike, Flame, User, Phone, Map as MapIcon, Navigation, ChevronDown, Store, Utensils, ReceiptText, History, Star } from 'lucide-react'
 
 interface CartItem { produit: Produit; quantite: number }
 type CPage = 'login' | 'stores' | 'menu'
@@ -258,7 +258,7 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
             <div className="flex items-center gap-2"><LogoOrania size={26} /><h1 className="font-extrabold text-stone-900 text-lg truncate">Orania</h1></div>
             <p className="text-xs text-stone-400 ml-8 truncate">Bonjour, {acheteur.nom} 👋</p>
           </div>
-          <button onClick={() => setShowCompte(true)} className="shrink-0 text-xs text-stone-500 hover:text-amber-600 transition-colors px-3 py-1.5 rounded-xl hover:bg-amber-50"><><User size={14} className="inline mr-1" />Compte</></button>
+          <button onClick={() => setShowCompte(true)} className="shrink-0 text-xs text-stone-500 hover:text-amber-600 transition-colors px-3 py-1.5 rounded-xl hover:bg-amber-50 inline-flex items-center gap-1"><User size={14} />Compte</button>
         </div>
         {showCompte && <CompteModal acheteur={acheteur} onClose={() => setShowCompte(false)} onLogout={onLogout} />}
 
@@ -312,7 +312,7 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
           ))}
           <button onClick={() => setFiltreGratuit((v) => !v)}
             className={`shrink-0 text-xs font-semibold px-4 py-1.5 rounded-full transition-all ${filtreGratuit ? 'bg-emerald-500 text-white' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}>
-            <><Bike size={13} className="inline mr-1" />Livraison gratuite</>
+            <span className="inline-flex items-center gap-1"><Bike size={13} />Livraison gratuite</span>
           </button>
         </div>
       </div>
@@ -562,7 +562,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
               <div className="flex gap-2 overflow-x-auto scrollbar-hide -mt-2">
                 <button onClick={() => setFiltreCat('__promo__')}
                   className={`shrink-0 text-xs font-bold px-4 py-1.5 rounded-full transition-all ${filtreCat === '__promo__' ? 'bg-pink-500 text-white shadow-sm' : 'bg-pink-50 text-pink-600'}`}>
-                  <><Flame size={13} className="inline mr-1" />Promotions</>
+                  <span className="inline-flex items-center gap-1"><Flame size={13} />Promotions</span>
                 </button>
                 {['Tous', ...cats].map((c) => (
                   <button key={c} onClick={() => setFiltreCat(c)}
@@ -894,7 +894,7 @@ function LocalisationMagasin({ store }: { store: Fournisseur }) {
     <div className="max-w-lg mx-auto px-4 pt-4">
       <button onClick={() => setOpen((v) => !v)}
         className="w-full bg-white border border-stone-200 rounded-2xl px-4 py-3.5 flex items-center justify-between shadow-sm active:scale-[0.98] transition-all">
-        <span className="font-bold text-stone-700 flex items-center gap-2"><><MapIcon size={16} className="inline mr-1.5" />Où se trouve ce commerce ?</></span>
+        <span className="font-bold text-stone-700 flex items-center gap-2"><MapIcon size={16} />Où se trouve ce commerce ?</span>
         <span style={{ display: 'inline-block', transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .2s' }} className="text-stone-400"><ChevronDown size={16} /></span>
       </button>
       {open && (
@@ -902,7 +902,7 @@ function LocalisationMagasin({ store }: { store: Fournisseur }) {
           <MapView lat={store.latitude!} lng={store.longitude!} height={220} />
           <a href={gmaps} target="_blank" rel="noopener"
             className="mt-2 flex items-center justify-center gap-2 w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-2xl transition-all shadow-lg shadow-amber-500/30">
-            <><Navigation size={16} className="inline mr-1.5" />Voir l'itinéraire pour récupérer ma commande</>
+            <span className="inline-flex items-center gap-1.5"><Navigation size={16} />Voir l'itinéraire pour récupérer ma commande</span>
           </a>
           <p className="text-[11px] text-stone-400 text-center mt-1.5">Ouvre Google Maps avec le trajet et la distance jusqu'au commerce.</p>
         </div>
