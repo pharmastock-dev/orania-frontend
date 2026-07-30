@@ -314,6 +314,10 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
             className={`shrink-0 text-xs font-semibold px-4 py-1.5 rounded-full transition-all ${filtreGratuit ? 'bg-emerald-500 text-white' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}>
             <span className="inline-flex items-center gap-1"><Bike size={13} />Livraison gratuite</span>
           </button>
+          <button onClick={() => setFiltrePromo((v) => !v)}
+            className={`shrink-0 text-xs font-semibold px-4 py-1.5 rounded-full transition-all ${filtrePromo ? 'bg-pink-500 text-white' : 'bg-pink-50 text-pink-600 hover:bg-pink-100'}`}>
+            <span className="inline-flex items-center gap-1"><Flame size={13} />En promo</span>
+          </button>
         </div>
       </div>
 
