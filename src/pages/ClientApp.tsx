@@ -4,7 +4,7 @@ import { StarRating, getCat, imgUrl, fmtDA, Spinner, magasinOuvert, hhmm, tempsL
 import { catEmoji } from '../lib/categories'
 import { LogoOrania } from '../components/Logo'
 import { MapPicker, MapView } from '../components/Map'
-import { ArrowLeft, Search, MapPin, Clock, Bike, Flame, User, Phone, Sparkles, Map as MapIcon, Navigation, ChevronDown, Store, Utensils, ReceiptText } from 'lucide-react'
+import { ArrowLeft, Search, MapPin, Clock, Bike, Flame, User, Phone, Sparkles, Map as MapIcon, Navigation, ChevronDown, Store, Utensils, ReceiptText, History, Star } from 'lucide-react'
 
 interface CartItem { produit: Produit; quantite: number }
 type CPage = 'login' | 'stores' | 'menu'
@@ -138,6 +138,7 @@ function StoreCard({ store, distance, onClick }: { store: Fournisseur; distance?
         {photo ? <img src={photo} alt={store.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
           : <div className="w-full h-full flex items-center justify-center"><Store size={48} className="opacity-25" /></div>}
         {open !== null && <span className={`absolute top-2.5 right-2.5 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm ${open ? 'bg-emerald-500 text-white' : 'bg-stone-400/80 text-white'}`}>{open ? '● Ouvert' : '● Fermé'}</span>}
+        {store.a_promo && <span className="absolute top-2.5 left-2.5 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm bg-pink-500 text-white flex items-center gap-1"><Flame size={10} /> Promo</span>}
         <span className={`absolute bottom-2.5 left-2.5 text-[10px] font-semibold px-2.5 py-1 rounded-full ${colors.bg} ${colors.text}`}>{store.categorie}</span>
       </div>
       <div className="px-4 py-3">
@@ -184,6 +185,7 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
   const [tri, setTri] = useState<TriMode>('distance')
   const [filtreOuvert, setFiltreOuvert] = useState<'tous' | 'ouvert' | 'ferme'>('tous')
   const [filtreGratuit, setFiltreGratuit] = useState(false)
+  const [filtrePromo, setFiltrePromo] = useState(false)
   const [showFiltre, setShowFiltre] = useState(false)
   const [maPos, setMaPos] = useState<{ lat: number; lng: number } | null>(null)
   const [posErr, setPosErr] = useState(false)
@@ -229,6 +231,9 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
   }
   if (filtreGratuit) {
     filtered = filtered.filter((s) => s.livraison_gratuite === true)
+  }
+  if (filtrePromo) {
+    filtered = filtered.filter((s) => s.a_promo === true)
   }
 
   // tri
@@ -729,6 +734,21 @@ function CompteModal({ acheteur, onClose, onLogout }: { acheteur: Acheteur; onCl
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
+  const [vue, setVue] = useState<'compte' | 'commandes' | 'avis'>('compte')
+  const [commandes, setCommandes] = useState<any[]>([])
+  const [mesAvis, setMesAvis] = useState<any[]>([])
+  const [loadingH, setLoadingH] = useState(false)
+
+  useEffect(() => {
+    if (vue === 'commandes' && commandes.length === 0) {
+      setLoadingH(true)
+      clientApi.historiqueCommandes(acheteur.id).then((d) => setCommandes(Array.isArray(d) ? d : [])).catch(() => {}).finally(() => setLoadingH(false))
+    }
+    if (vue === 'avis' && mesAvis.length === 0) {
+      setLoadingH(true)
+      clientApi.mesEvaluations(acheteur.id).then((d) => setMesAvis(Array.isArray(d) ? d : [])).catch(() => {}).finally(() => setLoadingH(false))
+    }
+  }, [vue, acheteur.id])
 
   const envoyer = async () => {
     if (!message.trim()) return
@@ -763,6 +783,57 @@ function CompteModal({ acheteur, onClose, onLogout }: { acheteur: Acheteur; onCl
           </div>
         </div>
 
+        {/* Onglets compte / commandes / avis */}
+        <div className="flex gap-2 mb-4">
+          {([['compte', 'Compte'], ['commandes', 'Commandes'], ['avis', 'Avis']] as [typeof vue, string][]).map(([k, label]) => (
+            <button key={k} onClick={() => setVue(k)}
+              className={`flex-1 text-xs font-semibold py-2 rounded-xl transition-all ${vue === k ? 'bg-stone-800 text-white' : 'bg-stone-100 text-stone-500'}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {vue === 'commandes' && (
+          <div className="mb-5">
+            {loadingH ? <p className="text-center text-stone-400 text-sm py-6">Chargement…</p>
+              : commandes.length === 0 ? <p className="text-center text-stone-400 text-sm py-6"><History size={28} className="mx-auto mb-2 opacity-40" />Aucune commande pour l'instant</p>
+              : <div className="space-y-2">
+                  {commandes.map((c) => (
+                    <div key={c.id} className="bg-stone-50 rounded-2xl p-3 border border-stone-100">
+                      <div className="flex justify-between items-start mb-1">
+                        <p className="font-bold text-stone-800 text-sm">{c.commerce_nom || 'Commerce'}</p>
+                        <span className="text-[10px] font-semibold bg-stone-200 text-stone-600 px-2 py-0.5 rounded-full capitalize">{c.statut}</span>
+                      </div>
+                      <p className="text-[11px] text-stone-400 mb-1.5">{c.produits?.map((pr: any) => `${pr.quantite}× ${pr.nom}`).join(', ')}</p>
+                      <div className="flex justify-between items-center">
+                        <span className="text-amber-600 font-bold text-sm">{fmtDA(c.prix_total)}</span>
+                        <span className="text-[10px] text-stone-400">Code : {c.code_confirmation}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>}
+          </div>
+        )}
+
+        {vue === 'avis' && (
+          <div className="mb-5">
+            {loadingH ? <p className="text-center text-stone-400 text-sm py-6">Chargement…</p>
+              : mesAvis.length === 0 ? <p className="text-center text-stone-400 text-sm py-6"><Star size={28} className="mx-auto mb-2 opacity-40" />Aucune évaluation laissée</p>
+              : <div className="space-y-2">
+                  {mesAvis.map((a) => (
+                    <div key={a.id} className="bg-stone-50 rounded-2xl p-3 border border-stone-100">
+                      <div className="flex justify-between items-center mb-1">
+                        <p className="font-bold text-stone-800 text-sm">{a.commerce_nom || 'Commerce'}</p>
+                        <StarRating note={a.note} />
+                      </div>
+                      {a.commentaire && <p className="text-[12px] text-stone-500 italic">« {a.commentaire} »</p>}
+                    </div>
+                  ))}
+                </div>}
+          </div>
+        )}
+
+        {vue === 'compte' && (<>
         {/* Réclamation */}
         <p className="text-sm font-bold text-stone-700 mb-2">📨 Une réclamation ?</p>
         {sent ? (
@@ -781,6 +852,8 @@ function CompteModal({ acheteur, onClose, onLogout }: { acheteur: Acheteur; onCl
             </button>
           </>
         )}
+
+        </>)}
 
         {/* Déconnexion : efface le compte, il faudra re-saisir nom+téléphone */}
         <button onClick={() => { if (confirm('Se déconnecter ? Vous devrez ressaisir votre nom et téléphone.')) onLogout() }}

@@ -34,6 +34,7 @@ export interface Fournisseur {
   livraison_gratuite?: boolean | null
   frais_min?: number | null
   frais_max?: number | null
+  a_promo?: boolean | null
   note_moyenne?: number | null
   nb_avis?: number
   latitude?: number | null
@@ -123,6 +124,8 @@ export const clientApi = {
   supprimerMonAvis: (eid: number): Promise<any> => req(`/avis/${eid}`, { method: 'DELETE' }),
   monAvis: (fid: number, aid: number): Promise<{ existe: boolean; id?: number; note?: number; commentaire?: string }> =>
     req(`/fournisseurs/${fid}/mon-avis/${aid}`),
+  historiqueCommandes: (aid: number): Promise<any[]> => req(`/acheteurs/${aid}/commandes`),
+  mesEvaluations: (aid: number): Promise<any[]> => req(`/acheteurs/${aid}/evaluations`),
 }
 
 // ─── FOURNISSEUR ───────────────────────────────────────────────────────────────
