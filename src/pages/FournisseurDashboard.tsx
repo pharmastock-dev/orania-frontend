@@ -841,9 +841,9 @@ function StatsTab({ fid }: { fid: number }) {
         <>
           {/* Cartes principales */}
           <div className="grid grid-cols-2 gap-3">
-            <StatCard label="Commandes" valeur={String(stats.nb_commandes)} sous={`${stats.nb_terminees} terminées`} accent="bg-blue-50 text-blue-600" />
-            <StatCard label="Chiffre d'affaires" valeur={fmtDA(stats.chiffre_affaires)} sous="total encaissé" accent="bg-emerald-50 text-emerald-600" />
-            <StatCard label="Panier moyen" valeur={fmtDA(stats.panier_moyen)} sous="par commande" accent="bg-amber-50 text-amber-600" />
+            <StatCard label="Commandes" valeur={String(stats.nb_commandes)} sous={`${stats.nb_terminees} livrées`} accent="bg-blue-50 text-blue-600" />
+            <StatCard label="Chiffre d'affaires" valeur={fmtDA(stats.chiffre_affaires)} sous="commandes livrées" accent="bg-emerald-50 text-emerald-600" />
+            <StatCard label="Panier moyen" valeur={fmtDA(stats.panier_moyen)} sous="par commande livrée" accent="bg-amber-50 text-amber-600" />
             <StatCard label="Note moyenne" valeur={stats.note_moyenne != null ? `★ ${stats.note_moyenne}` : '—'} sous={`${stats.nb_avis} avis`} accent="bg-yellow-50 text-yellow-600" />
             <StatCard label="Produits" valeur={String(stats.nb_produits)} sous={`${stats.nb_promos} en promo`} accent="bg-purple-50 text-purple-600" />
             <StatCard label="En promo" valeur={String(stats.nb_promos)} sous="produits réduits" accent="bg-pink-50 text-pink-600" />
