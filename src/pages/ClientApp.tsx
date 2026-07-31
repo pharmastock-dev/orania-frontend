@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react'
-import { clientApi, reclamationApi, type Acheteur, type Fournisseur, type Produit, type Avis } from '../lib/api'
+import { clientApi, type Acheteur, type Fournisseur, type Produit, type Avis } from '../lib/api'
 import { StarRating, getCat, imgUrl, fmtDA, Spinner, magasinOuvert, hhmm, tempsLivraison } from '../lib/shared'
-import { catEmoji } from '../lib/categories'
 import { LogoOrania } from '../components/Logo'
-import { MapPicker, MapView } from '../components/Map'
-import { ArrowLeft, Search, MapPin, Clock, Bike, Flame, User, Phone, Map as MapIcon, Navigation, ChevronDown, Store, Utensils, ReceiptText, History, Star, LogOut } from 'lucide-react'
+import { MapPicker } from '../components/Map'
+import { ArrowLeft, Search, MapPin, Clock, Bike, Flame, User, Phone, Store, Star, LogOut } from 'lucide-react'
 
 interface CartItem { produit: Produit; quantite: number }
 type CPage = 'login' | 'stores' | 'menu'
@@ -62,8 +61,6 @@ export function ClientApp({ onExit }: { onExit: () => void }) {
     setAcheteur(a); localStorage.setItem('client_page', 'stores'); setPage('stores')
   }
 
-  const retourAccueil = () => { onExit() }
-
   const logout = () => {
     localStorage.removeItem('acheteur'); localStorage.removeItem('client_page'); localStorage.removeItem('client_store')
     setAcheteur(null); setStore(null); onExit()
@@ -71,13 +68,13 @@ export function ClientApp({ onExit }: { onExit: () => void }) {
 
   if (page === 'login' || !acheteur) return <LoginPage onLogin={login} onExit={onExit} />
   if (page === 'menu' && store) return <MenuPage acheteur={acheteur} store={store} onBack={goStores} />
-  return <StoresPage acheteur={acheteur} onSelect={goMenu} onRetour={retourAccueil} onLogout={logout} />
+  return <StoresPage acheteur={acheteur} onSelect={goMenu} onRetour={onExit} onLogout={logout} />
 }
 
 // ─── Modal Compte ─────────────────────────────────────────────────────────────
 function CompteModal({ acheteur, onClose, onLogout }: { acheteur: Acheteur; onClose: () => void; onLogout: () => void }) {
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-extrabold text-stone-800 text-lg">Mon Compte</h3>
@@ -107,7 +104,7 @@ function CompteModal({ acheteur, onClose, onLogout }: { acheteur: Acheteur; onCl
   )
 }
 
-// ─── Login ────────────────────────────────────────────────────────────────────
+// ─── Login (Fixé pour Mobile) ────────────────────────────────────────────────
 function LoginPage({ onLogin, onExit }: { onLogin: (a: Acheteur) => void; onExit: () => void }) {
   const [nom, setNom] = useState(''); const [tel, setTel] = useState('')
   const [loading, setLoading] = useState(false); const [error, setError] = useState('')
@@ -122,35 +119,44 @@ function LoginPage({ onLogin, onExit }: { onLogin: (a: Acheteur) => void; onExit
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-amber-50 to-white px-5 py-10">
-      <div className="mb-10 text-center">
-        <div className="w-28 h-28 bg-white rounded-[28px] flex items-center justify-center mx-auto mb-4 shadow-xl shadow-black/10"><LogoOrania size={80} /></div>
-        <h1 className="text-3xl font-extrabold text-stone-900 tracking-tight">Orania</h1>
-        <p className="text-stone-400 text-sm mt-1.5">Tout Oran, en un clic</p>
-      </div>
-      <div className="w-full max-w-sm bg-white rounded-3xl shadow-xl shadow-stone-200/60 p-8">
-        <h2 className="text-xl font-bold text-stone-800 mb-1">Bienvenue 👋</h2>
-        <p className="text-stone-400 text-sm mb-7">Entrez votre nom et téléphone — aucun mot de passe requis.</p>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-[11px] font-semibold text-stone-400 uppercase tracking-widest mb-1.5">Votre nom complet</label>
-            <input type="text" value={nom} onChange={(e) => setNom(e.target.value.replace(/[^a-zA-ZàâäéèêëïîôöùûüçÀÂÄÉÈÊËÏÎÔÖÙÛÜÇ '\\-]/g, ''))} placeholder="Ex : Amira Bouali"
-              className="w-full px-4 py-3.5 rounded-2xl border border-stone-200 bg-stone-50 text-stone-800 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all" />
+    <div className="fixed inset-0 w-full h-[100dvh] overflow-y-auto bg-gradient-to-b from-amber-50 to-white flex flex-col items-center justify-between px-5 py-6 sm:justify-center">
+      <div className="w-full max-w-sm flex flex-col items-center my-auto py-4">
+        <div className="mb-6 text-center shrink-0">
+          <div className="w-20 h-20 bg-white rounded-[24px] flex items-center justify-center mx-auto mb-3 shadow-xl shadow-black/5 border border-stone-100">
+            <LogoOrania size={56} />
           </div>
-          <div>
-            <label className="block text-[11px] font-semibold text-stone-400 uppercase tracking-widest mb-1.5">Numéro de téléphone</label>
-            <input type="tel" inputMode="numeric" value={tel} onChange={(e) => setTel(e.target.value.replace(/[^0-9]/g, ''))} placeholder="05 XX XX XX XX" onKeyDown={(e) => e.key === 'Enter' && submit()}
-              className="w-full px-4 py-3.5 rounded-2xl border border-stone-200 bg-stone-50 text-stone-800 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all" />
-          </div>
-          {error && <div className="bg-red-50 border border-red-100 text-red-500 text-sm rounded-2xl px-4 py-3">{error}</div>}
-          <button onClick={submit} disabled={loading}
-            className="w-full bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-amber-200/80 disabled:opacity-60 text-base mt-2">
-            {loading ? 'Connexion…' : 'Continuer →'}
-          </button>
+          <h1 className="text-2xl font-extrabold text-stone-900 tracking-tight">Orania</h1>
+          <p className="text-stone-400 text-xs mt-0.5">Tout Oran, en un clic</p>
         </div>
-        <div className="mt-7 pt-5 border-t border-stone-100 text-center">
-          <p className="text-xs text-stone-400">💵 Paiement uniquement en <strong>espèces</strong></p>
-          <button onClick={onExit} className="text-xs text-stone-300 hover:text-stone-500 mt-2 transition-colors inline-flex items-center gap-1"><ArrowLeft size={13} /> Changer d'espace</button>
+
+        <div className="w-full bg-white rounded-3xl shadow-xl shadow-stone-200/50 p-6 border border-stone-100/80">
+          <h2 className="text-lg font-bold text-stone-800 mb-1">Bienvenue 👋</h2>
+          <p className="text-stone-400 text-xs mb-5">Entrez votre nom et téléphone pour continuer.</p>
+          
+          <div className="space-y-3.5">
+            <div>
+              <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1">Votre nom complet</label>
+              <input type="text" value={nom} onChange={(e) => setNom(e.target.value.replace(/[^a-zA-ZàâäéèêëïîôöùûüçÀÂÄÉÈÊËÏÎÔÖÙÛÜÇ '\\-]/g, ''))} placeholder="Ex : Amira Bouali"
+                className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50 text-stone-800 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all text-sm" />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1">Numéro de téléphone</label>
+              <input type="tel" inputMode="numeric" value={tel} onChange={(e) => setTel(e.target.value.replace(/[^0-9]/g, ''))} placeholder="05 XX XX XX XX" onKeyDown={(e) => e.key === 'Enter' && submit()}
+                className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50 text-stone-800 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all text-sm" />
+            </div>
+
+            {error && <div className="bg-red-50 border border-red-100 text-red-500 text-xs rounded-xl px-3.5 py-2">{error}</div>}
+
+            <button onClick={submit} disabled={loading} className="w-full bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-amber-200/80 disabled:opacity-60 text-sm mt-1">
+              {loading ? 'Connexion…' : 'Continuer →'}
+            </button>
+          </div>
+
+          <div className="mt-5 pt-4 border-t border-stone-100 text-center">
+            <p className="text-[11px] text-stone-400">💵 Paiement uniquement en <strong>espèces</strong></p>
+            <button onClick={onExit} className="text-xs text-stone-400 hover:text-stone-600 mt-2 transition-colors inline-flex items-center gap-1 font-medium"><ArrowLeft size={13} /> Changer d'espace</button>
+          </div>
         </div>
       </div>
     </div>
@@ -267,8 +273,8 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
   })
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      <div className="bg-white border-b border-stone-100 sticky top-0 z-20 shadow-sm shadow-stone-50">
+    <div className="min-h-[100dvh] bg-stone-50 pb-10">
+      <div className="bg-white border-b border-stone-100 sticky top-0 z-20 shadow-sm">
         <div className="px-4 pt-4 pb-2 flex items-center gap-3 max-w-lg mx-auto">
           <button onClick={onRetour} title="Retour à l'accueil"
             className="shrink-0 w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700"><ArrowLeft size={20} /></button>
@@ -299,11 +305,10 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
               <button onClick={() => setTri('distance')} className={`flex-1 text-sm font-semibold py-2 rounded-xl transition-all ${tri === 'distance' ? 'bg-amber-500 text-white' : 'bg-white text-stone-500 border border-stone-200'}`}>📍 Plus proches</button>
               <button onClick={() => setTri('etoiles')} className={`flex-1 text-sm font-semibold py-2 rounded-xl transition-all ${tri === 'etoiles' ? 'bg-amber-500 text-white' : 'bg-white text-stone-500 border border-stone-200'}`}>⭐ Mieux notés</button>
             </div>
-            {tri === 'distance' && posErr && <p className="text-[11px] text-amber-600 mt-2">📍 Localisation refusée — tri par distance indisponible.</p>}
           </div>
         )}
 
-        <div className="px-4 pb-2 flex gap-2 overflow-x-auto scrollbar-hide max-w-lg mx-auto">
+        <div className="px-4 pb-2 flex gap-2 overflow-x-auto no-scrollbar max-w-lg mx-auto">
           {categories.map((c) => {
             const colors = c === 'Tous' ? null : getCat(c); const active = cat === c
             return (
@@ -314,43 +319,21 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
             )
           })}
         </div>
-
-        <div className="px-4 pb-3 flex gap-2 max-w-lg mx-auto">
-          {([['tous', 'Tous'], ['ouvert', '● Ouvert'], ['ferme', '● Fermé']] as [string, string][]).map(([k, label]) => (
-            <button key={k} onClick={() => setFiltreOuvert(k as any)}
-              className={`shrink-0 text-xs font-semibold px-4 py-1.5 rounded-full transition-all ${
-                filtreOuvert === k
-                  ? (k === 'ouvert' ? 'bg-emerald-500 text-white' : k === 'ferme' ? 'bg-stone-500 text-white' : 'bg-stone-800 text-white')
-                  : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
-              }`}>{label}</button>
-          ))}
-          <button onClick={() => setFiltreGratuit((v) => !v)}
-            className={`shrink-0 text-xs font-semibold px-4 py-1.5 rounded-full transition-all ${filtreGratuit ? 'bg-emerald-500 text-white' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}>
-            <span className="inline-flex items-center gap-1"><Bike size={13} />Livraison gratuite</span>
-          </button>
-          <button onClick={() => setFiltrePromo((v) => !v)}
-            className={`shrink-0 text-xs font-semibold px-4 py-1.5 rounded-full transition-all ${filtrePromo ? 'bg-pink-500 text-white' : 'bg-pink-50 text-pink-600 hover:bg-pink-100'}`}>
-            <span className="inline-flex items-center gap-1"><Flame size={13} />En promo</span>
-          </button>
-        </div>
       </div>
 
       <div className="px-4 py-4 max-w-lg mx-auto">
         {loading && <Spinner label="Chargement des commerces…" />}
         {error && !loading && (
-          <div className="text-center py-20"><p className="text-5xl mb-4">⚡</p><p className="text-stone-600 font-semibold mb-1">API inaccessible</p><p className="text-stone-400 text-sm">Vérifiez que le serveur tourne</p></div>
+          <div className="text-center py-20"><p className="text-5xl mb-4">⚡</p><p className="text-stone-600 font-semibold mb-1">API inaccessible</p></div>
         )}
         {!loading && !error && filtered.length === 0 && (
-          <div className="text-center py-20"><p className="text-5xl mb-4">🔍</p><p className="text-stone-600 font-semibold mb-1">Aucun résultat</p><p className="text-stone-400 text-sm">Essayez un autre mot-clé</p></div>
+          <div className="text-center py-20"><p className="text-5xl mb-4">🔍</p><p className="text-stone-600 font-semibold mb-1">Aucun résultat</p></div>
         )}
         {!loading && !error && filtered.length > 0 && (
-          <>
-            <p className="text-xs text-stone-400 mb-3">{filtered.length} résultat{filtered.length > 1 ? 's' : ''}{q ? ` pour « ${search} »` : ''}</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{filtered.map((s) => {
-              const dist = distanceKm(maPos?.lat, maPos?.lng, s.latitude, s.longitude)
-              return <StoreCard key={s.id} store={s} distance={dist} onClick={() => onSelect(s)} />
-            })}</div>
-          </>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{filtered.map((s) => {
+            const dist = distanceKm(maPos?.lat, maPos?.lng, s.latitude, s.longitude)
+            return <StoreCard key={s.id} store={s} distance={dist} onClick={() => onSelect(s)} />
+          })}</div>
         )}
       </div>
     </div>
@@ -377,19 +360,6 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
   const [myNote, setMyNote] = useState(0)
   const [myComment, setMyComment] = useState('')
   const [avisDone, setAvisDone] = useState(false)
-  const [monAvisId, setMonAvisId] = useState<number | null>(null)
-  const [editingAvis, setEditingAvis] = useState(false)
-  const [maPos, setMaPos] = useState<{ lat: number; lng: number } | null>(null)
-
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setMaPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => {}, { timeout: 6000 }
-      )
-    }
-  }, [])
-  const distMenu = distanceKm(maPos?.lat, maPos?.lng, store.latitude, store.longitude)
 
   const chargerAvis = () => clientApi.avis(store.id).then((a) => setAvis(Array.isArray(a) ? a : [])).catch(() => {})
 
@@ -398,33 +368,13 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
       .then(([p, a, mine]) => {
         setProduits(Array.isArray(p) ? p : [])
         setAvis(Array.isArray(a) ? a : [])
-        if (mine && mine.existe) {
-          setMonAvisId(mine.id!); setMyNote(mine.note!); setMyComment(mine.commentaire || ''); setAvisDone(true)
-        }
+        if (mine && mine.existe) { setMyNote(mine.note!); setMyComment(mine.commentaire || ''); setAvisDone(true) }
         setLoading(false)
       })
       .catch(() => setLoading(false))
   }, [store.id, acheteur.id])
 
-  useEffect(() => {
-    if (cart.length > 0) localStorage.setItem('orania_cart', JSON.stringify({ storeId: store.id, storeName: store.nom, items: cart }))
-    else localStorage.removeItem('orania_cart')
-  }, [cart, store.id, store.nom])
-
   const add = (p: Produit) => {
-    try {
-      const raw = localStorage.getItem('orania_cart')
-      if (raw) {
-        const parsed = JSON.parse(raw)
-        if (parsed.storeId && parsed.storeId !== store.id && (parsed.items?.length > 0)) {
-          const ok = window.confirm(`Votre panier contient déjà des produits de « ${parsed.storeName || 'un autre commerce'} ».\n\nVider le panier et commander ici ?`)
-          if (!ok) return
-          localStorage.removeItem('orania_cart')
-          setCart([{ produit: p, quantite: 1 }])
-          return
-        }
-      }
-    } catch {}
     setCart((prev) => { const f = prev.find((i) => i.produit.id === p.id); return f ? prev.map((i) => i.produit.id === p.id ? { ...i, quantite: i.quantite + 1 } : i) : [...prev, { produit: p, quantite: 1 }] })
   }
   const remove = (id: number) => setCart((prev) => { const f = prev.find((i) => i.produit.id === id); return f && f.quantite > 1 ? prev.map((i) => i.produit.id === id ? { ...i, quantite: i.quantite - 1 } : i) : prev.filter((i) => i.produit.id !== id) })
@@ -436,17 +386,8 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
   const placeOrder = async () => {
     setOrdering(true)
     let pos: { latitude?: number; longitude?: number } = {}
-    if (livraison) {
-      if (position) {
-        pos = { latitude: position.lat, longitude: position.lng }
-      } else if (navigator.geolocation) {
-        try {
-          const p = await new Promise<GeolocationPosition>((res, rej) =>
-            navigator.geolocation.getCurrentPosition(res, rej, { timeout: 6000 }))
-          pos = { latitude: p.coords.latitude, longitude: p.coords.longitude }
-        } catch {}
-      }
-    }
+    if (livraison && position) pos = { latitude: position.lat, longitude: position.lng }
+    
     try {
       const cmd = await clientApi.commander({
         acheteur_id: acheteur.id, fournisseur_id: store.id, avec_livraison: livraison,
@@ -458,31 +399,20 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
     setCart([]); localStorage.removeItem('orania_cart'); setShowSheet(false); setOrdering(false)
   }
 
-  const groupes: Record<string, Produit[]> = {}
-  produits.forEach((p) => { const c = p.categorie || 'Autre'; (groupes[c] = groupes[c] || []).push(p) })
-  const banner = imgUrl(store.photo)
-  const ouvert = magasinOuvert(store.heure_ouverture, store.heure_fermeture)
-
-  if (ouvert === false) {
-    return (
-      <div className="min-h-screen bg-stone-50 flex flex-col">
-        <div className="bg-white border-b border-stone-100 px-4 py-3.5 flex items-center gap-3">
-          <button onClick={onBack} title="Retour" className="w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700 shrink-0"><ArrowLeft size={20} /></button>
-          <h2 className="font-extrabold text-stone-800 truncate">{store.nom}</h2>
-        </div>
-        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-          <div className="w-28 h-28 bg-stone-200 rounded-full flex items-center justify-center mb-6"><span className="text-6xl">🌙</span></div>
-          <h1 className="text-2xl font-extrabold text-stone-800 mb-2">Magasin fermé</h1>
-          <p className="text-stone-500 mb-6">Ce commerce est actuellement fermé.</p>
-          <button onClick={onBack} className="bg-amber-500 text-white font-bold px-8 py-3.5 rounded-2xl transition-all shadow-lg shadow-amber-200 flex items-center gap-1.5"><ArrowLeft size={16} /> Retour</button>
-        </div>
-      </div>
-    )
+  const sendAvis = async () => {
+    if (!myNote) return
+    try {
+      await clientApi.posterAvis({ acheteur_id: acheteur.id, fournisseur_id: store.id, note: myNote, commentaire: myComment })
+      setAvisDone(true); chargerAvis()
+    } catch {}
   }
 
+  const groupes: Record<string, Produit[]> = {}
+  produits.forEach((p) => { const c = p.categorie || 'Autre'; (groupes[c] = groupes[c] || []).push(p) })
+
   return (
-    <div className="min-h-screen bg-stone-50 pb-36">
-      <div className="bg-white border-b border-stone-100 sticky top-0 z-20 shadow-sm shadow-stone-50">
+    <div className="min-h-[100dvh] bg-stone-50 pb-36">
+      <div className="bg-white border-b border-stone-100 sticky top-0 z-20 shadow-sm">
         <div className="px-4 py-3.5 flex items-center gap-3 max-w-lg mx-auto">
           <button onClick={onBack} title="Retour" className="w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700 shrink-0"><ArrowLeft size={20} /></button>
           <div className="flex-1 min-w-0">
@@ -494,8 +424,6 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
           </div>
         </div>
       </div>
-
-      {banner && <div className="relative h-40 bg-amber-50 overflow-hidden max-w-lg mx-auto"><img src={banner} alt={store.nom} className="w-full h-full object-cover" /></div>}
 
       <div className="max-w-lg mx-auto px-4 pt-4">
         {loading ? <Spinner label="Chargement de la carte…" /> : (
@@ -527,6 +455,35 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
             ))}
           </div>
         )}
+
+        {/* Section Avis */}
+        <div className="mt-10 pt-6 border-t border-stone-200">
+          <h3 className="font-extrabold text-stone-800 text-base mb-4 flex items-center gap-2"><Star className="text-amber-500" size={18} /> Avis des clients</h3>
+          {avis.length === 0 ? <p className="text-xs text-stone-400 italic">Aucun avis pour le moment.</p> : (
+            <div className="space-y-3 mb-6 max-h-48 overflow-y-auto">
+              {avis.map((a, i) => (
+                <div key={i} className="bg-white p-3 rounded-xl border border-stone-100">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-bold text-xs text-stone-700">{a.nom_acheteur || 'Client'}</span>
+                    <StarRating note={a.note} />
+                  </div>
+                  {a.commentaire && <p className="text-xs text-stone-500">{a.commentaire}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="bg-amber-50/60 p-4 rounded-2xl border border-amber-100">
+            <h4 className="font-bold text-stone-800 text-xs mb-2">{avisDone ? 'Votre avis est enregistré' : 'Donner votre avis'}</h4>
+            <div className="flex gap-1 mb-3">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <button key={s} onClick={() => setMyNote(s)} className={`text-2xl ${s <= myNote ? 'text-amber-500' : 'text-stone-300'}`}>★</button>
+              ))}
+            </div>
+            <textarea value={myComment} onChange={(e) => setMyComment(e.target.value)} placeholder="Un commentaire ? (Optionnel)" className="w-full p-3 rounded-xl border border-stone-200 text-xs text-stone-800 bg-white mb-3" rows={2}></textarea>
+            <button onClick={sendAvis} disabled={!myNote} className="w-full bg-amber-500 text-white text-xs font-bold py-3 rounded-xl disabled:opacity-50 shadow-md shadow-amber-200">Envoyer l'avis</button>
+          </div>
+        </div>
       </div>
 
       {totalItems > 0 && (
@@ -540,37 +497,51 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
       )}
 
       {showSheet && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end justify-center">
-          <div className="bg-white w-full max-w-lg rounded-t-3xl p-6 shadow-2xl space-y-4">
-            <h3 className="font-extrabold text-stone-800 text-lg">Votre commande</h3>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end justify-center">
+          <div className="bg-white w-full max-w-lg rounded-t-3xl p-6 shadow-2xl space-y-4 max-h-[85dvh] overflow-y-auto">
+            <div className="flex justify-between items-center">
+              <h3 className="font-extrabold text-stone-800 text-lg">Votre commande</h3>
+              <button onClick={() => setShowSheet(false)} className="text-stone-400 font-bold p-1">✕</button>
+            </div>
             <div className="space-y-2 max-h-40 overflow-y-auto">
               {cart.map((i) => (
-                <div key={i.produit.id} className="flex justify-between text-sm">
-                  <span>{i.quantite}x {i.produit.nom}</span>
-                  <span className="font-bold">{fmtDA(prixEff(i.produit) * i.quantite)}</span>
+                <div key={i.produit.id} className="flex justify-between text-sm py-1 border-b border-stone-50">
+                  <span className="text-stone-700">{i.quantite}x {i.produit.nom}</span>
+                  <span className="font-bold text-stone-800">{fmtDA(prixEff(i.produit) * i.quantite)}</span>
                 </div>
               ))}
             </div>
-            <div className="pt-2 border-t flex justify-between font-extrabold text-base">
+            <div className="pt-2 border-t border-stone-100 flex justify-between font-extrabold text-stone-900">
               <span>Total</span>
               <span className="text-amber-600">{fmtDA(totalPrice)}</span>
             </div>
-            <button onClick={placeOrder} disabled={ordering} className="w-full bg-amber-500 text-white font-bold py-4 rounded-2xl">
+            <div className="bg-stone-50 p-3 rounded-2xl space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-stone-700">
+                <input type="checkbox" checked={livraison} onChange={(e) => setLivraison(e.target.checked)} className="rounded text-amber-500 focus:ring-amber-400" />
+                Demander la livraison à domicile
+              </label>
+              {livraison && (
+                <div className="pt-2">
+                  <p className="text-[11px] text-stone-400 mb-2">Sélectionnez votre position sur la carte :</p>
+                  <MapPicker onPositionSelect={(lat, lng) => setPosition({ lat, lng })} />
+                </div>
+              )}
+            </div>
+            <button onClick={placeOrder} disabled={ordering} className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-amber-200 transition-all text-sm">
               {ordering ? 'Validation…' : 'Confirmer la commande'}
             </button>
-            <button onClick={() => setShowSheet(false)} className="w-full text-stone-400 text-sm font-semibold py-2">Annuler</button>
           </div>
         </div>
       )}
 
       {orderCode && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 text-center space-y-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 text-center max-w-sm w-full space-y-4 shadow-2xl">
             <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">✓</div>
-            <h3 className="font-extrabold text-xl">Commande Envoyée !</h3>
-            <p className="text-stone-400 text-sm">Code de confirmation :</p>
-            <p className="text-3xl font-mono font-black text-amber-500 tracking-wider bg-amber-50 py-3 rounded-2xl">{orderCode}</p>
-            <button onClick={() => { setOrderCode(null); onBack() }} className="w-full bg-stone-900 text-white font-bold py-3.5 rounded-2xl">Retour</button>
+            <h3 className="font-extrabold text-stone-900 text-xl">Commande envoyée !</h3>
+            <p className="text-xs text-stone-500">Donnez ce code au livreur ou au commerçant :</p>
+            <div className="bg-amber-50 text-amber-600 font-mono text-3xl font-black py-3 rounded-2xl tracking-widest border border-amber-200">{orderCode}</div>
+            <button onClick={() => setOrderCode(null)} className="w-full bg-stone-900 text-white font-bold py-3.5 rounded-2xl text-sm">Compris</button>
           </div>
         </div>
       )}
