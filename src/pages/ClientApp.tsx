@@ -66,9 +66,19 @@ export function ClientApp({ onExit }: { onExit: () => void }) {
     setAcheteur(null); setStore(null); onExit()
   }
 
-  if (page === 'login' || !acheteur) return <LoginPage onLogin={login} onExit={onExit} />
-  if (page === 'menu' && store) return <MenuPage acheteur={acheteur} store={store} onBack={goStores} />
-  return <StoresPage acheteur={acheteur} onSelect={goMenu} onRetour={onExit} onLogout={logout} />
+  return (
+    <div className="w-full min-h-[100dvh] bg-stone-100 flex justify-center overflow-x-hidden">
+      <div className="w-full max-w-md min-h-[100dvh] bg-stone-50 shadow-2xl relative overflow-x-hidden flex flex-col">
+        {page === 'login' || !acheteur ? (
+          <LoginPage onLogin={login} onExit={onExit} />
+        ) : page === 'menu' && store ? (
+          <MenuPage acheteur={acheteur} store={store} onBack={goStores} />
+        ) : (
+          <StoresPage acheteur={acheteur} onSelect={goMenu} onRetour={onExit} onLogout={logout} />
+        )}
+      </div>
+    </div>
+  )
 }
 
 // ─── Modal Compte ─────────────────────────────────────────────────────────────
@@ -119,8 +129,8 @@ function LoginPage({ onLogin, onExit }: { onLogin: (a: Acheteur) => void; onExit
   }
 
   return (
-    <div className="min-h-[100dvh] w-full max-w-full overflow-x-hidden bg-gradient-to-b from-amber-50 to-white flex flex-col items-center justify-between px-4 py-6 sm:justify-center box-border">
-      <div className="w-full max-w-sm flex flex-col items-center my-auto py-4">
+    <div className="min-h-[100dvh] w-full bg-gradient-to-b from-amber-50 to-white flex flex-col items-center justify-between px-4 py-6">
+      <div className="w-full flex flex-col items-center my-auto py-4">
         <div className="mb-6 text-center shrink-0">
           <div className="w-20 h-20 bg-white rounded-[24px] flex items-center justify-center mx-auto mb-3 shadow-xl shadow-black/5 border border-stone-100">
             <LogoOrania size={56} />
@@ -137,13 +147,13 @@ function LoginPage({ onLogin, onExit }: { onLogin: (a: Acheteur) => void; onExit
             <div>
               <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1">Votre nom complet</label>
               <input type="text" value={nom} onChange={(e) => setNom(e.target.value.replace(/[^a-zA-ZàâäéèêëïîôöùûüçÀÂÄÉÈÊËÏÎÔÖÙÛÜÇ '\\-]/g, ''))} placeholder="Ex : Amira Bouali"
-                className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50 text-stone-800 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all text-sm box-border" />
+                className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50 text-stone-800 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all text-sm" />
             </div>
 
             <div>
               <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1">Numéro de téléphone</label>
               <input type="tel" inputMode="numeric" value={tel} onChange={(e) => setTel(e.target.value.replace(/[^0-9]/g, ''))} placeholder="05 XX XX XX XX" onKeyDown={(e) => e.key === 'Enter' && submit()}
-                className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50 text-stone-800 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all text-sm box-border" />
+                className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50 text-stone-800 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all text-sm" />
             </div>
 
             {error && <div className="bg-red-50 border border-red-100 text-red-500 text-xs rounded-xl px-3.5 py-2">{error}</div>}
@@ -167,7 +177,7 @@ function LoginPage({ onLogin, onExit }: { onLogin: (a: Acheteur) => void; onExit
 function StoreCard({ store, distance, onClick }: { store: Fournisseur; distance?: number | null; onClick: () => void }) {
   const colors = getCat(store.categorie); const open = magasinOuvert(store.heure_ouverture, store.heure_fermeture); const photo = imgUrl(store.photo)
   return (
-    <button onClick={onClick} className="group w-full bg-white rounded-3xl overflow-hidden shadow-sm border border-stone-100 hover:shadow-md hover:border-amber-200 active:scale-[0.98] transition-all text-left box-border">
+    <button onClick={onClick} className="group w-full bg-white rounded-3xl overflow-hidden shadow-sm border border-stone-100 hover:shadow-md hover:border-amber-200 active:scale-[0.98] transition-all text-left">
       <div className="relative h-36 bg-amber-50 overflow-hidden w-full">
         {photo ? <img src={photo} alt={store.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
           : <div className="w-full h-full flex items-center justify-center"><Store size={48} className="opacity-25" /></div>}
@@ -175,7 +185,7 @@ function StoreCard({ store, distance, onClick }: { store: Fournisseur; distance?
         {store.a_promo && <span className="absolute top-2.5 left-2.5 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm bg-pink-500 text-white flex items-center gap-1"><Flame size={10} /> Promo</span>}
         <span className={`absolute bottom-2.5 left-2.5 text-[10px] font-semibold px-2.5 py-1 rounded-full ${colors.bg} ${colors.text}`}>{store.categorie}</span>
       </div>
-      <div className="px-4 py-3 w-full box-border">
+      <div className="px-4 py-3 w-full">
         <h3 className="font-bold text-stone-800 text-sm leading-tight mb-1.5 truncate">{store.nom}</h3>
         <div className="flex items-center gap-1.5 flex-wrap">
           <StarRating note={Math.round(store.note_moyenne ?? 0)} />
@@ -216,9 +226,9 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
   const [loading, setLoading] = useState(true); const [error, setError] = useState(false)
   const [search, setSearch] = useState(''); const [cat, setCat] = useState('Tous')
   const [tri, setTri] = useState<TriMode>('distance')
-  const [filtreOuvert] = useState<'tous' | 'ouvert' | 'ferme'>('tous')
-  const [filtreGratuit] = useState(false)
-  const [filtrePromo] = useState(false)
+  const [filtreOuvert, setFiltreOuvert] = useState<'tous' | 'ouvert' | 'ferme'>('tous')
+  const [filtreGratuit, setFiltreGratuit] = useState(false)
+  const [filtrePromo, setFiltrePromo] = useState(false)
   const [showFiltre, setShowFiltre] = useState(false)
   const [maPos, setMaPos] = useState<{ lat: number; lng: number } | null>(null)
   const [posErr, setPosErr] = useState(false)
@@ -273,12 +283,12 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
   })
 
   return (
-    <div className="min-h-[100dvh] w-full max-w-full overflow-x-hidden bg-stone-50 pb-10 box-border">
-      {/* En-tête fixe avec contraintes anti-débordement */}
-      <div className="bg-white border-b border-stone-100 sticky top-0 z-20 shadow-sm w-full max-w-full overflow-hidden box-border">
+    <div className="w-full flex flex-col pb-10 overflow-x-hidden">
+      {/* En-tête fixe totalement confiné */}
+      <div className="bg-white border-b border-stone-100 sticky top-0 z-20 shadow-sm w-full overflow-hidden">
         
         {/* Top bar */}
-        <div className="px-4 pt-4 pb-2 flex items-center justify-between gap-2 max-w-lg mx-auto w-full box-border">
+        <div className="px-4 pt-4 pb-2 flex items-center justify-between gap-2 w-full">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <button 
               onClick={onRetour} 
@@ -307,7 +317,7 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
         {showCompte && <CompteModal acheteur={acheteur} onClose={() => setShowCompte(false)} onLogout={onLogout} />}
 
         {/* Barre de recherche */}
-        <div className="px-4 pb-3 pt-1 max-w-lg mx-auto w-full flex gap-2 box-border">
+        <div className="px-4 pb-3 pt-1 w-full flex gap-2">
           <div className="relative flex-1 min-w-0">
             <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none">
               <Search size={16} />
@@ -317,7 +327,7 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
               value={search} 
               onChange={(e) => setSearch(e.target.value)} 
               placeholder="Chercher : pizza, thé, sushi…"
-              className="w-full pl-9 pr-8 py-2.5 bg-stone-100 border border-transparent rounded-xl text-xs text-stone-800 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all box-border" 
+              className="w-full pl-9 pr-8 py-2.5 bg-stone-100 border border-transparent rounded-xl text-xs text-stone-800 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all" 
             />
             {search && (
               <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs p-1">
@@ -335,7 +345,7 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
 
         {/* Panneau de tri */}
         {showFiltre && (
-          <div className="px-4 pb-3 max-w-lg mx-auto w-full box-border">
+          <div className="px-4 pb-3 w-full">
             <div className="bg-stone-50 border border-stone-200/60 rounded-xl p-2 flex gap-2">
               <button onClick={() => setTri('distance')} className={`flex-1 text-xs font-bold py-2 rounded-lg transition-all ${tri === 'distance' ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 border border-stone-200'}`}>📍 Plus proches</button>
               <button onClick={() => setTri('etoiles')} className={`flex-1 text-xs font-bold py-2 rounded-lg transition-all ${tri === 'etoiles' ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 border border-stone-200'}`}>⭐ Mieux notés</button>
@@ -343,8 +353,8 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
           </div>
         )}
 
-        {/* Categories scroll horizontal (masque scrollbar explicite) */}
-        <div className="w-full max-w-lg mx-auto px-4 pb-3 box-border">
+        {/* Ligne 1 : Catégories scrollables */}
+        <div className="w-full px-4 pb-2 overflow-hidden">
           <div className="flex gap-1.5 overflow-x-auto w-full py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {categories.map((c) => {
               const colors = c === 'Tous' ? null : getCat(c)
@@ -363,10 +373,41 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
             })}
           </div>
         </div>
+
+        {/* Ligne 2 : Filtres secondaires scrollables */}
+        <div className="w-full px-4 pb-3 overflow-hidden border-t border-stone-50 pt-2">
+          <div className="flex gap-1.5 overflow-x-auto w-full py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <button 
+              onClick={() => setFiltreOuvert(filtreOuvert === 'ouvert' ? 'tous' : 'ouvert')}
+              className={`shrink-0 text-[11px] font-semibold px-3 py-1 rounded-full transition-all flex items-center gap-1 whitespace-nowrap ${filtreOuvert === 'ouvert' ? 'bg-emerald-600 text-white' : 'bg-stone-100 text-stone-600'}`}
+            >
+              ● Ouvert
+            </button>
+            <button 
+              onClick={() => setFiltreOuvert(filtreOuvert === 'ferme' ? 'tous' : 'ferme')}
+              className={`shrink-0 text-[11px] font-semibold px-3 py-1 rounded-full transition-all flex items-center gap-1 whitespace-nowrap ${filtreOuvert === 'ferme' ? 'bg-stone-700 text-white' : 'bg-stone-100 text-stone-600'}`}
+            >
+              ● Fermé
+            </button>
+            <button 
+              onClick={() => setFiltreGratuit(!filtreGratuit)}
+              className={`shrink-0 text-[11px] font-semibold px-3 py-1 rounded-full transition-all flex items-center gap-1 whitespace-nowrap ${filtreGratuit ? 'bg-amber-500 text-white' : 'bg-stone-100 text-stone-600'}`}
+            >
+              🛵 Livraison gratuite
+            </button>
+            <button 
+              onClick={() => setFiltrePromo(!filtrePromo)}
+              className={`shrink-0 text-[11px] font-semibold px-3 py-1 rounded-full transition-all flex items-center gap-1 whitespace-nowrap ${filtrePromo ? 'bg-pink-500 text-white' : 'bg-stone-100 text-stone-600'}`}
+            >
+              🔥 En promo
+            </button>
+          </div>
+        </div>
+
       </div>
 
-      {/* Grille principale */}
-      <div className="px-4 py-4 max-w-lg mx-auto w-full box-border">
+      {/* Liste des magasins */}
+      <div className="px-4 py-4 w-full">
         {loading && <Spinner label="Chargement des commerces…" />}
         {error && !loading && (
           <div className="text-center py-16"><p className="text-4xl mb-2">⚡</p><p className="text-stone-600 font-semibold text-sm">API inaccessible</p></div>
@@ -458,9 +499,9 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
   produits.forEach((p) => { const c = p.categorie || 'Autre'; (groupes[c] = groupes[c] || []).push(p) })
 
   return (
-    <div className="min-h-[100dvh] w-full max-w-full overflow-x-hidden bg-stone-50 pb-36 box-border">
-      <div className="bg-white border-b border-stone-100 sticky top-0 z-20 shadow-sm w-full max-w-full overflow-hidden box-border">
-        <div className="px-4 py-3.5 flex items-center gap-3 max-w-lg mx-auto box-border">
+    <div className="w-full flex flex-col pb-36 overflow-x-hidden">
+      <div className="bg-white border-b border-stone-100 sticky top-0 z-20 shadow-sm w-full overflow-hidden">
+        <div className="px-4 py-3.5 flex items-center gap-3 w-full">
           <button onClick={onBack} title="Retour" className="w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700 shrink-0"><ArrowLeft size={20} /></button>
           <div className="flex-1 min-w-0">
             <h2 className="font-extrabold text-stone-800 truncate text-base">{store.nom}</h2>
@@ -472,7 +513,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
         </div>
       </div>
 
-      <div className="max-w-lg mx-auto px-4 pt-4 w-full box-border">
+      <div className="px-4 pt-4 w-full">
         {loading ? <Spinner label="Chargement de la carte…" /> : (
           <div className="space-y-6">
             {Object.entries(groupes).map(([cat, items]) => (
@@ -480,7 +521,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
                 <h3 className="font-bold text-stone-800 text-sm mb-3 uppercase tracking-wider">{cat}</h3>
                 <div className="space-y-3">
                   {items.map((p) => (
-                    <div key={p.id} className="bg-white p-4 rounded-2xl border border-stone-100 flex items-center justify-between gap-4 box-border">
+                    <div key={p.id} className="bg-white p-4 rounded-2xl border border-stone-100 flex items-center justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <h4 className="font-bold text-stone-800 text-sm truncate">{p.nom}</h4>
                         {p.ingredients && <p className="text-xs text-stone-400 truncate">{p.ingredients}</p>}
@@ -509,7 +550,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
           {avis.length === 0 ? <p className="text-xs text-stone-400 italic">Aucun avis pour le moment.</p> : (
             <div className="space-y-3 mb-6 max-h-48 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {avis.map((a, i) => (
-                <div key={i} className="bg-white p-3 rounded-xl border border-stone-100 box-border">
+                <div key={i} className="bg-white p-3 rounded-xl border border-stone-100">
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-bold text-xs text-stone-700 truncate">{a.nom_acheteur || 'Client'}</span>
                     <StarRating note={a.note} />
@@ -520,21 +561,21 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
             </div>
           )}
 
-          <div className="bg-amber-50/60 p-4 rounded-2xl border border-amber-100 box-border">
+          <div className="bg-amber-50/60 p-4 rounded-2xl border border-amber-100">
             <h4 className="font-bold text-stone-800 text-xs mb-2">{avisDone ? 'Votre avis est enregistré' : 'Donner votre avis'}</h4>
             <div className="flex gap-1 mb-3">
               {[1, 2, 3, 4, 5].map((s) => (
                 <button key={s} onClick={() => setMyNote(s)} className={`text-2xl ${s <= myNote ? 'text-amber-500' : 'text-stone-300'}`}>★</button>
               ))}
             </div>
-            <textarea value={myComment} onChange={(e) => setMyComment(e.target.value)} placeholder="Un commentaire ? (Optionnel)" className="w-full p-3 rounded-xl border border-stone-200 text-xs text-stone-800 bg-white mb-3 box-border" rows={2}></textarea>
+            <textarea value={myComment} onChange={(e) => setMyComment(e.target.value)} placeholder="Un commentaire ? (Optionnel)" className="w-full p-3 rounded-xl border border-stone-200 text-xs text-stone-800 bg-white mb-3" rows={2}></textarea>
             <button onClick={sendAvis} disabled={!myNote} className="w-full bg-amber-500 text-white text-xs font-bold py-3 rounded-xl disabled:opacity-50 shadow-md shadow-amber-200">Envoyer l'avis</button>
           </div>
         </div>
       </div>
 
       {totalItems > 0 && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-lg z-30 box-border">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm z-30">
           <button onClick={() => setShowSheet(true)} className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold p-4 rounded-2xl shadow-xl flex items-center justify-between">
             <span className="bg-white/20 px-2.5 py-1 rounded-xl text-xs">{totalItems}</span>
             <span>Voir le panier</span>
@@ -545,7 +586,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
 
       {showSheet && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end justify-center">
-          <div className="bg-white w-full max-w-lg rounded-t-3xl p-6 shadow-2xl space-y-4 max-h-[85dvh] overflow-y-auto box-border [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="bg-white w-full max-w-md rounded-t-3xl p-6 shadow-2xl space-y-4 max-h-[85dvh] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <div className="flex justify-between items-center">
               <h3 className="font-extrabold text-stone-800 text-lg">Votre commande</h3>
               <button onClick={() => setShowSheet(false)} className="text-stone-400 font-bold p-1">✕</button>
@@ -562,7 +603,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
               <span>Total</span>
               <span className="text-amber-600">{fmtDA(totalPrice)}</span>
             </div>
-            <div className="bg-stone-50 p-3 rounded-2xl space-y-2 box-border">
+            <div className="bg-stone-50 p-3 rounded-2xl space-y-2">
               <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-stone-700">
                 <input type="checkbox" checked={livraison} onChange={(e) => setLivraison(e.target.checked)} className="rounded text-amber-500 focus:ring-amber-400" />
                 Demander la livraison à domicile
@@ -583,7 +624,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
 
       {orderCode && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 text-center max-w-sm w-full space-y-4 shadow-2xl box-border">
+          <div className="bg-white rounded-3xl p-6 text-center max-w-sm w-full space-y-4 shadow-2xl">
             <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">✓</div>
             <h3 className="font-extrabold text-stone-900 text-xl">Commande envoyée !</h3>
             <p className="text-xs text-stone-500">Donnez ce code au livreur ou au commerçant :</p>
