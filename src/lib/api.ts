@@ -1,7 +1,7 @@
 // ─── API centralisée ───────────────────────────────────────────────────────
 // Tous les appels au backend FastAPI passent par ici. Aligné sur main.py.
 
-export const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+export const API = import.meta.env.VITE_API_URL || 'https://orania-backend.onrender.com'
 
 async function req(path: string, options?: RequestInit) {
   const res = await fetch(`${API}${path}`, {
@@ -102,7 +102,7 @@ export interface FournisseurAdmin {
 
 export const clientApi = {
   login: (nom: string, telephone: string): Promise<Acheteur> =>
-    req('/acheteurs/login', { method: 'POST', body: JSON.stringify({ nom, telephone }) }),
+    req('/client/login', { method: 'POST', body: JSON.stringify({ nom, telephone }) }),
   fournisseurs: (): Promise<Fournisseur[]> => req('/fournisseurs'),
   produits: (fid: number): Promise<Produit[]> => req(`/fournisseurs/${fid}/produits`),
   avis: (fid: number): Promise<Avis[]> => req(`/fournisseurs/${fid}/avis`),

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { ShoppingBag, Store, Shield, Headphones, ChevronRight, Banknote, Phone, MessageCircle, Mail, MapPin, ArrowLeft } from 'lucide-react'
+import { App as CapacitorApp } from '@capacitor/app' // 👈 Import Capacitor App
 import { ClientApp } from './pages/ClientApp'
 import { FournisseurAuth, type FournisseurSession } from './pages/FournisseurAuth'
 import { FournisseurDashboard } from './pages/FournisseurDashboard'
@@ -30,22 +31,44 @@ export default function App() {
     setPortail(p)
   }
 
-  // Bouton retour physique / flèche navigateur, au niveau des portails.
-  // window.__oraniaBackDepth compte les sous-écrans internes ouverts (ex: menu magasin).
-  // Tant qu'il en reste, on ne remonte PAS à l'accueil : le portail les ferme lui-même.
+  // ─── Bouton retour physique Android & Navigateur ─────────────────────────
   useEffect(() => {
     ;(window as any).__oraniaBackDepth = 0
-    const onPop = () => {
+
+    // Fonction de traitement du Retour
+    const handleGoBack = () => {
       const d = (window as any).__oraniaBackDepth || 0
       if (d > 0) {
-        // un sous-écran est ouvert : le portail va le fermer via son propre listener
+        // Un sous-écran est ouvert (ex: menu magasin) -> le portail interne s'en occupe
         ;(window as any).__oraniaBackDepth = d - 1
         return
       }
-      setPortail((cur) => (cur !== 'accueil' ? 'accueil' : cur))
+
+      // Si on est sur un portail (ex: client/fournisseur), on revient à l'accueil
+      setPortail((cur) => {
+        if (cur !== 'accueil') {
+          return 'accueil'
+        } else {
+          // Si on est DÉJÀ sur l'accueil, on quitte l'application
+          CapacitorApp.exitApp()
+          return cur
+        }
+      })
     }
+
+    // 1. Écouteur Web / Navigateur
+    const onPop = () => handleGoBack()
     window.addEventListener('popstate', onPop)
-    return () => window.removeEventListener('popstate', onPop)
+
+    // 2. Écouteur natif Android (Capacitor)
+    const backButtonListener = CapacitorApp.addListener('backButton', () => {
+      handleGoBack()
+    })
+
+    return () => {
+      window.removeEventListener('popstate', onPop)
+      backButtonListener.then(h => h.remove())
+    }
   }, [])
 
   if (portail === 'client') return <ClientApp onExit={() => setPortail('accueil')} />
@@ -66,20 +89,20 @@ export default function App() {
       style={{ backgroundImage: 'url(/background.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
       <div className="absolute inset-0 bg-[#12355B]/20" />
       <div className="relative z-10 w-full flex flex-col items-center">
-      <div className="mb-10 text-center">
-        <div className="w-28 h-28 bg-white rounded-[28px] flex items-center justify-center mx-auto mb-5 shadow-lg shadow-stone-200 border border-stone-100"><LogoOrania size={80} /></div>
-        <h1 className="text-4xl font-extrabold text-white tracking-tight">Orania</h1>
-        <p className="text-white/90 text-sm mt-2">Tout Oran, en un clic</p>
-      </div>
+        <div className="mb-10 text-center">
+          <div className="w-28 h-28 bg-white rounded-[28px] flex items-center justify-center mx-auto mb-5 shadow-lg shadow-stone-200 border border-stone-100"><LogoOrania size={80} /></div>
+          <h1 className="text-4xl font-extrabold text-white tracking-tight">Orania</h1>
+          <p className="text-white/90 text-sm mt-2">Tout Oran, en un clic</p>
+        </div>
 
-      <div className="w-full max-w-md space-y-3">
-        <PortailCard Icon={ShoppingBag} titre="Je suis un client" sous="Commander auprès des commerces" accent="bg-amber-500" onClick={() => ouvrirPortail('client')} />
-        <PortailCard Icon={Store} titre="Je suis un commerçant" sous="Gérer mon commerce et mes commandes" accent="bg-[#12355B]" onClick={() => ouvrirPortail('fournisseur')} />
-        <PortailCard Icon={Shield} titre="Administration" sous="Gérer les abonnements" accent="bg-stone-600" onClick={() => ouvrirPortail('admin')} />
-        <PortailCard Icon={Headphones} titre="Contact" sous="Nous contacter / assistance" accent="bg-emerald-500" onClick={() => ouvrirPortail('contact')} />
-      </div>
+        <div className="w-full max-w-md space-y-3">
+          <PortailCard Icon={ShoppingBag} titre="Je suis un client" sous="Commander auprès des commerces" accent="bg-amber-500" onClick={() => ouvrirPortail('client')} />
+          <PortailCard Icon={Store} titre="Je suis un commerçant" sous="Gérer mon commerce et mes commandes" accent="bg-[#12355B]" onClick={() => ouvrirPortail('fournisseur')} />
+          <PortailCard Icon={Shield} titre="Administration" sous="Gérer les abonnements" accent="bg-stone-600" onClick={() => ouvrirPortail('admin')} />
+          <PortailCard Icon={Headphones} titre="Contact" sous="Nous contacter / assistance" accent="bg-emerald-500" onClick={() => ouvrirPortail('contact')} />
+        </div>
 
-      <p className="text-white/80 text-xs mt-10 flex items-center justify-center gap-1.5"><Banknote size={15} /> Paiement en espèces uniquement</p>
+        <p className="text-white/80 text-xs mt-10 flex items-center justify-center gap-1.5"><Banknote size={15} /> Paiement en espèces uniquement</p>
       </div>
     </div>
   )
@@ -99,7 +122,6 @@ function PortailCard({ Icon, titre, sous, accent, onClick }: { Icon: React.Compo
     </button>
   )
 }
-
 
 function ContactPage({ onExit }: { onExit: () => void }) {
   const rows = ([
