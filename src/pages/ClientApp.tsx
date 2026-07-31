@@ -82,17 +82,17 @@ function CompteModal({ acheteur, onClose, onLogout }: { acheteur: Acheteur; onCl
         </div>
         <div className="space-y-3 mb-6">
           <div className="bg-stone-50 p-3 rounded-2xl border border-stone-100 flex items-center gap-3">
-            <User className="text-amber-500" size={20} />
-            <div>
+            <User className="text-amber-500 shrink-0" size={20} />
+            <div className="min-w-0 flex-1">
               <p className="text-[10px] text-stone-400 uppercase font-semibold">Nom</p>
-              <p className="text-sm font-bold text-stone-800">{acheteur.nom}</p>
+              <p className="text-sm font-bold text-stone-800 truncate">{acheteur.nom}</p>
             </div>
           </div>
           <div className="bg-stone-50 p-3 rounded-2xl border border-stone-100 flex items-center gap-3">
-            <Phone className="text-amber-500" size={20} />
-            <div>
+            <Phone className="text-amber-500 shrink-0" size={20} />
+            <div className="min-w-0 flex-1">
               <p className="text-[10px] text-stone-400 uppercase font-semibold">Téléphone</p>
-              <p className="text-sm font-bold text-stone-800">{acheteur.telephone}</p>
+              <p className="text-sm font-bold text-stone-800 truncate">{acheteur.telephone}</p>
             </div>
           </div>
         </div>
@@ -104,7 +104,7 @@ function CompteModal({ acheteur, onClose, onLogout }: { acheteur: Acheteur; onCl
   )
 }
 
-// ─── Login (Fixé pour Mobile) ────────────────────────────────────────────────
+// ─── Login Page ──────────────────────────────────────────────────────────────
 function LoginPage({ onLogin, onExit }: { onLogin: (a: Acheteur) => void; onExit: () => void }) {
   const [nom, setNom] = useState(''); const [tel, setTel] = useState('')
   const [loading, setLoading] = useState(false); const [error, setError] = useState('')
@@ -119,7 +119,7 @@ function LoginPage({ onLogin, onExit }: { onLogin: (a: Acheteur) => void; onExit
   }
 
   return (
-    <div className="fixed inset-0 w-full h-[100dvh] overflow-y-auto bg-gradient-to-b from-amber-50 to-white flex flex-col items-center justify-between px-5 py-6 sm:justify-center">
+    <div className="min-h-[100dvh] w-full max-w-full overflow-x-hidden bg-gradient-to-b from-amber-50 to-white flex flex-col items-center justify-between px-4 py-6 sm:justify-center box-border">
       <div className="w-full max-w-sm flex flex-col items-center my-auto py-4">
         <div className="mb-6 text-center shrink-0">
           <div className="w-20 h-20 bg-white rounded-[24px] flex items-center justify-center mx-auto mb-3 shadow-xl shadow-black/5 border border-stone-100">
@@ -137,13 +137,13 @@ function LoginPage({ onLogin, onExit }: { onLogin: (a: Acheteur) => void; onExit
             <div>
               <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1">Votre nom complet</label>
               <input type="text" value={nom} onChange={(e) => setNom(e.target.value.replace(/[^a-zA-ZàâäéèêëïîôöùûüçÀÂÄÉÈÊËÏÎÔÖÙÛÜÇ '\\-]/g, ''))} placeholder="Ex : Amira Bouali"
-                className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50 text-stone-800 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all text-sm" />
+                className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50 text-stone-800 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all text-sm box-border" />
             </div>
 
             <div>
               <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1">Numéro de téléphone</label>
               <input type="tel" inputMode="numeric" value={tel} onChange={(e) => setTel(e.target.value.replace(/[^0-9]/g, ''))} placeholder="05 XX XX XX XX" onKeyDown={(e) => e.key === 'Enter' && submit()}
-                className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50 text-stone-800 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all text-sm" />
+                className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50 text-stone-800 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all text-sm box-border" />
             </div>
 
             {error && <div className="bg-red-50 border border-red-100 text-red-500 text-xs rounded-xl px-3.5 py-2">{error}</div>}
@@ -167,21 +167,21 @@ function LoginPage({ onLogin, onExit }: { onLogin: (a: Acheteur) => void; onExit
 function StoreCard({ store, distance, onClick }: { store: Fournisseur; distance?: number | null; onClick: () => void }) {
   const colors = getCat(store.categorie); const open = magasinOuvert(store.heure_ouverture, store.heure_fermeture); const photo = imgUrl(store.photo)
   return (
-    <button onClick={onClick} className="group w-full bg-white rounded-3xl overflow-hidden shadow-sm border border-stone-100 hover:shadow-md hover:border-amber-200 active:scale-[0.98] transition-all text-left">
-      <div className="relative h-36 bg-amber-50 overflow-hidden">
+    <button onClick={onClick} className="group w-full bg-white rounded-3xl overflow-hidden shadow-sm border border-stone-100 hover:shadow-md hover:border-amber-200 active:scale-[0.98] transition-all text-left box-border">
+      <div className="relative h-36 bg-amber-50 overflow-hidden w-full">
         {photo ? <img src={photo} alt={store.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
           : <div className="w-full h-full flex items-center justify-center"><Store size={48} className="opacity-25" /></div>}
         {open !== null && <span className={`absolute top-2.5 right-2.5 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm ${open ? 'bg-emerald-500 text-white' : 'bg-stone-400/80 text-white'}`}>{open ? '● Ouvert' : '● Fermé'}</span>}
         {store.a_promo && <span className="absolute top-2.5 left-2.5 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm bg-pink-500 text-white flex items-center gap-1"><Flame size={10} /> Promo</span>}
         <span className={`absolute bottom-2.5 left-2.5 text-[10px] font-semibold px-2.5 py-1 rounded-full ${colors.bg} ${colors.text}`}>{store.categorie}</span>
       </div>
-      <div className="px-4 py-3">
-        <h3 className="font-bold text-stone-800 text-sm leading-tight mb-1.5">{store.nom}</h3>
-        <div className="flex items-center gap-1.5">
+      <div className="px-4 py-3 w-full box-border">
+        <h3 className="font-bold text-stone-800 text-sm leading-tight mb-1.5 truncate">{store.nom}</h3>
+        <div className="flex items-center gap-1.5 flex-wrap">
           <StarRating note={Math.round(store.note_moyenne ?? 0)} />
           <span className="text-xs text-stone-400">{store.note_moyenne ? store.note_moyenne.toFixed(1) : '—'}{store.nb_avis ? ` · ${store.nb_avis} avis` : ''}</span>
         </div>
-        <div className="flex items-center gap-2 mt-1">
+        <div className="flex items-center gap-2 mt-1 flex-wrap">
           {store.heure_ouverture && <p className="text-[11px] text-stone-400"><Clock size={11} className="inline mr-0.5" />{hhmm(store.heure_ouverture)}–{hhmm(store.heure_fermeture)}</p>}
           {distance != null && <p className="text-[11px] text-amber-600 font-semibold"><MapPin size={11} className="inline mr-0.5" />{distance < 1 ? Math.round(distance * 1000) + ' m' : distance.toFixed(1) + ' km'}</p>}
         </div>
@@ -216,9 +216,9 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
   const [loading, setLoading] = useState(true); const [error, setError] = useState(false)
   const [search, setSearch] = useState(''); const [cat, setCat] = useState('Tous')
   const [tri, setTri] = useState<TriMode>('distance')
-  const [filtreOuvert, setFiltreOuvert] = useState<'tous' | 'ouvert' | 'ferme'>('tous')
-  const [filtreGratuit, setFiltreGratuit] = useState(false)
-  const [filtrePromo, setFiltrePromo] = useState(false)
+  const [filtreOuvert] = useState<'tous' | 'ouvert' | 'ferme'>('tous')
+  const [filtreGratuit] = useState(false)
+  const [filtrePromo] = useState(false)
   const [showFiltre, setShowFiltre] = useState(false)
   const [maPos, setMaPos] = useState<{ lat: number; lng: number } | null>(null)
   const [posErr, setPosErr] = useState(false)
@@ -273,67 +273,114 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
   })
 
   return (
-    <div className="min-h-[100dvh] bg-stone-50 pb-10">
-      <div className="bg-white border-b border-stone-100 sticky top-0 z-20 shadow-sm">
-        <div className="px-4 pt-4 pb-2 flex items-center gap-3 max-w-lg mx-auto">
-          <button onClick={onRetour} title="Retour à l'accueil"
-            className="shrink-0 w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700"><ArrowLeft size={20} /></button>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2"><LogoOrania size={26} /><h1 className="font-extrabold text-stone-900 text-lg truncate">Orania</h1></div>
-            <p className="text-xs text-stone-400 ml-8 truncate">Bonjour, {acheteur.nom} 👋</p>
+    <div className="min-h-[100dvh] w-full max-w-full overflow-x-hidden bg-stone-50 pb-10 box-border">
+      {/* En-tête fixe avec contraintes anti-débordement */}
+      <div className="bg-white border-b border-stone-100 sticky top-0 z-20 shadow-sm w-full max-w-full overflow-hidden box-border">
+        
+        {/* Top bar */}
+        <div className="px-4 pt-4 pb-2 flex items-center justify-between gap-2 max-w-lg mx-auto w-full box-border">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <button 
+              onClick={onRetour} 
+              title="Retour à l'accueil"
+              className="shrink-0 w-9 h-9 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700"
+            >
+              <ArrowLeft size={18} />
+            </button>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <LogoOrania size={22} />
+                <h1 className="font-extrabold text-stone-900 text-base truncate">Orania</h1>
+              </div>
+              <p className="text-[11px] text-stone-400 truncate">Bonjour, {acheteur.nom} 👋</p>
+            </div>
           </div>
-          <button onClick={() => setShowCompte(true)} className="shrink-0 text-xs text-stone-500 hover:text-amber-600 transition-colors px-3 py-1.5 rounded-xl hover:bg-amber-50 inline-flex items-center gap-1"><User size={14} />Compte</button>
+
+          <button 
+            onClick={() => setShowCompte(true)} 
+            className="shrink-0 text-xs font-semibold text-stone-600 bg-stone-100 px-3 py-2 rounded-xl hover:bg-stone-200 active:scale-95 transition-all flex items-center gap-1"
+          >
+            <User size={14} /> Compte
+          </button>
         </div>
+
         {showCompte && <CompteModal acheteur={acheteur} onClose={() => setShowCompte(false)} onLogout={onLogout} />}
 
-        <div className="px-4 pb-3 pt-1 max-w-lg mx-auto flex gap-2">
-          <div className="relative flex-1">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 text-base pointer-events-none"><Search size={16} /></span>
-            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Chercher : pizza, thé, sushi…"
-              className="w-full pl-10 pr-4 py-3 bg-stone-100 border border-transparent rounded-2xl text-sm text-stone-700 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all" />
-            {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600">✕</button>}
+        {/* Barre de recherche */}
+        <div className="px-4 pb-3 pt-1 max-w-lg mx-auto w-full flex gap-2 box-border">
+          <div className="relative flex-1 min-w-0">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none">
+              <Search size={16} />
+            </span>
+            <input 
+              type="text" 
+              value={search} 
+              onChange={(e) => setSearch(e.target.value)} 
+              placeholder="Chercher : pizza, thé, sushi…"
+              className="w-full pl-9 pr-8 py-2.5 bg-stone-100 border border-transparent rounded-xl text-xs text-stone-800 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all box-border" 
+            />
+            {search && (
+              <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs p-1">
+                ✕
+              </button>
+            )}
           </div>
-          <button onClick={() => setShowFiltre((v) => !v)}
-            className={`px-3 rounded-2xl text-sm font-semibold transition-all whitespace-nowrap ${showFiltre ? 'bg-amber-500 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
+          <button 
+            onClick={() => setShowFiltre((v) => !v)}
+            className={`shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all ${showFiltre ? 'bg-amber-500 text-white' : 'bg-stone-100 text-stone-700'}`}
+          >
             ⚙️ {tri === 'distance' ? 'Proche' : 'Top'}
           </button>
         </div>
 
+        {/* Panneau de tri */}
         {showFiltre && (
-          <div className="px-4 pb-3 max-w-lg mx-auto">
-            <div className="bg-stone-50 border border-stone-100 rounded-2xl p-3 flex gap-2">
-              <button onClick={() => setTri('distance')} className={`flex-1 text-sm font-semibold py-2 rounded-xl transition-all ${tri === 'distance' ? 'bg-amber-500 text-white' : 'bg-white text-stone-500 border border-stone-200'}`}>📍 Plus proches</button>
-              <button onClick={() => setTri('etoiles')} className={`flex-1 text-sm font-semibold py-2 rounded-xl transition-all ${tri === 'etoiles' ? 'bg-amber-500 text-white' : 'bg-white text-stone-500 border border-stone-200'}`}>⭐ Mieux notés</button>
+          <div className="px-4 pb-3 max-w-lg mx-auto w-full box-border">
+            <div className="bg-stone-50 border border-stone-200/60 rounded-xl p-2 flex gap-2">
+              <button onClick={() => setTri('distance')} className={`flex-1 text-xs font-bold py-2 rounded-lg transition-all ${tri === 'distance' ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 border border-stone-200'}`}>📍 Plus proches</button>
+              <button onClick={() => setTri('etoiles')} className={`flex-1 text-xs font-bold py-2 rounded-lg transition-all ${tri === 'etoiles' ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 border border-stone-200'}`}>⭐ Mieux notés</button>
             </div>
           </div>
         )}
 
-        <div className="px-4 pb-2 flex gap-2 overflow-x-auto no-scrollbar max-w-lg mx-auto">
-          {categories.map((c) => {
-            const colors = c === 'Tous' ? null : getCat(c); const active = cat === c
-            return (
-              <button key={c} onClick={() => setCat(c)}
-                className={`shrink-0 text-xs font-semibold px-4 py-1.5 rounded-full transition-all ${
-                  active ? (c === 'Tous' ? 'bg-amber-500 text-white shadow-sm shadow-amber-200' : `${colors!.pill} text-white shadow-sm`) : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
-                }`}>{c}</button>
-            )
-          })}
+        {/* Categories scroll horizontal (masque scrollbar explicite) */}
+        <div className="w-full max-w-lg mx-auto px-4 pb-3 box-border">
+          <div className="flex gap-1.5 overflow-x-auto w-full py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {categories.map((c) => {
+              const colors = c === 'Tous' ? null : getCat(c)
+              const active = cat === c
+              return (
+                <button 
+                  key={c} 
+                  onClick={() => setCat(c)}
+                  className={`shrink-0 text-xs font-bold px-3.5 py-1.5 rounded-full transition-all whitespace-nowrap ${
+                    active ? (c === 'Tous' ? 'bg-amber-500 text-white' : `${colors!.pill} text-white`) : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                  }`}
+                >
+                  {c}
+                </button>
+              )
+            })}
+          </div>
         </div>
       </div>
 
-      <div className="px-4 py-4 max-w-lg mx-auto">
+      {/* Grille principale */}
+      <div className="px-4 py-4 max-w-lg mx-auto w-full box-border">
         {loading && <Spinner label="Chargement des commerces…" />}
         {error && !loading && (
-          <div className="text-center py-20"><p className="text-5xl mb-4">⚡</p><p className="text-stone-600 font-semibold mb-1">API inaccessible</p></div>
+          <div className="text-center py-16"><p className="text-4xl mb-2">⚡</p><p className="text-stone-600 font-semibold text-sm">API inaccessible</p></div>
         )}
         {!loading && !error && filtered.length === 0 && (
-          <div className="text-center py-20"><p className="text-5xl mb-4">🔍</p><p className="text-stone-600 font-semibold mb-1">Aucun résultat</p></div>
+          <div className="text-center py-16"><p className="text-4xl mb-2">🔍</p><p className="text-stone-600 font-semibold text-sm">Aucun résultat trouvé</p></div>
         )}
         {!loading && !error && filtered.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{filtered.map((s) => {
-            const dist = distanceKm(maPos?.lat, maPos?.lng, s.latitude, s.longitude)
-            return <StoreCard key={s.id} store={s} distance={dist} onClick={() => onSelect(s)} />
-          })}</div>
+          <div className="grid grid-cols-1 gap-3.5 w-full">
+            {filtered.map((s) => {
+              const dist = distanceKm(maPos?.lat, maPos?.lng, s.latitude, s.longitude)
+              return <StoreCard key={s.id} store={s} distance={dist} onClick={() => onSelect(s)} />
+            })}
+          </div>
         )}
       </div>
     </div>
@@ -411,9 +458,9 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
   produits.forEach((p) => { const c = p.categorie || 'Autre'; (groupes[c] = groupes[c] || []).push(p) })
 
   return (
-    <div className="min-h-[100dvh] bg-stone-50 pb-36">
-      <div className="bg-white border-b border-stone-100 sticky top-0 z-20 shadow-sm">
-        <div className="px-4 py-3.5 flex items-center gap-3 max-w-lg mx-auto">
+    <div className="min-h-[100dvh] w-full max-w-full overflow-x-hidden bg-stone-50 pb-36 box-border">
+      <div className="bg-white border-b border-stone-100 sticky top-0 z-20 shadow-sm w-full max-w-full overflow-hidden box-border">
+        <div className="px-4 py-3.5 flex items-center gap-3 max-w-lg mx-auto box-border">
           <button onClick={onBack} title="Retour" className="w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700 shrink-0"><ArrowLeft size={20} /></button>
           <div className="flex-1 min-w-0">
             <h2 className="font-extrabold text-stone-800 truncate text-base">{store.nom}</h2>
@@ -425,7 +472,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
         </div>
       </div>
 
-      <div className="max-w-lg mx-auto px-4 pt-4">
+      <div className="max-w-lg mx-auto px-4 pt-4 w-full box-border">
         {loading ? <Spinner label="Chargement de la carte…" /> : (
           <div className="space-y-6">
             {Object.entries(groupes).map(([cat, items]) => (
@@ -433,13 +480,13 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
                 <h3 className="font-bold text-stone-800 text-sm mb-3 uppercase tracking-wider">{cat}</h3>
                 <div className="space-y-3">
                   {items.map((p) => (
-                    <div key={p.id} className="bg-white p-4 rounded-2xl border border-stone-100 flex items-center justify-between gap-4">
+                    <div key={p.id} className="bg-white p-4 rounded-2xl border border-stone-100 flex items-center justify-between gap-4 box-border">
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-stone-800 text-sm">{p.nom}</h4>
+                        <h4 className="font-bold text-stone-800 text-sm truncate">{p.nom}</h4>
                         {p.ingredients && <p className="text-xs text-stone-400 truncate">{p.ingredients}</p>}
                         <p className="text-sm font-extrabold text-amber-600 mt-1">{fmtDA(prixEff(p))}</p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 shrink-0">
                         {qty(p.id) > 0 && (
                           <>
                             <button onClick={() => remove(p.id)} className="w-8 h-8 rounded-xl bg-stone-100 text-stone-700 font-bold">-</button>
@@ -460,34 +507,34 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
         <div className="mt-10 pt-6 border-t border-stone-200">
           <h3 className="font-extrabold text-stone-800 text-base mb-4 flex items-center gap-2"><Star className="text-amber-500" size={18} /> Avis des clients</h3>
           {avis.length === 0 ? <p className="text-xs text-stone-400 italic">Aucun avis pour le moment.</p> : (
-            <div className="space-y-3 mb-6 max-h-48 overflow-y-auto">
+            <div className="space-y-3 mb-6 max-h-48 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {avis.map((a, i) => (
-                <div key={i} className="bg-white p-3 rounded-xl border border-stone-100">
+                <div key={i} className="bg-white p-3 rounded-xl border border-stone-100 box-border">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-bold text-xs text-stone-700">{a.nom_acheteur || 'Client'}</span>
+                    <span className="font-bold text-xs text-stone-700 truncate">{a.nom_acheteur || 'Client'}</span>
                     <StarRating note={a.note} />
                   </div>
-                  {a.commentaire && <p className="text-xs text-stone-500">{a.commentaire}</p>}
+                  {a.commentaire && <p className="text-xs text-stone-500 break-words">{a.commentaire}</p>}
                 </div>
               ))}
             </div>
           )}
 
-          <div className="bg-amber-50/60 p-4 rounded-2xl border border-amber-100">
+          <div className="bg-amber-50/60 p-4 rounded-2xl border border-amber-100 box-border">
             <h4 className="font-bold text-stone-800 text-xs mb-2">{avisDone ? 'Votre avis est enregistré' : 'Donner votre avis'}</h4>
             <div className="flex gap-1 mb-3">
               {[1, 2, 3, 4, 5].map((s) => (
                 <button key={s} onClick={() => setMyNote(s)} className={`text-2xl ${s <= myNote ? 'text-amber-500' : 'text-stone-300'}`}>★</button>
               ))}
             </div>
-            <textarea value={myComment} onChange={(e) => setMyComment(e.target.value)} placeholder="Un commentaire ? (Optionnel)" className="w-full p-3 rounded-xl border border-stone-200 text-xs text-stone-800 bg-white mb-3" rows={2}></textarea>
+            <textarea value={myComment} onChange={(e) => setMyComment(e.target.value)} placeholder="Un commentaire ? (Optionnel)" className="w-full p-3 rounded-xl border border-stone-200 text-xs text-stone-800 bg-white mb-3 box-border" rows={2}></textarea>
             <button onClick={sendAvis} disabled={!myNote} className="w-full bg-amber-500 text-white text-xs font-bold py-3 rounded-xl disabled:opacity-50 shadow-md shadow-amber-200">Envoyer l'avis</button>
           </div>
         </div>
       </div>
 
       {totalItems > 0 && (
-        <div className="fixed bottom-4 left-4 right-4 max-w-lg mx-auto z-30">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-lg z-30 box-border">
           <button onClick={() => setShowSheet(true)} className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold p-4 rounded-2xl shadow-xl flex items-center justify-between">
             <span className="bg-white/20 px-2.5 py-1 rounded-xl text-xs">{totalItems}</span>
             <span>Voir le panier</span>
@@ -498,16 +545,16 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
 
       {showSheet && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end justify-center">
-          <div className="bg-white w-full max-w-lg rounded-t-3xl p-6 shadow-2xl space-y-4 max-h-[85dvh] overflow-y-auto">
+          <div className="bg-white w-full max-w-lg rounded-t-3xl p-6 shadow-2xl space-y-4 max-h-[85dvh] overflow-y-auto box-border [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <div className="flex justify-between items-center">
               <h3 className="font-extrabold text-stone-800 text-lg">Votre commande</h3>
               <button onClick={() => setShowSheet(false)} className="text-stone-400 font-bold p-1">✕</button>
             </div>
-            <div className="space-y-2 max-h-40 overflow-y-auto">
+            <div className="space-y-2 max-h-40 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {cart.map((i) => (
                 <div key={i.produit.id} className="flex justify-between text-sm py-1 border-b border-stone-50">
-                  <span className="text-stone-700">{i.quantite}x {i.produit.nom}</span>
-                  <span className="font-bold text-stone-800">{fmtDA(prixEff(i.produit) * i.quantite)}</span>
+                  <span className="text-stone-700 truncate pr-2">{i.quantite}x {i.produit.nom}</span>
+                  <span className="font-bold text-stone-800 shrink-0">{fmtDA(prixEff(i.produit) * i.quantite)}</span>
                 </div>
               ))}
             </div>
@@ -515,7 +562,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
               <span>Total</span>
               <span className="text-amber-600">{fmtDA(totalPrice)}</span>
             </div>
-            <div className="bg-stone-50 p-3 rounded-2xl space-y-2">
+            <div className="bg-stone-50 p-3 rounded-2xl space-y-2 box-border">
               <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-stone-700">
                 <input type="checkbox" checked={livraison} onChange={(e) => setLivraison(e.target.checked)} className="rounded text-amber-500 focus:ring-amber-400" />
                 Demander la livraison à domicile
@@ -536,7 +583,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
 
       {orderCode && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 text-center max-w-sm w-full space-y-4 shadow-2xl">
+          <div className="bg-white rounded-3xl p-6 text-center max-w-sm w-full space-y-4 shadow-2xl box-border">
             <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">✓</div>
             <h3 className="font-extrabold text-stone-900 text-xl">Commande envoyée !</h3>
             <p className="text-xs text-stone-500">Donnez ce code au livreur ou au commerçant :</p>
