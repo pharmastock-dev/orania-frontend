@@ -68,7 +68,7 @@ export function ClientApp({ onExit }: { onExit: () => void }) {
 
   return (
     <div className="w-full min-h-[100dvh] bg-stone-100 flex justify-center overflow-x-hidden">
-      <div className="w-full max-w-md min-h-[100dvh] bg-stone-50 shadow-2xl relative overflow-x-hidden flex flex-col">
+      <div className="w-full max-w-md min-h-[100dvh] bg-stone-50 shadow-2xl relative overflow-x-hidden flex flex-col box-border">
         {page === 'login' || !acheteur ? (
           <LoginPage onLogin={login} onExit={onExit} />
         ) : page === 'menu' && store ? (
@@ -283,12 +283,12 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
   })
 
   return (
-    <div className="w-full flex flex-col pb-10 overflow-x-hidden">
-      {/* En-tête fixe totalement confiné */}
-      <div className="bg-white border-b border-stone-100 sticky top-0 z-20 shadow-sm w-full overflow-hidden">
+    <div className="w-full max-w-full flex flex-col pb-10 overflow-x-hidden">
+      {/* En-tête fixe parfaitement restreint à la largeur disponible */}
+      <div className="bg-white border-b border-stone-100 sticky top-0 z-20 shadow-sm w-full max-w-full overflow-hidden">
         
         {/* Top bar */}
-        <div className="px-4 pt-4 pb-2 flex items-center justify-between gap-2 w-full">
+        <div className="px-4 pt-4 pb-2 flex items-center justify-between gap-2 w-full max-w-full">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <button 
               onClick={onRetour} 
@@ -317,7 +317,7 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
         {showCompte && <CompteModal acheteur={acheteur} onClose={() => setShowCompte(false)} onLogout={onLogout} />}
 
         {/* Barre de recherche */}
-        <div className="px-4 pb-3 pt-1 w-full flex gap-2">
+        <div className="px-4 pb-3 pt-1 w-full max-w-full flex gap-2">
           <div className="relative flex-1 min-w-0">
             <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none">
               <Search size={16} />
@@ -345,7 +345,7 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
 
         {/* Panneau de tri */}
         {showFiltre && (
-          <div className="px-4 pb-3 w-full">
+          <div className="px-4 pb-3 w-full max-w-full">
             <div className="bg-stone-50 border border-stone-200/60 rounded-xl p-2 flex gap-2">
               <button onClick={() => setTri('distance')} className={`flex-1 text-xs font-bold py-2 rounded-lg transition-all ${tri === 'distance' ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 border border-stone-200'}`}>📍 Plus proches</button>
               <button onClick={() => setTri('etoiles')} className={`flex-1 text-xs font-bold py-2 rounded-lg transition-all ${tri === 'etoiles' ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 border border-stone-200'}`}>⭐ Mieux notés</button>
@@ -353,9 +353,9 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
           </div>
         )}
 
-        {/* Ligne 1 : Catégories scrollables */}
-        <div className="w-full px-4 pb-2 overflow-hidden">
-          <div className="flex gap-1.5 overflow-x-auto w-full py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {/* Ligne 1 : Catégories scrollables internes */}
+        <div className="w-full max-w-full px-4 pb-2 overflow-hidden">
+          <div className="flex gap-1.5 overflow-x-auto w-full max-w-full py-0.5 no-scrollbar scrollbar-hide">
             {categories.map((c) => {
               const colors = c === 'Tous' ? null : getCat(c)
               const active = cat === c
@@ -374,9 +374,9 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
           </div>
         </div>
 
-        {/* Ligne 2 : Filtres secondaires scrollables */}
-        <div className="w-full px-4 pb-3 overflow-hidden border-t border-stone-50 pt-2">
-          <div className="flex gap-1.5 overflow-x-auto w-full py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {/* Ligne 2 : Filtres secondaires scrollables internes */}
+        <div className="w-full max-w-full px-4 pb-3 overflow-hidden border-t border-stone-50 pt-2">
+          <div className="flex gap-1.5 overflow-x-auto w-full max-w-full py-0.5 no-scrollbar scrollbar-hide">
             <button 
               onClick={() => setFiltreOuvert(filtreOuvert === 'ouvert' ? 'tous' : 'ouvert')}
               className={`shrink-0 text-[11px] font-semibold px-3 py-1 rounded-full transition-all flex items-center gap-1 whitespace-nowrap ${filtreOuvert === 'ouvert' ? 'bg-emerald-600 text-white' : 'bg-stone-100 text-stone-600'}`}
@@ -407,7 +407,7 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
       </div>
 
       {/* Liste des magasins */}
-      <div className="px-4 py-4 w-full">
+      <div className="px-4 py-4 w-full max-w-full">
         {loading && <Spinner label="Chargement des commerces…" />}
         {error && !loading && (
           <div className="text-center py-16"><p className="text-4xl mb-2">⚡</p><p className="text-stone-600 font-semibold text-sm">API inaccessible</p></div>
@@ -416,7 +416,7 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
           <div className="text-center py-16"><p className="text-4xl mb-2">🔍</p><p className="text-stone-600 font-semibold text-sm">Aucun résultat trouvé</p></div>
         )}
         {!loading && !error && filtered.length > 0 && (
-          <div className="grid grid-cols-1 gap-3.5 w-full">
+          <div className="grid grid-cols-1 gap-3.5 w-full max-w-full">
             {filtered.map((s) => {
               const dist = distanceKm(maPos?.lat, maPos?.lng, s.latitude, s.longitude)
               return <StoreCard key={s.id} store={s} distance={dist} onClick={() => onSelect(s)} />
@@ -499,9 +499,9 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
   produits.forEach((p) => { const c = p.categorie || 'Autre'; (groupes[c] = groupes[c] || []).push(p) })
 
   return (
-    <div className="w-full flex flex-col pb-36 overflow-x-hidden">
-      <div className="bg-white border-b border-stone-100 sticky top-0 z-20 shadow-sm w-full overflow-hidden">
-        <div className="px-4 py-3.5 flex items-center gap-3 w-full">
+    <div className="w-full max-w-full flex flex-col pb-36 overflow-x-hidden">
+      <div className="bg-white border-b border-stone-100 sticky top-0 z-20 shadow-sm w-full max-w-full overflow-hidden">
+        <div className="px-4 py-3.5 flex items-center gap-3 w-full max-w-full">
           <button onClick={onBack} title="Retour" className="w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700 shrink-0"><ArrowLeft size={20} /></button>
           <div className="flex-1 min-w-0">
             <h2 className="font-extrabold text-stone-800 truncate text-base">{store.nom}</h2>
@@ -513,7 +513,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
         </div>
       </div>
 
-      <div className="px-4 pt-4 w-full">
+      <div className="px-4 pt-4 w-full max-w-full">
         {loading ? <Spinner label="Chargement de la carte…" /> : (
           <div className="space-y-6">
             {Object.entries(groupes).map(([cat, items]) => (
@@ -548,7 +548,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
         <div className="mt-10 pt-6 border-t border-stone-200">
           <h3 className="font-extrabold text-stone-800 text-base mb-4 flex items-center gap-2"><Star className="text-amber-500" size={18} /> Avis des clients</h3>
           {avis.length === 0 ? <p className="text-xs text-stone-400 italic">Aucun avis pour le moment.</p> : (
-            <div className="space-y-3 mb-6 max-h-48 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="space-y-3 mb-6 max-h-48 overflow-y-auto no-scrollbar scrollbar-hide">
               {avis.map((a, i) => (
                 <div key={i} className="bg-white p-3 rounded-xl border border-stone-100">
                   <div className="flex items-center justify-between mb-1">
@@ -586,12 +586,12 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
 
       {showSheet && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end justify-center">
-          <div className="bg-white w-full max-w-md rounded-t-3xl p-6 shadow-2xl space-y-4 max-h-[85dvh] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="bg-white w-full max-w-md rounded-t-3xl p-6 shadow-2xl space-y-4 max-h-[85dvh] overflow-y-auto no-scrollbar scrollbar-hide">
             <div className="flex justify-between items-center">
               <h3 className="font-extrabold text-stone-800 text-lg">Votre commande</h3>
               <button onClick={() => setShowSheet(false)} className="text-stone-400 font-bold p-1">✕</button>
             </div>
-            <div className="space-y-2 max-h-40 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="space-y-2 max-h-40 overflow-y-auto no-scrollbar scrollbar-hide">
               {cart.map((i) => (
                 <div key={i.produit.id} className="flex justify-between text-sm py-1 border-b border-stone-50">
                   <span className="text-stone-700 truncate pr-2">{i.quantite}x {i.produit.nom}</span>
