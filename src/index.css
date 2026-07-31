@@ -5,8 +5,7 @@
   --font-display: 'Plus Jakarta Sans', sans-serif;
   --font-body: 'Nunito', sans-serif;
 
-  /* ─── Palette Orania ─── */
-  /* Orange principal #FF6B00 — mappé sur "amber" */
+  /* Palette Orania */
   --color-amber-50: #fff4ec;
   --color-amber-100: #ffe4d1;
   --color-amber-200: #ffc9a3;
@@ -15,7 +14,6 @@
   --color-amber-600: #e85f00;
   --color-amber-700: #c24e00;
 
-  /* Bleu foncé #12355B — mappé sur "stone" */
   --color-stone-50: #f4f6f9;
   --color-stone-100: #e4e9f0;
   --color-stone-200: #c9d3e0;
@@ -27,7 +25,6 @@
   --color-stone-800: #12355b;
   --color-stone-900: #0d2743;
 
-  /* Vert succès #2EAF61 */
   --color-emerald-50: #eafaf0;
   --color-emerald-100: #d0f3de;
   --color-emerald-500: #2eaf61;
@@ -35,15 +32,25 @@
   --color-emerald-700: #1c7d42;
 }
 
-/* ─── Reset & Correctifs Responsive Mobile ─── */
-html, body, #root {
+/* Fix global strict pour stopper tout décalage/overflow horizontal */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
   width: 100%;
-  height: 100%;
-  min-height: 100dvh; /* Dynamic Viewport Height pour gérer la barre Safari/Chrome */
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body, #root {
+  width: 100%;
+  max-width: 100vw;
+  min-height: 100dvh;
   margin: 0;
   padding: 0;
   overflow-x: hidden;
-  -webkit-tap-highlight-color: transparent;
+  position: relative;
 }
 
 body {
@@ -51,7 +58,6 @@ body {
   background-color: #f4f6f9;
   color: #0d2743;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
   touch-action: manipulation;
   -webkit-overflow-scrolling: touch;
 }
@@ -60,7 +66,7 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display), 'Plus Jakarta Sans', sans-serif;
 }
 
-/* ─── Utilitaires Masquage de Scrollbar ─── */
+/* Cacher la barre de scroll tout en gardant le défilement */
 .no-scrollbar::-webkit-scrollbar,
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
@@ -70,10 +76,4 @@ h1, h2, h3, h4, h5, h6 {
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
-}
-
-::-webkit-scrollbar {
-  width: 0px;
-  height: 0px;
-  background: transparent;
 }
