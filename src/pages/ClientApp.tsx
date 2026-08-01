@@ -383,9 +383,22 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
 
   const chargerAvis = () => clientApi.avis(store.id).then((a) => setAvis(Array.isArray(a) ? a : [])).catch(() => {})
 
+  // Charger les données du magasin à l'ouverture, puis synchroniser les produits.
+  // Le commerçant peut ajouter/modifier/supprimer un produit pendant que le client
+  // garde cette page ouverte : on recharge donc uniquement la liste des produits.
   useEffect(() => {
+    let cancelled = false
+
+    const chargerProduits = async () => {
+      try {
+        const p = await clientApi.produits(store.id)
+        if (!cancelled) setProduits(Array.isArray(p) ? p : [])
+      } catch {}
+    }
+
     Promise.all([clientApi.produits(store.id), clientApi.avis(store.id), clientApi.monAvis(store.id, acheteur.id)])
       .then(([p, a, mine]) => {
+        if (cancelled) return
         setProduits(Array.isArray(p) ? p : [])
         setAvis(Array.isArray(a) ? a : [])
         if (mine && mine.existe) {
@@ -393,7 +406,24 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
         }
         setLoading(false)
       })
-      .catch(() => setLoading(false))
+      .catch(() => { if (!cancelled) setLoading(false) })
+
+    // Synchronisation automatique : nouveau produit, prix, promo, disponibilité, suppression.
+    const interval = window.setInterval(chargerProduits, 3000)
+
+    // Recharger immédiatement quand le client revient sur l'onglet/page.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') chargerProduits()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', chargerProduits)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', chargerProduits)
+    }
   }, [store.id, acheteur.id])
 
   // sauvegarder le panier + le magasin auquel il appartient
