@@ -62,7 +62,8 @@ export default function App() {
 
   // ─── Accueil : choix du portail ──────────────────────────────────────────
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-5 py-10 relative" style={{ maxWidth: "424px", margin: "0 auto" }}
+<div className="min-h-screen flex flex-col items-center justify-center px-5 py-10 relative"
+  style={{ backgroundImage: 'url(/background.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}
       style={{ backgroundImage: 'url(/background.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
       <div className="absolute inset-0 bg-[#12355B]/20" />
       <div className="relative z-10 w-full flex flex-col items-center">
@@ -72,7 +73,7 @@ export default function App() {
         <p className="text-white/90 text-sm mt-2">Tout Oran, en un clic</p>
       </div>
 
-      <div className="w-full space-y-3" style={{ maxWidth: "424px", margin: "0 auto" }}>
+      <div className="w-full max-w-md space-y-3">
         <PortailCard Icon={ShoppingBag} titre="Je suis un client" sous="Commander auprès des commerces" accent="bg-amber-500" onClick={() => ouvrirPortail('client')} />
         <PortailCard Icon={Store} titre="Je suis un commerçant" sous="Gérer mon commerce et mes commandes" accent="bg-[#12355B]" onClick={() => ouvrirPortail('fournisseur')} />
         <PortailCard Icon={Shield} titre="Administration" sous="Gérer les abonnements" accent="bg-stone-600" onClick={() => ouvrirPortail('admin')} />
