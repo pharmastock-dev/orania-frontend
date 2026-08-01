@@ -1,18 +1,21 @@
 import { useState, useEffect } from 'react'
-import { clientApi, type Acheteur, type Fournisseur, type Produit, type Avis } from '../lib/api'
+import { clientApi, reclamationApi, type Acheteur, type Fournisseur, type Produit, type Avis } from '../lib/api'
 import { StarRating, getCat, imgUrl, fmtDA, Spinner, magasinOuvert, hhmm, tempsLivraison } from '../lib/shared'
+import { catEmoji } from '../lib/categories'
 import { LogoOrania } from '../components/Logo'
-import { MapPicker } from '../components/Map'
-import { ArrowLeft, Search, MapPin, Clock, Bike, Flame, User, Phone, Store, Star, LogOut } from 'lucide-react'
+import { MapPicker, MapView } from '../components/Map'
+import { ArrowLeft, Search, MapPin, Clock, Bike, Flame, User, Phone, Map as MapIcon, Navigation, ChevronDown, Store, Utensils, ReceiptText, History, Star } from 'lucide-react'
 
 interface CartItem { produit: Produit; quantite: number }
 type CPage = 'login' | 'stores' | 'menu'
+
 
 export function ClientApp({ onExit }: { onExit: () => void }) {
   const [page, setPage] = useState<CPage>('login')
   const [acheteur, setAcheteur] = useState<Acheteur | null>(null)
   const [store, setStore] = useState<Fournisseur | null>(null)
 
+  // restaurer la session ET la dernière page/magasin visités
   useEffect(() => {
     const saved = localStorage.getItem('acheteur')
     if (saved) {
@@ -31,21 +34,24 @@ export function ClientApp({ onExit }: { onExit: () => void }) {
 
   const goStores = () => {
     localStorage.setItem('client_page', 'stores'); localStorage.removeItem('client_store')
+    // on ferme le sous-écran via l'UI : reculer dans l'historique (déclenche popstate géré)
     if (((window as any).__oraniaBackDepth || 0) > 0) { window.history.back(); return }
     setStore(null); setPage('stores')
   }
-
   const goMenu = (s: Fournisseur) => {
     localStorage.setItem('client_page', 'menu'); localStorage.setItem('client_store', JSON.stringify(s))
+    // signaler à App qu'un sous-écran est ouvert (le bouton retour reviendra aux magasins)
     ;(window as any).__oraniaBackDepth = ((window as any).__oraniaBackDepth || 0) + 1
     window.history.pushState({ clientPage: 'menu' }, '')
     setStore(s); setPage('menu')
   }
 
+  // bouton retour physique (téléphone) ou flèche navigateur (PC)
   useEffect(() => {
     const onPop = () => {
       setPage((cur) => {
         if (cur === 'menu') {
+          // fermer le menu et revenir à la liste des magasins
           setStore(null)
           localStorage.setItem('client_page', 'stores'); localStorage.removeItem('client_store')
           return 'stores'
@@ -60,59 +66,20 @@ export function ClientApp({ onExit }: { onExit: () => void }) {
   const login = (a: Acheteur) => {
     setAcheteur(a); localStorage.setItem('client_page', 'stores'); setPage('stores')
   }
-
+  // retour à l'accueil SANS effacer le compte (le client reste connecté)
+  const retourAccueil = () => { onExit() }
+  // déconnexion complète : efface le compte, il faudra re-saisir nom+téléphone
   const logout = () => {
     localStorage.removeItem('acheteur'); localStorage.removeItem('client_page'); localStorage.removeItem('client_store')
     setAcheteur(null); setStore(null); onExit()
   }
 
-  return (
-    <div className="min-h-screen bg-stone-100 flex justify-center">
-      <div className="w-full max-w-md min-h-screen bg-stone-50 shadow-2xl relative overflow-x-hidden flex flex-col">
-        {page === 'login' || !acheteur ? (
-          <LoginPage onLogin={login} onExit={onExit} />
-        ) : page === 'menu' && store ? (
-          <MenuPage acheteur={acheteur} store={store} onBack={goStores} />
-        ) : (
-          <StoresPage acheteur={acheteur} onSelect={goMenu} onRetour={onExit} onLogout={logout} />
-        )}
-      </div>
-    </div>
-  )
+  if (page === 'login' || !acheteur) return <LoginPage onLogin={login} onExit={onExit} />
+  if (page === 'menu' && store) return <MenuPage acheteur={acheteur} store={store} onBack={goStores} />
+  return <StoresPage acheteur={acheteur} onSelect={goMenu} onRetour={retourAccueil} onLogout={logout} />
 }
 
-function CompteModal({ acheteur, onClose, onLogout }: { acheteur: Acheteur; onClose: () => void; onLogout: () => void }) {
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-extrabold text-stone-800 text-lg">Mon Compte</h3>
-          <button onClick={onClose} className="text-stone-400 hover:text-stone-600 font-bold p-1">✕</button>
-        </div>
-        <div className="space-y-3 mb-6">
-          <div className="bg-stone-50 p-3 rounded-2xl border border-stone-100 flex items-center gap-3">
-            <User className="text-amber-500 shrink-0" size={20} />
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] text-stone-400 uppercase font-semibold">Nom</p>
-              <p className="text-sm font-bold text-stone-800 truncate">{acheteur.nom}</p>
-            </div>
-          </div>
-          <div className="bg-stone-50 p-3 rounded-2xl border border-stone-100 flex items-center gap-3">
-            <Phone className="text-amber-500 shrink-0" size={20} />
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] text-stone-400 uppercase font-semibold">Téléphone</p>
-              <p className="text-sm font-bold text-stone-800 truncate">{acheteur.telephone}</p>
-            </div>
-          </div>
-        </div>
-        <button onClick={onLogout} className="w-full bg-red-50 hover:bg-red-100 text-red-600 font-bold py-3.5 rounded-2xl transition-all flex items-center justify-center gap-2">
-          <LogOut size={16} /> Déconnexion
-        </button>
-      </div>
-    </div>
-  )
-}
-
+// ─── Login ────────────────────────────────────────────────────────────────────
 function LoginPage({ onLogin, onExit }: { onLogin: (a: Acheteur) => void; onExit: () => void }) {
   const [nom, setNom] = useState(''); const [tel, setTel] = useState('')
   const [loading, setLoading] = useState(false); const [error, setError] = useState('')
@@ -127,50 +94,42 @@ function LoginPage({ onLogin, onExit }: { onLogin: (a: Acheteur) => void; onExit
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-b from-amber-50 to-white flex flex-col items-center justify-between px-4 py-6">
-      <div className="w-full flex flex-col items-center my-auto py-4">
-        <div className="mb-6 text-center shrink-0">
-          <div className="w-20 h-20 bg-white rounded-[24px] flex items-center justify-center mx-auto mb-3 shadow-xl shadow-black/5 border border-stone-100">
-            <LogoOrania size={56} />
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-amber-50 to-white px-5 py-10">
+      <div className="mb-10 text-center">
+        <div className="w-28 h-28 bg-white rounded-[28px] flex items-center justify-center mx-auto mb-4 shadow-xl shadow-black/10"><LogoOrania size={80} /></div>
+        <h1 className="text-3xl font-extrabold text-stone-900 tracking-tight">Orania</h1>
+        <p className="text-stone-400 text-sm mt-1.5">Tout Oran, en un clic</p>
+      </div>
+      <div className="w-full max-w-sm bg-white rounded-3xl shadow-xl shadow-stone-200/60 p-8">
+        <h2 className="text-xl font-bold text-stone-800 mb-1">Bienvenue 👋</h2>
+        <p className="text-stone-400 text-sm mb-7">Entrez votre nom et téléphone — aucun mot de passe requis.</p>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-[11px] font-semibold text-stone-400 uppercase tracking-widest mb-1.5">Votre nom complet</label>
+            <input type="text" value={nom} onChange={(e) => setNom(e.target.value.replace(/[^a-zA-ZàâäéèêëïîôöùûüçÀÂÄÉÈÊËÏÎÔÖÙÛÜÇ '\\-]/g, ''))} placeholder="Ex : Amira Bouali"
+              className="w-full px-4 py-3.5 rounded-2xl border border-stone-200 bg-stone-50 text-stone-800 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all" />
           </div>
-          <h1 className="text-2xl font-extrabold text-stone-900 tracking-tight">Orania</h1>
-          <p className="text-stone-400 text-xs mt-0.5">Tout Oran, en un clic</p>
+          <div>
+            <label className="block text-[11px] font-semibold text-stone-400 uppercase tracking-widest mb-1.5">Numéro de téléphone</label>
+            <input type="tel" inputMode="numeric" value={tel} onChange={(e) => setTel(e.target.value.replace(/[^0-9]/g, ''))} placeholder="05 XX XX XX XX" onKeyDown={(e) => e.key === 'Enter' && submit()}
+              className="w-full px-4 py-3.5 rounded-2xl border border-stone-200 bg-stone-50 text-stone-800 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all" />
+          </div>
+          {error && <div className="bg-red-50 border border-red-100 text-red-500 text-sm rounded-2xl px-4 py-3">{error}</div>}
+          <button onClick={submit} disabled={loading}
+            className="w-full bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-amber-200/80 disabled:opacity-60 text-base mt-2">
+            {loading ? 'Connexion…' : 'Continuer →'}
+          </button>
         </div>
-
-        <div className="w-full bg-white rounded-3xl shadow-xl shadow-stone-200/50 p-6 border border-stone-100/80">
-          <h2 className="text-lg font-bold text-stone-800 mb-1">Bienvenue 👋</h2>
-          <p className="text-stone-400 text-xs mb-5">Entrez votre nom et téléphone pour continuer.</p>
-          
-          <div className="space-y-3.5">
-            <div>
-              <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1">Votre nom complet</label>
-              <input type="text" value={nom} onChange={(e) => setNom(e.target.value.replace(/[^a-zA-ZàâäéèêëïîôöùûüçÀÂÄÉÈÊËÏÎÔÖÙÛÜÇ '\\-]/g, ''))} placeholder="Ex : Amira Bouali"
-                className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50 text-stone-800 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all text-sm" />
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1">Numéro de téléphone</label>
-              <input type="tel" inputMode="numeric" value={tel} onChange={(e) => setTel(e.target.value.replace(/[^0-9]/g, ''))} placeholder="05 XX XX XX XX" onKeyDown={(e) => e.key === 'Enter' && submit()}
-                className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50 text-stone-800 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all text-sm" />
-            </div>
-
-            {error && <div className="bg-red-50 border border-red-100 text-red-500 text-xs rounded-xl px-3.5 py-2">{error}</div>}
-
-            <button onClick={submit} disabled={loading} className="w-full bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-amber-200/80 disabled:opacity-60 text-sm mt-1">
-              {loading ? 'Connexion…' : 'Continuer →'}
-            </button>
-          </div>
-
-          <div className="mt-5 pt-4 border-t border-stone-100 text-center">
-            <p className="text-[11px] text-stone-400">💵 Paiement uniquement en <strong>espèces</strong></p>
-            <button onClick={onExit} className="text-xs text-stone-400 hover:text-stone-600 mt-2 transition-colors inline-flex items-center gap-1 font-medium"><ArrowLeft size={13} /> Changer d'espace</button>
-          </div>
+        <div className="mt-7 pt-5 border-t border-stone-100 text-center">
+          <p className="text-xs text-stone-400">💵 Paiement uniquement en <strong>espèces</strong></p>
+          <button onClick={onExit} className="text-xs text-stone-300 hover:text-stone-500 mt-2 transition-colors inline-flex items-center gap-1"><ArrowLeft size={13} /> Changer d'espace</button>
         </div>
       </div>
     </div>
   )
 }
 
+// ─── Store card ───────────────────────────────────────────────────────────────
 function StoreCard({ store, distance, onClick }: { store: Fournisseur; distance?: number | null; onClick: () => void }) {
   const colors = getCat(store.categorie); const open = magasinOuvert(store.heure_ouverture, store.heure_fermeture); const photo = imgUrl(store.photo)
   return (
@@ -183,12 +142,12 @@ function StoreCard({ store, distance, onClick }: { store: Fournisseur; distance?
         <span className={`absolute bottom-2.5 left-2.5 text-[10px] font-semibold px-2.5 py-1 rounded-full ${colors.bg} ${colors.text}`}>{store.categorie}</span>
       </div>
       <div className="px-4 py-3">
-        <h3 className="font-bold text-stone-800 text-sm leading-tight mb-1.5 truncate">{store.nom}</h3>
-        <div className="flex items-center gap-1.5 flex-wrap">
+        <h3 className="font-bold text-stone-800 text-sm leading-tight mb-1.5">{store.nom}</h3>
+        <div className="flex items-center gap-1.5">
           <StarRating note={Math.round(store.note_moyenne ?? 0)} />
           <span className="text-xs text-stone-400">{store.note_moyenne ? store.note_moyenne.toFixed(1) : '—'}{store.nb_avis ? ` · ${store.nb_avis} avis` : ''}</span>
         </div>
-        <div className="flex items-center gap-2 mt-1 flex-wrap">
+        <div className="flex items-center gap-2 mt-1">
           {store.heure_ouverture && <p className="text-[11px] text-stone-400"><Clock size={11} className="inline mr-0.5" />{hhmm(store.heure_ouverture)}–{hhmm(store.heure_fermeture)}</p>}
           {distance != null && <p className="text-[11px] text-amber-600 font-semibold"><MapPin size={11} className="inline mr-0.5" />{distance < 1 ? Math.round(distance * 1000) + ' m' : distance.toFixed(1) + ' km'}</p>}
         </div>
@@ -206,8 +165,10 @@ function StoreCard({ store, distance, onClick }: { store: Fournisseur; distance?
   )
 }
 
+// ─── Stores page ──────────────────────────────────────────────────────────────
 type TriMode = 'distance' | 'etoiles'
 
+// distance approximative (Haversine) en km
 function distanceKm(la1?: number | null, lo1?: number | null, la2?: number | null, lo2?: number | null): number | null {
   if (la1 == null || lo1 == null || la2 == null || lo2 == null) return null
   const R = 6371, toR = (d: number) => (d * Math.PI) / 180
@@ -233,6 +194,7 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
     clientApi.fournisseurs().then((d) => { setStores(Array.isArray(d) ? d : []); setLoading(false) }).catch(() => { setError(true); setLoading(false) })
   }, [])
 
+  // demander la géoloc quand on trie par distance
   useEffect(() => {
     if (tri === 'distance' && !maPos && !posErr && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -250,6 +212,7 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
     const mc = cat === 'Tous' || s.categorie === cat
     if (!mc) return false
     if (!q) return true
+    // recherche : nom du commerce, sa catégorie, OU un de ses produits / catégories de produits
     if (s.nom.toLowerCase().includes(q)) return true
     if (s.categorie.toLowerCase().includes(q)) return true
     if ((s.produits_noms || []).some((n) => n.toLowerCase().includes(q))) return true
@@ -257,6 +220,7 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
     return false
   })
 
+  // filtre ouvert/fermé
   if (filtreOuvert !== 'tous') {
     filtered = filtered.filter((s) => {
       const o = magasinOuvert(s.heure_ouverture, s.heure_fermeture)
@@ -265,11 +229,17 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
       return true
     })
   }
-  if (filtreGratuit) filtered = filtered.filter((s) => s.livraison_gratuite === true)
-  if (filtrePromo) filtered = filtered.filter((s) => s.a_promo === true)
+  if (filtreGratuit) {
+    filtered = filtered.filter((s) => s.livraison_gratuite === true)
+  }
+  if (filtrePromo) {
+    filtered = filtered.filter((s) => s.a_promo === true)
+  }
 
+  // tri
   filtered = [...filtered].sort((a, b) => {
     if (tri === 'etoiles') return (b.note_moyenne ?? 0) - (a.note_moyenne ?? 0)
+    // distance
     const da = distanceKm(maPos?.lat, maPos?.lng, a.latitude, a.longitude)
     const db = distanceKm(maPos?.lat, maPos?.lng, b.latitude, b.longitude)
     if (da == null && db == null) return 0
@@ -279,103 +249,107 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
   })
 
   return (
-    <div className="flex flex-col pb-10">
-      <div className="bg-white border-b border-stone-100 sticky top-0 z-20 shadow-sm">
-        <div className="px-4 pt-4 pb-2 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <button onClick={onRetour} title="Retour à l'accueil" className="shrink-0 w-9 h-9 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700">
-              <ArrowLeft size={18} />
-            </button>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <LogoOrania size={22} />
-                <h1 className="font-extrabold text-stone-900 text-base truncate">Orania</h1>
-              </div>
-              <p className="text-[11px] text-stone-400 truncate">Bonjour, {acheteur.nom} 👋</p>
-            </div>
+    <div className="min-h-screen bg-stone-50">
+      <div className="bg-white border-b border-stone-100 sticky top-0 z-20 shadow-sm shadow-stone-50">
+        <div className="px-4 pt-4 pb-2 flex items-center gap-3 max-w-lg mx-auto">
+          <button onClick={onRetour} title="Retour à l'accueil"
+            className="shrink-0 w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700"><ArrowLeft size={20} /></button>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2"><LogoOrania size={26} /><h1 className="font-extrabold text-stone-900 text-lg truncate">Orania</h1></div>
+            <p className="text-xs text-stone-400 ml-8 truncate">Bonjour, {acheteur.nom} 👋</p>
           </div>
-
-          <button onClick={() => setShowCompte(true)} className="shrink-0 text-xs font-semibold text-stone-600 bg-stone-100 px-3 py-2 rounded-xl hover:bg-stone-200 active:scale-95 transition-all flex items-center gap-1">
-            <User size={14} /> Compte
-          </button>
+          <button onClick={() => setShowCompte(true)} className="shrink-0 text-xs text-stone-500 hover:text-amber-600 transition-colors px-3 py-1.5 rounded-xl hover:bg-amber-50 inline-flex items-center gap-1"><User size={14} />Compte</button>
         </div>
-
         {showCompte && <CompteModal acheteur={acheteur} onClose={() => setShowCompte(false)} onLogout={onLogout} />}
 
-        <div className="px-4 pb-3 pt-1 flex gap-2">
-          <div className="relative flex-1 min-w-0">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none">
-              <Search size={16} />
-            </span>
+        {/* Barre recherche + bouton filtre */}
+        <div className="px-4 pb-3 pt-1 max-w-lg mx-auto flex gap-2">
+          <div className="relative flex-1">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 text-base pointer-events-none"><Search size={16} /></span>
             <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Chercher : pizza, thé, sushi…"
-              className="w-full pl-9 pr-8 py-2.5 bg-stone-100 border border-transparent rounded-xl text-xs text-stone-800 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all" />
-            {search && <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs p-1">✕</button>}
+              className="w-full pl-10 pr-4 py-3 bg-stone-100 border border-transparent rounded-2xl text-sm text-stone-700 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all" />
+            {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600">✕</button>}
           </div>
-          <button onClick={() => setShowFiltre((v) => !v)} className={`shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all ${showFiltre ? 'bg-amber-500 text-white' : 'bg-stone-100 text-stone-700'}`}>
+          <button onClick={() => setShowFiltre((v) => !v)}
+            className={`px-3 rounded-2xl text-sm font-semibold transition-all whitespace-nowrap ${showFiltre ? 'bg-amber-500 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
             ⚙️ {tri === 'distance' ? 'Proche' : 'Top'}
           </button>
         </div>
 
+        {/* Panneau filtre */}
         {showFiltre && (
-          <div className="px-4 pb-3">
-            <div className="bg-stone-50 border border-stone-200/60 rounded-xl p-2 flex gap-2">
-              <button onClick={() => setTri('distance')} className={`flex-1 text-xs font-bold py-2 rounded-lg transition-all ${tri === 'distance' ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 border border-stone-200'}`}>📍 Plus proches</button>
-              <button onClick={() => setTri('etoiles')} className={`flex-1 text-xs font-bold py-2 rounded-lg transition-all ${tri === 'etoiles' ? 'bg-amber-500 text-white' : 'bg-white text-stone-600 border border-stone-200'}`}>⭐ Mieux notés</button>
+          <div className="px-4 pb-3 max-w-lg mx-auto">
+            <div className="bg-stone-50 border border-stone-100 rounded-2xl p-3 flex gap-2">
+              <button onClick={() => setTri('distance')} className={`flex-1 text-sm font-semibold py-2 rounded-xl transition-all ${tri === 'distance' ? 'bg-amber-500 text-white' : 'bg-white text-stone-500 border border-stone-200'}`}>📍 Plus proches</button>
+              <button onClick={() => setTri('etoiles')} className={`flex-1 text-sm font-semibold py-2 rounded-xl transition-all ${tri === 'etoiles' ? 'bg-amber-500 text-white' : 'bg-white text-stone-500 border border-stone-200'}`}>⭐ Mieux notés</button>
             </div>
+            {tri === 'distance' && posErr && <p className="text-[11px] text-amber-600 mt-2">📍 Localisation refusée — tri par distance indisponible.</p>}
           </div>
         )}
 
-        {/* scroll-x propre sans casser la page */}
-        <div className="overflow-x-auto no-scrollbar scrollbar-hide px-4 pb-2">
-          <div className="flex gap-1.5 w-max py-0.5">
-            {categories.map((c) => {
-              const colors = c === 'Tous' ? null : getCat(c)
-              const active = cat === c
-              return (
-                <button key={c} onClick={() => setCat(c)} className={`shrink-0 text-xs font-bold px-3.5 py-1.5 rounded-full transition-all whitespace-nowrap ${active ? (c === 'Tous' ? 'bg-amber-500 text-white' : `${colors!.pill} text-white`) : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
-                  {c}
-                </button>
-              )
-            })}
-          </div>
+        {/* Pastilles catégories */}
+        <div className="px-4 pb-2 flex gap-2 overflow-x-auto scrollbar-hide max-w-lg mx-auto">
+          {categories.map((c) => {
+            const colors = c === 'Tous' ? null : getCat(c); const active = cat === c
+            return (
+              <button key={c} onClick={() => setCat(c)}
+                className={`shrink-0 text-xs font-semibold px-4 py-1.5 rounded-full transition-all ${
+                  active ? (c === 'Tous' ? 'bg-amber-500 text-white shadow-sm shadow-amber-200' : `${colors!.pill} text-white shadow-sm`) : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
+                }`}>{c}</button>
+            )
+          })}
         </div>
 
-        <div className="overflow-x-auto no-scrollbar scrollbar-hide px-4 pb-3 border-t border-stone-50 pt-2">
-          <div className="flex gap-1.5 w-max py-0.5">
-            <button onClick={() => setFiltreOuvert(filtreOuvert === 'ouvert' ? 'tous' : 'ouvert')} className={`shrink-0 text-[11px] font-semibold px-3 py-1 rounded-full transition-all flex items-center gap-1 whitespace-nowrap ${filtreOuvert === 'ouvert' ? 'bg-emerald-600 text-white' : 'bg-stone-100 text-stone-600'}`}>● Ouvert</button>
-            <button onClick={() => setFiltreOuvert(filtreOuvert === 'ferme' ? 'tous' : 'ferme')} className={`shrink-0 text-[11px] font-semibold px-3 py-1 rounded-full transition-all flex items-center gap-1 whitespace-nowrap ${filtreOuvert === 'ferme' ? 'bg-stone-700 text-white' : 'bg-stone-100 text-stone-600'}`}>● Fermé</button>
-            <button onClick={() => setFiltreGratuit(!filtreGratuit)} className={`shrink-0 text-[11px] font-semibold px-3 py-1 rounded-full transition-all flex items-center gap-1 whitespace-nowrap ${filtreGratuit ? 'bg-amber-500 text-white' : 'bg-stone-100 text-stone-600'}`}>🛵 Livraison gratuite</button>
-            <button onClick={() => setFiltrePromo(!filtrePromo)} className={`shrink-0 text-[11px] font-semibold px-3 py-1 rounded-full transition-all flex items-center gap-1 whitespace-nowrap ${filtrePromo ? 'bg-pink-500 text-white' : 'bg-stone-100 text-stone-600'}`}>🔥 En promo</button>
-          </div>
+        {/* Filtre Ouvert / Fermé */}
+        <div className="px-4 pb-3 flex gap-2 max-w-lg mx-auto">
+          {([['tous', 'Tous'], ['ouvert', '● Ouvert'], ['ferme', '● Fermé']] as [string, string][]).map(([k, label]) => (
+            <button key={k} onClick={() => setFiltreOuvert(k as any)}
+              className={`shrink-0 text-xs font-semibold px-4 py-1.5 rounded-full transition-all ${
+                filtreOuvert === k
+                  ? (k === 'ouvert' ? 'bg-emerald-500 text-white' : k === 'ferme' ? 'bg-stone-500 text-white' : 'bg-stone-800 text-white')
+                  : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
+              }`}>{label}</button>
+          ))}
+          <button onClick={() => setFiltreGratuit((v) => !v)}
+            className={`shrink-0 text-xs font-semibold px-4 py-1.5 rounded-full transition-all ${filtreGratuit ? 'bg-emerald-500 text-white' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}>
+            <span className="inline-flex items-center gap-1"><Bike size={13} />Livraison gratuite</span>
+          </button>
+          <button onClick={() => setFiltrePromo((v) => !v)}
+            className={`shrink-0 text-xs font-semibold px-4 py-1.5 rounded-full transition-all ${filtrePromo ? 'bg-pink-500 text-white' : 'bg-pink-50 text-pink-600 hover:bg-pink-100'}`}>
+            <span className="inline-flex items-center gap-1"><Flame size={13} />En promo</span>
+          </button>
         </div>
       </div>
 
-      <div className="px-4 py-4">
+      <div className="px-4 py-4 max-w-lg mx-auto">
         {loading && <Spinner label="Chargement des commerces…" />}
         {error && !loading && (
-          <div className="text-center py-16"><p className="text-4xl mb-2">⚡</p><p className="text-stone-600 font-semibold text-sm">API inaccessible</p></div>
+          <div className="text-center py-20"><p className="text-5xl mb-4">⚡</p><p className="text-stone-600 font-semibold mb-1">API inaccessible</p><p className="text-stone-400 text-sm">Vérifiez que le serveur tourne</p></div>
         )}
         {!loading && !error && filtered.length === 0 && (
-          <div className="text-center py-16"><p className="text-4xl mb-2">🔍</p><p className="text-stone-600 font-semibold text-sm">Aucun résultat trouvé</p></div>
+          <div className="text-center py-20"><p className="text-5xl mb-4">🔍</p><p className="text-stone-600 font-semibold mb-1">Aucun résultat</p><p className="text-stone-400 text-sm">Essayez un autre mot-clé</p></div>
         )}
         {!loading && !error && filtered.length > 0 && (
-          <div className="grid grid-cols-1 gap-3.5">
-            {filtered.map((s) => {
+          <>
+            <p className="text-xs text-stone-400 mb-3">{filtered.length} résultat{filtered.length > 1 ? 's' : ''}{q ? ` pour « ${search} »` : ''}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{filtered.map((s) => {
               const dist = distanceKm(maPos?.lat, maPos?.lng, s.latitude, s.longitude)
               return <StoreCard key={s.id} store={s} distance={dist} onClick={() => onSelect(s)} />
-            })}
-          </div>
+            })}</div>
+          </>
         )}
       </div>
     </div>
   )
 }
 
+// ─── Menu page ────────────────────────────────────────────────────────────────
 function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Fournisseur; onBack: () => void }) {
   const [produits, setProduits] = useState<Produit[]>([])
   const [avis, setAvis] = useState<Avis[]>([])
   const [loading, setLoading] = useState(true)
   const [cart, setCart] = useState<CartItem[]>(() => {
+    // restaurer le panier seulement s'il appartient à CE magasin
     try {
       const raw = localStorage.getItem('orania_cart')
       if (raw) { const parsed = JSON.parse(raw); if (parsed.storeId === store.id) return parsed.items || [] }
@@ -387,9 +361,25 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null)
   const [ordering, setOrdering] = useState(false)
   const [orderCode, setOrderCode] = useState<string | null>(null)
+  const [showReviews, setShowReviews] = useState(false)
   const [myNote, setMyNote] = useState(0)
   const [myComment, setMyComment] = useState('')
   const [avisDone, setAvisDone] = useState(false)
+  const [filtreCat, setFiltreCat] = useState('Tous')
+  const [monAvisId, setMonAvisId] = useState<number | null>(null)
+  const [editingAvis, setEditingAvis] = useState(false)
+  const [maPos, setMaPos] = useState<{ lat: number; lng: number } | null>(null)
+
+  // récupérer la position pour estimer temps + distance
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setMaPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => {}, { timeout: 6000 }
+      )
+    }
+  }, [])
+  const distMenu = distanceKm(maPos?.lat, maPos?.lng, store.latitude, store.longitude)
 
   const chargerAvis = () => clientApi.avis(store.id).then((a) => setAvis(Array.isArray(a) ? a : [])).catch(() => {})
 
@@ -398,13 +388,35 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
       .then(([p, a, mine]) => {
         setProduits(Array.isArray(p) ? p : [])
         setAvis(Array.isArray(a) ? a : [])
-        if (mine && mine.existe) { setMyNote(mine.note!); setMyComment(mine.commentaire || ''); setAvisDone(true) }
+        if (mine && mine.existe) {
+          setMonAvisId(mine.id!); setMyNote(mine.note!); setMyComment(mine.commentaire || ''); setAvisDone(true)
+        }
         setLoading(false)
       })
       .catch(() => setLoading(false))
   }, [store.id, acheteur.id])
 
+  // sauvegarder le panier + le magasin auquel il appartient
+  useEffect(() => {
+    if (cart.length > 0) localStorage.setItem('orania_cart', JSON.stringify({ storeId: store.id, storeName: store.nom, items: cart }))
+    else localStorage.removeItem('orania_cart')
+  }, [cart, store.id, store.nom])
+
+  // ajouter un produit — avertir si le panier contient déjà des produits d'un AUTRE magasin
   const add = (p: Produit) => {
+    try {
+      const raw = localStorage.getItem('orania_cart')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (parsed.storeId && parsed.storeId !== store.id && (parsed.items?.length > 0)) {
+          const ok = window.confirm(`Votre panier contient déjà des produits de « ${parsed.storeName || 'un autre commerce'} ».\n\nVous ne pouvez commander que d'un seul commerce à la fois. Vider le panier précédent et commander ici ?`)
+          if (!ok) return
+          localStorage.removeItem('orania_cart')
+          setCart([{ produit: p, quantite: 1 }])
+          return
+        }
+      }
+    } catch {}
     setCart((prev) => { const f = prev.find((i) => i.produit.id === p.id); return f ? prev.map((i) => i.produit.id === p.id ? { ...i, quantite: i.quantite + 1 } : i) : [...prev, { produit: p, quantite: 1 }] })
   }
   const remove = (id: number) => setCart((prev) => { const f = prev.find((i) => i.produit.id === id); return f && f.quantite > 1 ? prev.map((i) => i.produit.id === id ? { ...i, quantite: i.quantite - 1 } : i) : prev.filter((i) => i.produit.id !== id) })
@@ -415,9 +427,19 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
 
   const placeOrder = async () => {
     setOrdering(true)
+    // pour la livraison : position choisie sur la carte en priorité, sinon GPS
     let pos: { latitude?: number; longitude?: number } = {}
-    if (livraison && position) pos = { latitude: position.lat, longitude: position.lng }
-    
+    if (livraison) {
+      if (position) {
+        pos = { latitude: position.lat, longitude: position.lng }
+      } else if (navigator.geolocation) {
+        try {
+          const p = await new Promise<GeolocationPosition>((res, rej) =>
+            navigator.geolocation.getCurrentPosition(res, rej, { timeout: 6000 }))
+          pos = { latitude: p.coords.latitude, longitude: p.coords.longitude }
+        } catch {}
+      }
+    }
     try {
       const cmd = await clientApi.commander({
         acheteur_id: acheteur.id, fournisseur_id: store.id, avec_livraison: livraison,
@@ -429,158 +451,464 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
     setCart([]); localStorage.removeItem('orania_cart'); setShowSheet(false); setOrdering(false)
   }
 
-  const sendAvis = async () => {
-    if (!myNote) return
+  const submitAvis = async () => {
+    if (myNote === 0) return
     try {
-      await clientApi.posterAvis({ acheteur_id: acheteur.id, fournisseur_id: store.id, note: myNote, commentaire: myComment })
-      setAvisDone(true); chargerAvis()
+      const r = await clientApi.noterAvis({ acheteur_id: acheteur.id, fournisseur_id: store.id, note: myNote, commentaire: myComment || null })
+      if (r && r.id) setMonAvisId(r.id)
     } catch {}
+    await chargerAvis()
+    setAvisDone(true); setEditingAvis(false)
   }
 
-  // Regroupement par catégorie
+  const supprimerMonAvis = async () => {
+    if (!monAvisId) return
+    if (!confirm('Supprimer votre avis ?')) return
+    try { await clientApi.supprimerMonAvis(monAvisId) } catch {}
+    setMonAvisId(null); setMyNote(0); setMyComment(''); setAvisDone(false); setEditingAvis(false)
+    await chargerAvis()
+  }
+
+  // grouper produits par catégorie
   const groupes: Record<string, Produit[]> = {}
-  produits.forEach((p) => {
-    const c = p.categorie || 'Menu / Produits'
-    if (!groupes[c]) groupes[c] = []
-    groupes[c].push(p)
-  })
+  produits.forEach((p) => { const c = p.categorie || 'Autre'; (groupes[c] = groupes[c] || []).push(p) })
+  const cats = Object.keys(groupes).sort()
+  const banner = imgUrl(store.photo)
+  const ouvert = magasinOuvert(store.heure_ouverture, store.heure_fermeture)
+
+  // Magasin fermé → grande page bloquante
+  if (ouvert === false) {
+    return (
+      <div className="min-h-screen bg-stone-50 flex flex-col">
+        <div className="bg-white border-b border-stone-100 px-4 py-3.5 flex items-center gap-3">
+          <button onClick={onBack} title="Retour" className="w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700 shrink-0"><ArrowLeft size={20} /></button>
+          <h2 className="font-extrabold text-stone-800 truncate">{store.nom}</h2>
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
+          <div className="w-28 h-28 bg-stone-200 rounded-full flex items-center justify-center mb-6"><span className="text-6xl">🌙</span></div>
+          <h1 className="text-2xl font-extrabold text-stone-800 mb-2">Magasin fermé</h1>
+          <p className="text-stone-500 mb-1">Ce commerce est actuellement fermé.</p>
+          <p className="text-stone-500 mb-6">Vous ne pouvez pas commander pour le moment.</p>
+          {store.heure_ouverture && (
+            <div className="bg-white border border-stone-200 rounded-2xl px-6 py-4 mb-8">
+              <p className="text-xs text-stone-400 uppercase tracking-widest mb-1">Horaires</p>
+              <p className="text-lg font-bold text-stone-700"><Clock size={11} className="inline mr-0.5" />{hhmm(store.heure_ouverture)} – {hhmm(store.heure_fermeture)}</p>
+            </div>
+          )}
+          <button onClick={onBack} className="bg-amber-500 hover:bg-amber-600 text-white font-bold px-8 py-3.5 rounded-2xl transition-all shadow-lg shadow-amber-200 inline-flex items-center gap-1.5"><ArrowLeft size={16} /> Retour aux commerces</button>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="flex flex-col pb-36">
-      <div className="bg-white border-b border-stone-100 sticky top-0 z-20 shadow-sm">
-        <div className="px-4 py-3.5 flex items-center gap-3">
+    <div className="min-h-screen bg-stone-50 pb-36">
+      <div className="bg-white border-b border-stone-100 sticky top-0 z-20 shadow-sm shadow-stone-50">
+        <div className="px-4 py-3.5 flex items-center gap-3 max-w-lg mx-auto">
           <button onClick={onBack} title="Retour" className="w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700 shrink-0"><ArrowLeft size={20} /></button>
           <div className="flex-1 min-w-0">
             <h2 className="font-extrabold text-stone-800 truncate text-base">{store.nom}</h2>
             <div className="flex items-center gap-2">
               <StarRating note={Math.round(store.note_moyenne ?? 0)} />
-              <span className="text-xs text-stone-400">{store.note_moyenne ? store.note_moyenne.toFixed(1) : '—'}</span>
+              <span className="text-xs text-stone-400">{store.note_moyenne ? store.note_moyenne.toFixed(1) : '—'}{store.nb_avis ? ` · ${store.nb_avis} avis` : ''}</span>
             </div>
+          </div>
+          <span className={`shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full ${getCat(store.categorie).bg} ${getCat(store.categorie).text}`}>{store.categorie}</span>
+        </div>
+      </div>
+
+      {banner && <div className="relative h-40 bg-amber-50 overflow-hidden max-w-lg mx-auto"><img src={banner} alt={store.nom} className="w-full h-full object-cover" /><div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" /></div>}
+
+      {/* Barre infos livraison : frais | temps | note */}
+      <div className="max-w-lg mx-auto px-4 pt-3">
+        <div className="bg-white rounded-2xl border border-stone-100 shadow-sm grid grid-cols-3 divide-x divide-stone-100">
+          <div className="px-2 py-3 text-center">
+            <p className="text-[10px] text-stone-400 uppercase tracking-wide mb-0.5">Livraison</p>
+            <p className="text-sm font-bold text-stone-800">
+              {store.livraison_gratuite ? <span className="text-emerald-600">Gratuite</span>
+                : (store.frais_min != null ? `${store.frais_min}${store.frais_max && store.frais_max !== store.frais_min ? '–'+store.frais_max : ''} DA` : '—')}
+            </p>
+          </div>
+          <div className="px-2 py-3 text-center">
+            <p className="text-[10px] text-stone-400 uppercase tracking-wide mb-0.5">Temps</p>
+            <p className="text-sm font-bold text-stone-800">{tempsLivraison(distMenu) || '—'}</p>
+          </div>
+          <div className="px-2 py-3 text-center">
+            <p className="text-[10px] text-stone-400 uppercase tracking-wide mb-0.5">Note</p>
+            <p className="text-sm font-bold text-stone-800">{store.note_moyenne ? `★ ${store.note_moyenne.toFixed(1)}` : '—'}</p>
           </div>
         </div>
       </div>
 
-      <div className="px-4 pt-4">
-        {loading ? <Spinner label="Chargement de la carte…" /> : (
-          <div className="space-y-6">
-            {Object.keys(groupes).length === 0 ? (
-              <p className="text-center text-stone-400 text-xs py-8">Aucun produit disponible pour ce magasin.</p>
-            ) : (
-              Object.entries(groupes).map(([cat, items]) => (
-                <div key={cat}>
-                  <h3 className="font-bold text-stone-800 text-sm mb-3 uppercase tracking-wider">{cat}</h3>
-                  <div className="space-y-3">
-                    {items.map((p) => (
-                      <div key={p.id} className="bg-white p-4 rounded-2xl border border-stone-100 flex items-center justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-stone-800 text-sm truncate">{p.nom}</h4>
-                          {p.ingredients && <p className="text-xs text-stone-400 truncate">{p.ingredients}</p>}
-                          <p className="text-sm font-extrabold text-amber-600 mt-1">{fmtDA(prixEff(p))}</p>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          {qty(p.id) > 0 && (
-                            <>
-                              <button onClick={() => remove(p.id)} className="w-8 h-8 rounded-xl bg-stone-100 text-stone-700 font-bold">-</button>
-                              <span className="font-bold text-sm w-4 text-center">{qty(p.id)}</span>
-                            </>
-                          )}
-                          <button onClick={() => add(p)} className="w-8 h-8 rounded-xl bg-amber-500 text-white font-bold">+</button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))
-            )}
+      {(store.adresse || store.telephone || store.heure_ouverture) && (
+        <div className="max-w-lg mx-auto px-4 pt-4">
+          <div className="bg-white rounded-2xl border border-stone-100 p-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-stone-500">
+            {store.adresse && <span><MapPin size={13} className="inline mr-1" />{store.adresse}</span>}
+            {store.telephone && <a href={`tel:${store.telephone}`} className="text-blue-600 hover:underline"><Phone size={13} className="inline mr-1" />{store.telephone}</a>}
+            {store.heure_ouverture && <span><Clock size={11} className="inline mr-0.5" />{hhmm(store.heure_ouverture)}–{hhmm(store.heure_fermeture)}</span>}
           </div>
-        )}
-
-        <div className="mt-10 pt-6 border-t border-stone-200">
-          <h3 className="font-extrabold text-stone-800 text-base mb-4 flex items-center gap-2"><Star className="text-amber-500" size={18} /> Avis des clients</h3>
-          {avis.length === 0 ? <p className="text-xs text-stone-400 italic">Aucun avis pour le moment.</p> : (
-            <div className="space-y-3 mb-6 max-h-48 overflow-y-auto no-scrollbar scrollbar-hide">
-              {avis.map((a, i) => (
-                <div key={i} className="bg-white p-3 rounded-xl border border-stone-100">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-bold text-xs text-stone-700 truncate">{a.nom_acheteur || 'Client'}</span>
-                    <StarRating note={a.note} />
-                  </div>
-                  {a.commentaire && <p className="text-xs text-stone-500 break-words">{a.commentaire}</p>}
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="bg-amber-50/60 p-4 rounded-2xl border border-amber-100">
-            <h4 className="font-bold text-stone-800 text-xs mb-2">{avisDone ? 'Votre avis est enregistré' : 'Donner votre avis'}</h4>
-            <div className="flex gap-1 mb-3">
-              {[1, 2, 3, 4, 5].map((s) => (
-                <button key={s} onClick={() => setMyNote(s)} className={`text-2xl ${s <= myNote ? 'text-amber-500' : 'text-stone-300'}`}>★</button>
-              ))}
-            </div>
-            <textarea value={myComment} onChange={(e) => setMyComment(e.target.value)} placeholder="Un commentaire ? (Optionnel)" className="w-full p-3 rounded-xl border border-stone-200 text-xs text-stone-800 bg-white mb-3" rows={2}></textarea>
-            <button onClick={sendAvis} disabled={!myNote} className="w-full bg-amber-500 text-white text-xs font-bold py-3 rounded-xl disabled:opacity-50 shadow-md shadow-amber-200">Envoyer l'avis</button>
-          </div>
-        </div>
-      </div>
-
-      {totalItems > 0 && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm z-30">
-          <button onClick={() => setShowSheet(true)} className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold p-4 rounded-2xl shadow-xl flex items-center justify-between">
-            <span className="bg-white/20 px-2.5 py-1 rounded-xl text-xs">{totalItems}</span>
-            <span>Voir le panier</span>
-            <span>{fmtDA(totalPrice)}</span>
-          </button>
         </div>
       )}
 
-      {showSheet && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end justify-center">
-          <div className="bg-white w-full max-w-md rounded-t-3xl p-6 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto no-scrollbar scrollbar-hide">
-            <div className="flex justify-between items-center">
-              <h3 className="font-extrabold text-stone-800 text-lg">Votre commande</h3>
-              <button onClick={() => setShowSheet(false)} className="text-stone-400 font-bold p-1">✕</button>
-            </div>
-            <div className="space-y-2 max-h-40 overflow-y-auto no-scrollbar scrollbar-hide">
-              {cart.map((i) => (
-                <div key={i.produit.id} className="flex justify-between text-sm py-1 border-b border-stone-50">
-                  <span className="text-stone-700 truncate pr-2">{i.quantite}x {i.produit.nom}</span>
-                  <span className="font-bold text-stone-800 shrink-0">{fmtDA(prixEff(i.produit) * i.quantite)}</span>
+      {store.latitude != null && store.longitude != null && (
+        <LocalisationMagasin store={store} />
+      )}
+
+      {store.presentation && <PourquoiNousChoisir texte={store.presentation} />}
+
+      {loading ? <Spinner /> : (
+        <div className="px-4 py-5 space-y-7 max-w-lg mx-auto">
+          {produits.length === 0 ? (
+            <div className="text-center py-12"><div className="flex justify-center mb-3"><Utensils size={40} className="text-stone-300" /></div><p className="text-stone-500">Aucun produit disponible</p></div>
+          ) : (
+            <>
+            {cats.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide -mt-2">
+                <button onClick={() => setFiltreCat('__promo__')}
+                  className={`shrink-0 text-xs font-bold px-4 py-1.5 rounded-full transition-all ${filtreCat === '__promo__' ? 'bg-pink-500 text-white shadow-sm' : 'bg-pink-50 text-pink-600'}`}>
+                  <span className="inline-flex items-center gap-1"><Flame size={13} />Promotions</span>
+                </button>
+                {['Tous', ...cats].map((c) => (
+                  <button key={c} onClick={() => setFiltreCat(c)}
+                    className={`shrink-0 text-xs font-semibold px-4 py-1.5 rounded-full transition-all ${filtreCat === c ? 'bg-amber-500 text-white shadow-sm' : 'bg-stone-100 text-stone-500'}`}>
+                    {c === 'Tous' ? 'Tous' : `${catEmoji(c)} ${c}`}
+                  </button>
+                ))}
+              </div>
+            )}
+            {cats.filter((cat) => filtreCat === 'Tous' || filtreCat === '__promo__' || cat === filtreCat).map((cat) => {
+              const items = filtreCat === '__promo__' ? groupes[cat].filter((p) => p.prix_promo != null) : groupes[cat]
+              if (items.length === 0) return null
+              return (
+              <div key={cat}>
+                <h3 className="text-[11px] font-bold uppercase tracking-widest text-stone-400 mb-3 flex items-center gap-2"><span className="flex-1 h-px bg-stone-100" />{catEmoji(cat)} {cat}<span className="flex-1 h-px bg-stone-100" /></h3>
+                <div className="space-y-3">
+                  {items.map((p) => {
+                    const q = qty(p.id); const pimg = imgUrl(p.image_url)
+                    return (
+                      <div key={p.id} className={`bg-white rounded-2xl p-4 flex gap-3 shadow-sm border border-stone-100 transition-opacity ${!p.disponible ? 'opacity-45' : ''}`}>
+                        {pimg && <div className="rounded-xl bg-amber-50 overflow-hidden shrink-0" style={{ width: 70, height: 70 }}><img src={pimg} alt={p.nom} className="w-full h-full object-cover" /></div>}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-stone-800 text-sm">{p.nom}
+                            {p.prix_promo != null && <span className="ml-1.5 text-[9px] bg-pink-100 text-pink-600 font-bold px-1.5 py-0.5 rounded-full align-middle">PROMO</span>}
+                          </p>
+                          {p.ingredients && <p className="text-[11px] text-stone-400 mt-0.5 leading-snug"><ReceiptText size={11} className="inline mr-0.5" />{p.ingredients}</p>}
+                          {!p.disponible && <span className="inline-block mt-1 text-[10px] font-semibold bg-red-50 text-red-400 px-2 py-0.5 rounded-full">Indisponible</span>}
+                          {p.prix_promo != null
+                            ? <p className="mt-1.5 text-sm"><span className="text-pink-600 font-extrabold">{fmtDA(p.prix_promo)}</span> <span className="text-stone-400 line-through text-xs ml-1">{fmtDA(p.prix)}</span></p>
+                            : <p className="text-amber-600 font-extrabold text-sm mt-1.5">{fmtDA(p.prix)}</p>}
+                        </div>
+                        {p.disponible && (
+                          <div className="flex items-center gap-2 shrink-0 self-center">
+                            {q > 0 ? (
+                              <>
+                                <button onClick={() => remove(p.id)} className="w-8 h-8 rounded-full bg-stone-100 text-stone-700 font-bold text-base flex items-center justify-center hover:bg-stone-200 active:scale-90 transition-all">−</button>
+                                <span className="text-sm font-bold text-stone-700 w-5 text-center">{q}</span>
+                                <button onClick={() => add(p)} className="w-8 h-8 rounded-full bg-amber-500 text-white font-bold text-base flex items-center justify-center hover:bg-amber-600 active:scale-90 transition-all shadow-sm shadow-amber-200">+</button>
+                              </>
+                            ) : (
+                              <button onClick={() => add(p)} className="w-8 h-8 rounded-full bg-amber-500 text-white font-bold text-base flex items-center justify-center hover:bg-amber-600 active:scale-90 transition-all shadow-sm shadow-amber-200">+</button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
-              ))}
-            </div>
-            <div className="pt-2 border-t border-stone-100 flex justify-between font-extrabold text-stone-900">
-              <span>Total</span>
-              <span className="text-amber-600">{fmtDA(totalPrice)}</span>
-            </div>
-            <div className="bg-stone-50 p-3 rounded-2xl space-y-2">
-              <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-stone-700">
-                <input type="checkbox" checked={livraison} onChange={(e) => setLivraison(e.target.checked)} className="rounded text-amber-500 focus:ring-amber-400" />
-                Demander la livraison à domicile
-              </label>
-              {livraison && (
-                <div className="pt-2">
-                  <p className="text-[11px] text-stone-400 mb-2">Sélectionnez votre position sur la carte :</p>
-                  <MapPicker onPositionSelect={(lat, lng) => setPosition({ lat, lng })} />
-                </div>
-              )}
-            </div>
-            <button onClick={placeOrder} disabled={ordering} className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-amber-200 transition-all text-sm">
-              {ordering ? 'Validation…' : 'Confirmer la commande'}
+              </div>
+            )})}
+            </>
+          )}
+
+          {/* Reviews */}
+          <div className="bg-white rounded-3xl shadow-sm border border-stone-100 overflow-hidden">
+            <button className="w-full flex items-center justify-between px-5 py-4" onClick={() => setShowReviews((v) => !v)}>
+              <div className="flex items-center gap-2"><span className="text-base">⭐</span><span className="font-bold text-stone-800">Avis clients</span>{avis.length > 0 && <span className="text-xs bg-amber-100 text-amber-700 font-semibold px-2 py-0.5 rounded-full">{avis.length}</span>}</div>
+              <span className="text-stone-400" style={{ display: 'inline-block', transform: showReviews ? 'rotate(180deg)' : 'rotate(0deg)' }}><ChevronDown size={16} /></span>
+            </button>
+            {showReviews && (
+              <div className="px-5 pb-5 space-y-5">
+                {(!avisDone || editingAvis) ? (
+                  <div className="bg-amber-50 rounded-2xl p-4">
+                    <p className="text-sm font-bold text-stone-700 mb-3">{editingAvis ? 'Modifier votre avis' : 'Donner votre avis'}</p>
+                    <StarRating note={myNote} size="lg" onRate={setMyNote} />
+                    {myNote > 0 && <textarea value={myComment} onChange={(e) => setMyComment(e.target.value)} placeholder="Votre commentaire (optionnel)…" rows={2} className="mt-3 w-full px-3 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />}
+                    <div className="flex gap-2 mt-3">
+                      <button onClick={submitAvis} disabled={myNote === 0} className="bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all disabled:opacity-40">{editingAvis ? 'Enregistrer' : 'Envoyer mon avis'}</button>
+                      {editingAvis && <button onClick={() => setEditingAvis(false)} className="bg-stone-200 text-stone-600 text-sm font-semibold px-4 py-2.5 rounded-xl">Annuler</button>}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-emerald-600 font-semibold text-sm">✓ Votre avis</p>
+                      <StarRating note={myNote} />
+                    </div>
+                    {myComment && <p className="text-sm text-stone-600 mt-2">{myComment}</p>}
+                    <div className="flex gap-2 mt-3">
+                      <button onClick={() => setEditingAvis(true)} className="bg-white border border-stone-200 text-stone-600 text-xs font-semibold px-4 py-2 rounded-xl hover:bg-stone-50">✏️ Modifier</button>
+                      <button onClick={supprimerMonAvis} className="bg-red-50 text-red-500 text-xs font-semibold px-4 py-2 rounded-xl hover:bg-red-100">🗑️ Supprimer</button>
+                    </div>
+                  </div>
+                )}
+                {avis.length === 0 ? <p className="text-stone-400 text-sm text-center py-3">Soyez le premier à laisser un avis</p> : (
+                  <div className="space-y-4">
+                    {avis.filter((a) => a.acheteur_id !== acheteur.id).map((a) => (
+                      <div key={a.id} className="border-t border-stone-100 pt-4 first:border-t-0 first:pt-0">
+                        <div className="flex items-center justify-between mb-1"><span className="text-sm font-bold text-stone-700">{a.acheteur_nom}</span><StarRating note={a.note} /></div>
+                        {a.commentaire && <p className="text-xs text-stone-500 leading-relaxed">{a.commentaire}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Cart */}
+      {totalItems > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-30 px-4 py-4 bg-white/80 backdrop-blur-md border-t border-stone-100">
+          <div className="max-w-lg mx-auto">
+            <button onClick={() => setShowSheet(true)} className="w-full bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white rounded-2xl px-5 py-4 flex items-center justify-between shadow-xl shadow-amber-200/70 transition-all">
+              <div className="bg-amber-400/50 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">{totalItems}</div>
+              <span className="font-bold text-base">Commander</span>
+              <span className="font-extrabold text-base">{fmtDA(totalPrice)}</span>
             </button>
           </div>
         </div>
       )}
 
-      {orderCode && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 text-center max-w-sm w-full space-y-4 shadow-2xl">
-            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">✓</div>
-            <h3 className="font-extrabold text-stone-900 text-xl">Commande envoyée !</h3>
-            <p className="text-xs text-stone-500">Donnez ce code au livreur ou au commerçant :</p>
-            <div className="bg-amber-50 text-amber-600 font-mono text-3xl font-black py-3 rounded-2xl tracking-widest border border-amber-200">{orderCode}</div>
-            <button onClick={() => setOrderCode(null)} className="w-full bg-stone-900 text-white font-bold py-3.5 rounded-2xl text-sm">Compris</button>
+      {/* Order sheet */}
+      {showSheet && (
+        <div className="fixed inset-0 bg-black/50 z-40 flex items-end" onClick={() => !ordering && setShowSheet(false)}>
+          <div className="bg-white w-full rounded-t-3xl px-5 pt-4 pb-8 shadow-2xl max-h-[85vh] overflow-y-auto max-w-lg mx-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-stone-200 rounded-full mx-auto mb-5" />
+            <h3 className="text-lg font-extrabold text-stone-800 mb-4">Récapitulatif</h3>
+            <div className="space-y-2.5 mb-4">
+              {cart.map((item) => (
+                <div key={item.produit.id} className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2"><span className="bg-amber-100 text-amber-700 font-bold text-xs w-5 h-5 rounded-full flex items-center justify-center">{item.quantite}</span><span className="text-stone-700">{item.produit.nom}</span></div>
+                  <span className="text-stone-500 font-semibold">{fmtDA(prixEff(item.produit) * item.quantite)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-between items-center font-extrabold text-stone-800 text-base border-t border-stone-100 pt-4 mb-4"><span>Total produits</span><span>{fmtDA(totalPrice)}</span></div>
+            <div className="bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3 mb-5"><p className="text-xs text-amber-700 font-medium">💵 Paiement en <strong>espèces</strong>. Le prix de livraison sera convenu avec le commerce au <strong>{acheteur.telephone}</strong>.</p></div>
+            <p className="text-xs font-bold text-stone-500 uppercase tracking-widest mb-3">Mode de réception</p>
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              {[{ val: true, emoji: '🛵', label: 'Avec livraison' }, { val: false, emoji: '🏃', label: 'À emporter' }].map(({ val, emoji, label }) => (
+                <button key={label} onClick={() => setLivraison(val)} className={`flex flex-col items-center gap-1.5 py-4 rounded-2xl border-2 font-semibold text-sm transition-all ${livraison === val ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-stone-200 text-stone-500 hover:border-stone-300'}`}><span className="text-xl">{emoji}</span>{label}</button>
+              ))}
+            </div>
+            {livraison && (
+              <div className="mb-5">
+                <p className="text-xs font-bold text-stone-500 uppercase tracking-widest mb-2">📍 Votre position de livraison</p>
+                <p className="text-[11px] text-stone-400 mb-2">Déplacez le marqueur ou cliquez sur la carte pour indiquer où livrer.</p>
+                <MapPicker value={position} onChange={setPosition} />
+                {position && <p className="text-[11px] text-emerald-600 mt-1.5 font-semibold">✓ Position enregistrée</p>}
+              </div>
+            )}
+            <button onClick={placeOrder} disabled={ordering} className="w-full bg-amber-500 hover:bg-amber-600 text-white font-extrabold py-4 rounded-2xl transition-all shadow-lg shadow-amber-200 disabled:opacity-60 text-base">{ordering ? 'Envoi…' : 'Confirmer la commande'}</button>
           </div>
+        </div>
+      )}
+
+      {/* Success */}
+      {orderCode && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center px-4">
+          <div className="bg-white w-full max-w-sm rounded-3xl p-8 text-center shadow-2xl">
+            <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-5"><span className="text-4xl">✅</span></div>
+            <h3 className="text-2xl font-extrabold text-stone-800 mb-1.5">Commande envoyée !</h3>
+            <p className="text-stone-400 text-sm mb-6">Votre code de confirmation</p>
+            <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-5 mb-5"><p className="text-4xl font-extrabold tracking-[0.4em] text-amber-600 font-mono">{orderCode}</p></div>
+            <p className="text-xs text-stone-400 mb-2">Le commerce <strong className="text-stone-600">{store.nom}</strong> vous contactera au</p>
+            <p className="text-base font-bold text-stone-700 mb-7">{acheteur.telephone}</p>
+            <button onClick={() => { setOrderCode(null); onBack() }} className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-4 rounded-2xl transition-all">Retour aux commerces</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Modale compte + réclamation (client) ──────────────────────────────────────
+function CompteModal({ acheteur, onClose, onLogout }: { acheteur: Acheteur; onClose: () => void; onLogout: () => void }) {
+  const [message, setMessage] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
+  const [vue, setVue] = useState<'compte' | 'commandes' | 'avis'>('compte')
+  const [commandes, setCommandes] = useState<any[]>([])
+  const [mesAvis, setMesAvis] = useState<any[]>([])
+  const [loadingH, setLoadingH] = useState(false)
+
+  useEffect(() => {
+    if (vue === 'commandes' && commandes.length === 0) {
+      setLoadingH(true)
+      clientApi.historiqueCommandes(acheteur.id).then((d) => setCommandes(Array.isArray(d) ? d : [])).catch(() => {}).finally(() => setLoadingH(false))
+    }
+    if (vue === 'avis' && mesAvis.length === 0) {
+      setLoadingH(true)
+      clientApi.mesEvaluations(acheteur.id).then((d) => setMesAvis(Array.isArray(d) ? d : [])).catch(() => {}).finally(() => setLoadingH(false))
+    }
+  }, [vue, acheteur.id])
+
+  const envoyer = async () => {
+    if (!message.trim()) return
+    setSending(true)
+    try {
+      await reclamationApi.envoyer({
+        type_auteur: 'client', auteur_id: acheteur.id,
+        auteur_nom: acheteur.nom, auteur_telephone: acheteur.telephone,
+        message: message.trim(),
+      })
+      setSent(true); setMessage('')
+    } catch {} finally { setSending(false) }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4" onClick={onClose}>
+      <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-lg font-extrabold text-stone-800">Mon compte</h3>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-500">✕</button>
+        </div>
+
+        {/* Infos compte */}
+        <div className="bg-stone-50 rounded-2xl p-4 mb-5 space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 bg-amber-100 rounded-full flex items-center justify-center text-xl">👤</div>
+            <div><p className="text-[11px] text-stone-400 uppercase tracking-widest">Nom</p><p className="font-semibold text-stone-700">{acheteur.nom}</p></div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 bg-blue-100 rounded-full flex items-center justify-center text-xl">📞</div>
+            <div><p className="text-[11px] text-stone-400 uppercase tracking-widest">Téléphone</p><p className="font-semibold text-stone-700">{acheteur.telephone}</p></div>
+          </div>
+        </div>
+
+        {/* Onglets compte / commandes / avis */}
+        <div className="flex gap-2 mb-4">
+          {([['compte', 'Compte'], ['commandes', 'Commandes'], ['avis', 'Avis']] as [typeof vue, string][]).map(([k, label]) => (
+            <button key={k} onClick={() => setVue(k)}
+              className={`flex-1 text-xs font-semibold py-2 rounded-xl transition-all ${vue === k ? 'bg-stone-800 text-white' : 'bg-stone-100 text-stone-500'}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {vue === 'commandes' && (
+          <div className="mb-5">
+            {loadingH ? <p className="text-center text-stone-400 text-sm py-6">Chargement…</p>
+              : commandes.length === 0 ? <p className="text-center text-stone-400 text-sm py-6"><History size={28} className="mx-auto mb-2 opacity-40" />Aucune commande pour l'instant</p>
+              : <div className="space-y-2">
+                  {commandes.map((c) => (
+                    <div key={c.id} className="bg-stone-50 rounded-2xl p-3 border border-stone-100">
+                      <div className="flex justify-between items-start mb-1">
+                        <p className="font-bold text-stone-800 text-sm">{c.commerce_nom || 'Commerce'}</p>
+                        <span className="text-[10px] font-semibold bg-stone-200 text-stone-600 px-2 py-0.5 rounded-full capitalize">{c.statut}</span>
+                      </div>
+                      <p className="text-[11px] text-stone-400 mb-1.5">{c.produits?.map((pr: any) => `${pr.quantite}× ${pr.nom}`).join(', ')}</p>
+                      <div className="flex justify-between items-center">
+                        <span className="text-amber-600 font-bold text-sm">{fmtDA(c.prix_total)}</span>
+                        <span className="text-[10px] text-stone-400">Code : {c.code_confirmation}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>}
+          </div>
+        )}
+
+        {vue === 'avis' && (
+          <div className="mb-5">
+            {loadingH ? <p className="text-center text-stone-400 text-sm py-6">Chargement…</p>
+              : mesAvis.length === 0 ? <p className="text-center text-stone-400 text-sm py-6"><Star size={28} className="mx-auto mb-2 opacity-40" />Aucune évaluation laissée</p>
+              : <div className="space-y-2">
+                  {mesAvis.map((a) => (
+                    <div key={a.id} className="bg-stone-50 rounded-2xl p-3 border border-stone-100">
+                      <div className="flex justify-between items-center mb-1">
+                        <p className="font-bold text-stone-800 text-sm">{a.commerce_nom || 'Commerce'}</p>
+                        <StarRating note={a.note} />
+                      </div>
+                      {a.commentaire && <p className="text-[12px] text-stone-500 italic">« {a.commentaire} »</p>}
+                    </div>
+                  ))}
+                </div>}
+          </div>
+        )}
+
+        {vue === 'compte' && (<>
+        {/* Réclamation */}
+        <p className="text-sm font-bold text-stone-700 mb-2">📨 Une réclamation ?</p>
+        {sent ? (
+          <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 text-center">
+            <p className="text-emerald-600 font-semibold text-sm">✓ Réclamation envoyée à l'administrateur</p>
+            <button onClick={() => setSent(false)} className="text-xs text-stone-400 mt-2 hover:text-stone-600">Envoyer une autre</button>
+          </div>
+        ) : (
+          <>
+            <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={4}
+              placeholder="Décrivez votre problème ou suggestion…"
+              className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
+            <button onClick={envoyer} disabled={sending || !message.trim()}
+              className="w-full mt-3 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-2xl transition-all disabled:opacity-50">
+              {sending ? 'Envoi…' : 'Envoyer ma réclamation'}
+            </button>
+          </>
+        )}
+
+        </>)}
+
+        {/* Déconnexion : efface le compte, il faudra re-saisir nom+téléphone */}
+        <button onClick={() => { if (confirm('Se déconnecter ? Vous devrez ressaisir votre nom et téléphone.')) onLogout() }}
+          className="w-full mt-4 border border-red-200 text-red-500 hover:bg-red-50 font-semibold py-3 rounded-2xl transition-all">
+          🚪 Se déconnecter
+        </button>
+      </div>
+    </div>
+  )
+}
+
+
+// ─── "Pourquoi nous choisir" (client) ──────────────────────────────────────────
+function PourquoiNousChoisir({ texte }: { texte: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="max-w-lg mx-auto px-4 pt-4">
+      <button onClick={() => setOpen((v) => !v)}
+        className="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-2xl px-4 py-3.5 flex items-center justify-between shadow-lg shadow-amber-200/50 active:scale-[0.98] transition-all">
+        <span className="font-bold flex items-center gap-2">Pourquoi nous choisir ?</span>
+        <span style={{ display: 'inline-block', transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .2s' }}><ChevronDown size={16} /></span>
+      </button>
+      {open && (
+        <div className="bg-white border border-amber-100 rounded-2xl p-4 mt-2 animate-in">
+          <p className="text-sm text-stone-600 leading-relaxed whitespace-pre-line">{texte}</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+
+// ─── Localisation + itinéraire du magasin (client) ─────────────────────────────
+function LocalisationMagasin({ store }: { store: Fournisseur }) {
+  const [open, setOpen] = useState(false)
+  const gmaps = `https://www.google.com/maps/dir/?api=1&destination=${store.latitude},${store.longitude}`
+  return (
+    <div className="max-w-lg mx-auto px-4 pt-4">
+      <button onClick={() => setOpen((v) => !v)}
+        className="w-full bg-white border border-stone-200 rounded-2xl px-4 py-3.5 flex items-center justify-between shadow-sm active:scale-[0.98] transition-all">
+        <span className="font-bold text-stone-700 flex items-center gap-2"><MapIcon size={16} />Où se trouve ce commerce ?</span>
+        <span style={{ display: 'inline-block', transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .2s' }} className="text-stone-400"><ChevronDown size={16} /></span>
+      </button>
+      {open && (
+        <div className="mt-2">
+          <MapView lat={store.latitude!} lng={store.longitude!} height={220} />
+          <a href={gmaps} target="_blank" rel="noopener"
+            className="mt-2 flex items-center justify-center gap-2 w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-2xl transition-all shadow-lg shadow-amber-500/30">
+            <span className="inline-flex items-center gap-1.5"><Navigation size={16} />Voir l'itinéraire pour récupérer ma commande</span>
+          </a>
+          <p className="text-[11px] text-stone-400 text-center mt-1.5">Ouvre Google Maps avec le trajet et la distance jusqu'au commerce.</p>
         </div>
       )}
     </div>
