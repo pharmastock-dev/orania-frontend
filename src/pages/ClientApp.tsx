@@ -301,7 +301,7 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
         </div>
 
         {/* Filtre Ouvert / Fermé */}
-        <div className="px-4 pb-3 flex flex-wrap gap-2 max-w-lg mx-auto">
+        <div className="px-4 pb-3 flex gap-2 max-w-lg mx-auto">
           {([['tous', 'Tous'], ['ouvert', '● Ouvert'], ['ferme', '● Fermé']] as [string, string][]).map(([k, label]) => (
             <button key={k} onClick={() => setFiltreOuvert(k as any)}
               className={`shrink-0 text-xs font-semibold px-4 py-1.5 rounded-full transition-all ${
@@ -383,22 +383,9 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
 
   const chargerAvis = () => clientApi.avis(store.id).then((a) => setAvis(Array.isArray(a) ? a : [])).catch(() => {})
 
-  // Charger les données du magasin à l'ouverture, puis synchroniser les produits.
-  // Le commerçant peut ajouter/modifier/supprimer un produit pendant que le client
-  // garde cette page ouverte : on recharge donc uniquement la liste des produits.
   useEffect(() => {
-    let cancelled = false
-
-    const chargerProduits = async () => {
-      try {
-        const p = await clientApi.produits(store.id)
-        if (!cancelled) setProduits(Array.isArray(p) ? p : [])
-      } catch {}
-    }
-
     Promise.all([clientApi.produits(store.id), clientApi.avis(store.id), clientApi.monAvis(store.id, acheteur.id)])
       .then(([p, a, mine]) => {
-        if (cancelled) return
         setProduits(Array.isArray(p) ? p : [])
         setAvis(Array.isArray(a) ? a : [])
         if (mine && mine.existe) {
@@ -406,24 +393,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
         }
         setLoading(false)
       })
-      .catch(() => { if (!cancelled) setLoading(false) })
-
-    // Synchronisation automatique : nouveau produit, prix, promo, disponibilité, suppression.
-    const interval = window.setInterval(chargerProduits, 3000)
-
-    // Recharger immédiatement quand le client revient sur l'onglet/page.
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') chargerProduits()
-    }
-    document.addEventListener('visibilitychange', onVisible)
-    window.addEventListener('focus', chargerProduits)
-
-    return () => {
-      cancelled = true
-      window.clearInterval(interval)
-      document.removeEventListener('visibilitychange', onVisible)
-      window.removeEventListener('focus', chargerProduits)
-    }
+      .catch(() => setLoading(false))
   }, [store.id, acheteur.id])
 
   // sauvegarder le panier + le magasin auquel il appartient
@@ -456,6 +426,10 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
   const totalPrice = cart.reduce((s, i) => s + prixEff(i.produit) * i.quantite, 0)
 
   const placeOrder = async () => {
+    if (!acheteur || !acheteur.id) {
+      alert("لازم تسجيل دخول أول باش تطلب")
+      return
+    }
     setOrdering(true)
     // pour la livraison : position choisie sur la carte en priorité, sinon GPS
     let pos: { latitude?: number; longitude?: number } = {}
@@ -543,7 +517,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
               <span className="text-xs text-stone-400">{store.note_moyenne ? store.note_moyenne.toFixed(1) : '—'}{store.nb_avis ? ` · ${store.nb_avis} avis` : ''}</span>
             </div>
           </div>
-          <span className={`max-w-[42%] truncate shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full ${getCat(store.categorie).bg} ${getCat(store.categorie).text}`}>{store.categorie}</span>
+          <span className={`shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full ${getCat(store.categorie).bg} ${getCat(store.categorie).text}`}>{store.categorie}</span>
         </div>
       </div>
 
@@ -616,7 +590,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
                   {items.map((p) => {
                     const q = qty(p.id); const pimg = imgUrl(p.image_url)
                     return (
-                      <div key={p.id} className={`bg-white rounded-2xl p-4 flex items-center gap-3 min-w-0 shadow-sm border border-stone-100 transition-opacity ${!p.disponible ? 'opacity-45' : ''}`}>
+                      <div key={p.id} className={`bg-white rounded-2xl p-4 flex gap-3 shadow-sm border border-stone-100 transition-opacity ${!p.disponible ? 'opacity-45' : ''}`}>
                         {pimg && <div className="rounded-xl bg-amber-50 overflow-hidden shrink-0" style={{ width: 70, height: 70 }}><img src={pimg} alt={p.nom} className="w-full h-full object-cover" /></div>}
                         <div className="flex-1 min-w-0">
                           <p className="font-bold text-stone-800 text-sm">{p.nom}
