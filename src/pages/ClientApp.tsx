@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { clientApi, reclamationApi, type Acheteur, type Fournisseur, type Produit, type Avis } from '../lib/api'
+import { clientApi, type Acheteur, type Fournisseur, type Produit, type Avis } from '../lib/api'
 import { StarRating, getCat, imgUrl, fmtDA, Spinner, magasinOuvert, hhmm, tempsLivraison } from '../lib/shared'
-import { catEmoji } from '../lib/categories'
+import { CATEGORIES_CLIENT, catEmoji } from '../lib/categories'
 import { LogoOrania } from '../components/Logo'
 import { MapPicker, MapView } from '../components/Map'
 import { ArrowLeft, Search, MapPin, Clock, Bike, Flame, User, Phone, Map as MapIcon, Navigation, ChevronDown, Store, Utensils, ReceiptText, History, Star } from 'lucide-react'
@@ -9,13 +9,11 @@ import { ArrowLeft, Search, MapPin, Clock, Bike, Flame, User, Phone, Map as MapI
 interface CartItem { produit: Produit; quantite: number }
 type CPage = 'login' | 'stores' | 'menu'
 
-
 export function ClientApp({ onExit }: { onExit: () => void }) {
   const [page, setPage] = useState<CPage>('login')
   const [acheteur, setAcheteur] = useState<Acheteur | null>(null)
   const [store, setStore] = useState<Fournisseur | null>(null)
 
-  // restaurer la session ET la dernière page/magasin visités
   useEffect(() => {
     const saved = localStorage.getItem('acheteur')
     if (saved) {
@@ -34,24 +32,20 @@ export function ClientApp({ onExit }: { onExit: () => void }) {
 
   const goStores = () => {
     localStorage.setItem('client_page', 'stores'); localStorage.removeItem('client_store')
-    // on ferme le sous-écran via l'UI : reculer dans l'historique (déclenche popstate géré)
     if (((window as any).__oraniaBackDepth || 0) > 0) { window.history.back(); return }
     setStore(null); setPage('stores')
   }
   const goMenu = (s: Fournisseur) => {
     localStorage.setItem('client_page', 'menu'); localStorage.setItem('client_store', JSON.stringify(s))
-    // signaler à App qu'un sous-écran est ouvert (le bouton retour reviendra aux magasins)
     ;(window as any).__oraniaBackDepth = ((window as any).__oraniaBackDepth || 0) + 1
     window.history.pushState({ clientPage: 'menu' }, '')
     setStore(s); setPage('menu')
   }
 
-  // bouton retour physique (téléphone) ou flèche navigateur (PC)
   useEffect(() => {
     const onPop = () => {
       setPage((cur) => {
         if (cur === 'menu') {
-          // fermer le menu et revenir à la liste des magasins
           setStore(null)
           localStorage.setItem('client_page', 'stores'); localStorage.removeItem('client_store')
           return 'stores'
@@ -66,9 +60,7 @@ export function ClientApp({ onExit }: { onExit: () => void }) {
   const login = (a: Acheteur) => {
     setAcheteur(a); localStorage.setItem('client_page', 'stores'); setPage('stores')
   }
-  // retour à l'accueil SANS effacer le compte (le client reste connecté)
   const retourAccueil = () => { onExit() }
-  // déconnexion complète : efface le compte, il faudra re-saisir nom+téléphone
   const logout = () => {
     localStorage.removeItem('acheteur'); localStorage.removeItem('client_page'); localStorage.removeItem('client_store')
     setAcheteur(null); setStore(null); onExit()
@@ -97,8 +89,8 @@ function LoginPage({ onLogin, onExit }: { onLogin: (a: Acheteur) => void; onExit
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-amber-50 to-white px-5 py-10">
       <div className="mb-10 text-center">
         <div className="w-28 h-28 bg-white rounded-[28px] flex items-center justify-center mx-auto mb-4 shadow-xl shadow-black/10"><LogoOrania size={80} /></div>
-        <h1 className="text-3xl font-extrabold text-stone-900 tracking-tight">Orania</h1>
-        <p className="text-stone-400 text-sm mt-1.5">Tout Oran, en un clic</p>
+        <h1 className="text-3xl font-extrabold text-stone-900 tracking-tight">QREEB</h1>
+        <p className="text-stone-400 text-sm mt-1.5">Tout près, tout simplement.</p>
       </div>
       <div className="w-full max-w-sm bg-white rounded-3xl shadow-xl shadow-stone-200/60 p-8">
         <h2 className="text-xl font-bold text-stone-800 mb-1">Bienvenue 👋</h2>
@@ -168,7 +160,6 @@ function StoreCard({ store, distance, onClick }: { store: Fournisseur; distance?
 // ─── Stores page ──────────────────────────────────────────────────────────────
 type TriMode = 'distance' | 'etoiles'
 
-// distance approximative (Haversine) en km
 function distanceKm(la1?: number | null, lo1?: number | null, la2?: number | null, lo2?: number | null): number | null {
   if (la1 == null || lo1 == null || la2 == null || lo2 == null) return null
   const R = 6371, toR = (d: number) => (d * Math.PI) / 180
@@ -181,7 +172,8 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
   const [showCompte, setShowCompte] = useState(false)
   const [stores, setStores] = useState<Fournisseur[]>([])
   const [loading, setLoading] = useState(true); const [error, setError] = useState(false)
-  const [search, setSearch] = useState(''); const [cat, setCat] = useState('Tous')
+  const [search, setSearch] = useState('')
+  const [filtreCateg, setFiltreCateg] = useState('')
   const [tri, setTri] = useState<TriMode>('distance')
   const [filtreOuvert, setFiltreOuvert] = useState<'tous' | 'ouvert' | 'ferme'>('tous')
   const [filtreGratuit, setFiltreGratuit] = useState(false)
@@ -194,7 +186,6 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
     clientApi.fournisseurs().then((d) => { setStores(Array.isArray(d) ? d : []); setLoading(false) }).catch(() => { setError(true); setLoading(false) })
   }, [])
 
-  // demander la géoloc quand on trie par distance
   useEffect(() => {
     if (tri === 'distance' && !maPos && !posErr && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -205,22 +196,28 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
     }
   }, [tri, maPos, posErr])
 
-  const categories = ['Tous', ...Array.from(new Set(stores.map((s) => s.categorie)))]
+  const quickMatch = (s: Fournisseur, key: string) => {
+    if (key === 'promo') return s.a_promo === true
+    if (!key) return true
+    
+    const normalizedKey = key.trim().toLowerCase()
+    
+    return (s.produits_categories || []).some((categorie) => 
+      categorie.trim().toLowerCase() === normalizedKey
+    )
+  }
 
   const q = search.trim().toLowerCase()
   let filtered = stores.filter((s) => {
-    const mc = cat === 'Tous' || s.categorie === cat
-    if (!mc) return false
+    if (!quickMatch(s, filtreCateg)) return false
     if (!q) return true
-    // recherche : nom du commerce, sa catégorie, OU un de ses produits / catégories de produits
     if (s.nom.toLowerCase().includes(q)) return true
-    if (s.categorie.toLowerCase().includes(q)) return true
+    if (s.categorie?.toLowerCase().includes(q)) return true
     if ((s.produits_noms || []).some((n) => n.toLowerCase().includes(q))) return true
     if ((s.produits_categories || []).some((c) => c.toLowerCase().includes(q))) return true
     return false
   })
 
-  // filtre ouvert/fermé
   if (filtreOuvert !== 'tous') {
     filtered = filtered.filter((s) => {
       const o = magasinOuvert(s.heure_ouverture, s.heure_fermeture)
@@ -236,10 +233,8 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
     filtered = filtered.filter((s) => s.a_promo === true)
   }
 
-  // tri
   filtered = [...filtered].sort((a, b) => {
     if (tri === 'etoiles') return (b.note_moyenne ?? 0) - (a.note_moyenne ?? 0)
-    // distance
     const da = distanceKm(maPos?.lat, maPos?.lng, a.latitude, a.longitude)
     const db = distanceKm(maPos?.lat, maPos?.lng, b.latitude, b.longitude)
     if (da == null && db == null) return 0
@@ -255,18 +250,17 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
           <button onClick={onRetour} title="Retour à l'accueil"
             className="shrink-0 w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700"><ArrowLeft size={20} /></button>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2"><LogoOrania size={26} /><h1 className="font-extrabold text-stone-900 text-lg truncate">Orania</h1></div>
+            <div className="flex items-center gap-2"><LogoOrania size={26} /><h1 className="font-extrabold text-stone-900 text-lg truncate">QREEB</h1></div>
             <p className="text-xs text-stone-400 ml-8 truncate">Bonjour, {acheteur.nom} 👋</p>
           </div>
           <button onClick={() => setShowCompte(true)} className="shrink-0 text-xs text-stone-500 hover:text-amber-600 transition-colors px-3 py-1.5 rounded-xl hover:bg-amber-50 inline-flex items-center gap-1"><User size={14} />Compte</button>
         </div>
         {showCompte && <CompteModal acheteur={acheteur} onClose={() => setShowCompte(false)} onLogout={onLogout} />}
 
-        {/* Barre recherche + bouton filtre */}
         <div className="px-4 pb-3 pt-1 max-w-lg mx-auto flex gap-2">
           <div className="relative flex-1">
             <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 text-base pointer-events-none"><Search size={16} /></span>
-            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Chercher : pizza, thé, sushi…"
+            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Chercher : tacos, pizza, sushi…"
               className="w-full pl-10 pr-4 py-3 bg-stone-100 border border-transparent rounded-2xl text-sm text-stone-700 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all" />
             {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600">✕</button>}
           </div>
@@ -276,7 +270,16 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
           </button>
         </div>
 
-        {/* Panneau filtre */}
+        <div className="px-4 pb-3 max-w-lg mx-auto">
+          <div className="filters-scroll bg-stone-50 border border-stone-100 rounded-2xl p-1.5 flex gap-1.5 overflow-x-auto scrollbar-hide">
+            <button onClick={() => { setTri('distance'); setFiltrePromo(false) }} className={`shrink-0 min-w-[130px] text-xs font-bold py-2.5 px-3 rounded-xl transition-all ${tri === 'distance' && !filtrePromo ? 'bg-amber-500 text-white shadow-sm' : 'bg-white text-stone-500'}`}>📍 Plus proches</button>
+            <button onClick={() => { setTri('etoiles'); setFiltrePromo(false) }} className={`shrink-0 min-w-[130px] text-xs font-bold py-2.5 px-3 rounded-xl transition-all ${tri === 'etoiles' && !filtrePromo ? 'bg-amber-500 text-white shadow-sm' : 'bg-white text-stone-500'}`}>⭐ Mieux notés</button>
+            <button onClick={() => setFiltrePromo((v) => !v)} className={`shrink-0 min-w-[110px] text-xs font-bold py-2.5 px-3 rounded-xl transition-all ${filtrePromo ? 'bg-pink-500 text-white' : 'bg-white text-pink-600'}`}>🔥 Promos</button>
+            <button onClick={() => setFiltreOuvert((v) => v === 'ouvert' ? 'tous' : 'ouvert')} className={`shrink-0 min-w-[105px] text-xs font-bold py-2.5 px-3 rounded-xl transition-all ${filtreOuvert === 'ouvert' ? 'bg-emerald-500 text-white' : 'bg-white text-stone-500'}`}>🟢 Ouverts</button>
+            <button onClick={() => setFiltreGratuit((v) => !v)} className={`shrink-0 min-w-[135px] text-xs font-bold py-2.5 px-3 rounded-xl transition-all ${filtreGratuit ? 'bg-emerald-500 text-white' : 'bg-white text-stone-500'}`}>🛵 Livraison gratuite</button>
+          </div>
+        </div>
+
         {showFiltre && (
           <div className="px-4 pb-3 max-w-lg mx-auto">
             <div className="bg-stone-50 border border-stone-100 rounded-2xl p-3 flex gap-2">
@@ -287,47 +290,39 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
           </div>
         )}
 
-        {/* Pastilles catégories */}
-        <div className="px-4 pb-2 flex gap-2 overflow-x-auto scrollbar-hide max-w-lg mx-auto">
-          {categories.map((c) => {
-            const colors = c === 'Tous' ? null : getCat(c); const active = cat === c
-            return (
-              <button key={c} onClick={() => setCat(c)}
-                className={`shrink-0 text-xs font-semibold px-4 py-1.5 rounded-full transition-all ${
-                  active ? (c === 'Tous' ? 'bg-amber-500 text-white shadow-sm shadow-amber-200' : `${colors!.pill} text-white shadow-sm`) : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
-                }`}>{c}</button>
-            )
-          })}
-        </div>
-
-        {/* Filtre Ouvert / Fermé */}
-        <div className="px-4 pb-3 flex gap-2 max-w-lg mx-auto">
-          {([['tous', 'Tous'], ['ouvert', '● Ouvert'], ['ferme', '● Fermé']] as [string, string][]).map(([k, label]) => (
-            <button key={k} onClick={() => setFiltreOuvert(k as any)}
-              className={`shrink-0 text-xs font-semibold px-4 py-1.5 rounded-full transition-all ${
-                filtreOuvert === k
-                  ? (k === 'ouvert' ? 'bg-emerald-500 text-white' : k === 'ferme' ? 'bg-stone-500 text-white' : 'bg-stone-800 text-white')
-                  : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
-              }`}>{label}</button>
-          ))}
-          <button onClick={() => setFiltreGratuit((v) => !v)}
-            className={`shrink-0 text-xs font-semibold px-4 py-1.5 rounded-full transition-all ${filtreGratuit ? 'bg-emerald-500 text-white' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}>
-            <span className="inline-flex items-center gap-1"><Bike size={13} />Livraison gratuite</span>
-          </button>
-          <button onClick={() => setFiltrePromo((v) => !v)}
-            className={`shrink-0 text-xs font-semibold px-4 py-1.5 rounded-full transition-all ${filtrePromo ? 'bg-pink-500 text-white' : 'bg-pink-50 text-pink-600 hover:bg-pink-100'}`}>
-            <span className="inline-flex items-center gap-1"><Flame size={13} />En promo</span>
-          </button>
+        {/* CATEGORIES FILTER */}
+        <div className="px-4 py-3 bg-white border-b border-stone-100 overflow-x-auto">
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={() => setFiltreCateg('')}
+              className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition-all ${
+                !filtreCateg ? 'bg-amber-500 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+              }`}
+            >
+              Tous
+            </button>
+            {CATEGORIES_CLIENT.map((c) => (
+              <button
+                key={c}
+                onClick={() => setFiltreCateg(c)}
+                className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition-all ${
+                  filtreCateg === c ? 'bg-amber-500 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                }`}
+              >
+                {catEmoji(c)} {c}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       <div className="px-4 py-4 max-w-lg mx-auto">
         {loading && <Spinner label="Chargement des commerces…" />}
         {error && !loading && (
-          <div className="text-center py-20"><p className="text-5xl mb-4">⚡</p><p className="text-stone-600 font-semibold mb-1">API inaccessible</p><p className="text-stone-400 text-sm">Vérifiez que le serveur tourne</p></div>
+          <div className="text-center py-20"><p className="text-5xl mb-4">⚡</p><p className="text-stone-600 font-semibold mb-1">API inaccessible</p><p className="text-stone-400 text-sm">Vérifiez votre connexion</p></div>
         )}
         {!loading && !error && filtered.length === 0 && (
-          <div className="text-center py-20"><p className="text-5xl mb-4">🔍</p><p className="text-stone-600 font-semibold mb-1">Aucun résultat</p><p className="text-stone-400 text-sm">Essayez un autre mot-clé</p></div>
+          <div className="text-center py-20"><p className="text-5xl mb-4">🔍</p><p className="text-stone-600 font-semibold mb-1">Aucun résultat</p><p className="text-stone-400 text-sm">Essayez un autre filtre ou mot-clé</p></div>
         )}
         {!loading && !error && filtered.length > 0 && (
           <>
@@ -349,7 +344,6 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
   const [avis, setAvis] = useState<Avis[]>([])
   const [loading, setLoading] = useState(true)
   const [cart, setCart] = useState<CartItem[]>(() => {
-    // restaurer le panier seulement s'il appartient à CE magasin
     try {
       const raw = localStorage.getItem('orania_cart')
       if (raw) { const parsed = JSON.parse(raw); if (parsed.storeId === store.id) return parsed.items || [] }
@@ -370,7 +364,6 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
   const [editingAvis, setEditingAvis] = useState(false)
   const [maPos, setMaPos] = useState<{ lat: number; lng: number } | null>(null)
 
-  // récupérer la position pour estimer temps + distance
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -396,13 +389,11 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
       .catch(() => setLoading(false))
   }, [store.id, acheteur.id])
 
-  // sauvegarder le panier + le magasin auquel il appartient
   useEffect(() => {
     if (cart.length > 0) localStorage.setItem('orania_cart', JSON.stringify({ storeId: store.id, storeName: store.nom, items: cart }))
     else localStorage.removeItem('orania_cart')
   }, [cart, store.id, store.nom])
 
-  // ajouter un produit — avertir si le panier contient déjà des produits d'un AUTRE magasin
   const add = (p: Produit) => {
     try {
       const raw = localStorage.getItem('orania_cart')
@@ -426,12 +417,8 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
   const totalPrice = cart.reduce((s, i) => s + prixEff(i.produit) * i.quantite, 0)
 
   const placeOrder = async () => {
-    if (!acheteur || !acheteur.id) {
-      alert("لازم تسجيل دخول أول باش تطلب")
-      return
-    }
+    if (!acheteur || !acheteur.id) return
     setOrdering(true)
-    // pour la livraison : position choisie sur la carte en priorité, sinon GPS
     let pos: { latitude?: number; longitude?: number } = {}
     if (livraison) {
       if (position) {
@@ -473,37 +460,12 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
     await chargerAvis()
   }
 
-  // grouper produits par catégorie
   const groupes: Record<string, Produit[]> = {}
   produits.forEach((p) => { const c = p.categorie || 'Autre'; (groupes[c] = groupes[c] || []).push(p) })
   const cats = Object.keys(groupes).sort()
   const banner = imgUrl(store.photo)
   const ouvert = magasinOuvert(store.heure_ouverture, store.heure_fermeture)
-
-  // Magasin fermé → grande page bloquante
-  if (ouvert === false) {
-    return (
-      <div className="min-h-screen bg-stone-50 flex flex-col">
-        <div className="bg-white border-b border-stone-100 px-4 py-3.5 flex items-center gap-3">
-          <button onClick={onBack} title="Retour" className="w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700 shrink-0"><ArrowLeft size={20} /></button>
-          <h2 className="font-extrabold text-stone-800 truncate">{store.nom}</h2>
-        </div>
-        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-          <div className="w-28 h-28 bg-stone-200 rounded-full flex items-center justify-center mb-6"><span className="text-6xl">🌙</span></div>
-          <h1 className="text-2xl font-extrabold text-stone-800 mb-2">Magasin fermé</h1>
-          <p className="text-stone-500 mb-1">Ce commerce est actuellement fermé.</p>
-          <p className="text-stone-500 mb-6">Vous ne pouvez pas commander pour le moment.</p>
-          {store.heure_ouverture && (
-            <div className="bg-white border border-stone-200 rounded-2xl px-6 py-4 mb-8">
-              <p className="text-xs text-stone-400 uppercase tracking-widest mb-1">Horaires</p>
-              <p className="text-lg font-bold text-stone-700"><Clock size={11} className="inline mr-0.5" />{hhmm(store.heure_ouverture)} – {hhmm(store.heure_fermeture)}</p>
-            </div>
-          )}
-          <button onClick={onBack} className="bg-amber-500 hover:bg-amber-600 text-white font-bold px-8 py-3.5 rounded-2xl transition-all shadow-lg shadow-amber-200 inline-flex items-center gap-1.5"><ArrowLeft size={16} /> Retour aux commerces</button>
-        </div>
-      </div>
-    )
-  }
+  const commandeActive = ouvert !== false
 
   return (
     <div className="min-h-screen bg-stone-50 pb-36">
@@ -521,9 +483,20 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
         </div>
       </div>
 
+      {ouvert === false && (
+        <div className="max-w-lg mx-auto px-4 pt-3">
+          <div className="bg-stone-800 text-white rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="font-bold text-sm">🔒 Commerce fermé</p>
+              <p className="text-xs text-stone-300 mt-0.5">Menu et prix visibles, commande indisponible.</p>
+            </div>
+            {store.heure_ouverture && <span className="text-xs font-semibold bg-white/10 px-2.5 py-1.5 rounded-xl whitespace-nowrap">Ouvre à {hhmm(store.heure_ouverture)}</span>}
+          </div>
+        </div>
+      )}
+
       {banner && <div className="relative h-40 bg-amber-50 overflow-hidden max-w-lg mx-auto"><img src={banner} alt={store.nom} className="w-full h-full object-cover" /><div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" /></div>}
 
-      {/* Barre infos livraison : frais | temps | note */}
       <div className="max-w-lg mx-auto px-4 pt-3">
         <div className="bg-white rounded-2xl border border-stone-100 shadow-sm grid grid-cols-3 divide-x divide-stone-100">
           <div className="px-2 py-3 text-center">
@@ -602,7 +575,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
                             ? <p className="mt-1.5 text-sm"><span className="text-pink-600 font-extrabold">{fmtDA(p.prix_promo)}</span> <span className="text-stone-400 line-through text-xs ml-1">{fmtDA(p.prix)}</span></p>
                             : <p className="text-amber-600 font-extrabold text-sm mt-1.5">{fmtDA(p.prix)}</p>}
                         </div>
-                        {p.disponible && (
+                        {p.disponible && commandeActive && (
                           <div className="flex items-center gap-2 shrink-0 self-center">
                             {q > 0 ? (
                               <>
@@ -624,7 +597,6 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
             </>
           )}
 
-          {/* Reviews */}
           <div className="bg-white rounded-3xl shadow-sm border border-stone-100 overflow-hidden">
             <button className="w-full flex items-center justify-between px-5 py-4" onClick={() => setShowReviews((v) => !v)}>
               <div className="flex items-center gap-2"><span className="text-base">⭐</span><span className="font-bold text-stone-800">Avis clients</span>{avis.length > 0 && <span className="text-xs bg-amber-100 text-amber-700 font-semibold px-2 py-0.5 rounded-full">{avis.length}</span>}</div>
@@ -671,8 +643,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
         </div>
       )}
 
-      {/* Cart */}
-      {totalItems > 0 && (
+      {commandeActive && totalItems > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-30 px-4 py-4 bg-white/80 backdrop-blur-md border-t border-stone-100">
           <div className="max-w-lg mx-auto">
             <button onClick={() => setShowSheet(true)} className="w-full bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white rounded-2xl px-5 py-4 flex items-center justify-between shadow-xl shadow-amber-200/70 transition-all">
@@ -684,7 +655,6 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
         </div>
       )}
 
-      {/* Order sheet */}
       {showSheet && (
         <div className="fixed inset-0 bg-black/50 z-40 flex items-end" onClick={() => !ordering && setShowSheet(false)}>
           <div className="bg-white w-full rounded-t-3xl px-5 pt-4 pb-8 shadow-2xl max-h-[85vh] overflow-y-auto max-w-lg mx-auto" onClick={(e) => e.stopPropagation()}>
@@ -719,7 +689,6 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
         </div>
       )}
 
-      {/* Success */}
       {orderCode && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center px-4">
           <div className="bg-white w-full max-w-sm rounded-3xl p-8 text-center shadow-2xl">
@@ -737,11 +706,7 @@ function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Four
   )
 }
 
-// ─── Modale compte + réclamation (client) ──────────────────────────────────────
 function CompteModal({ acheteur, onClose, onLogout }: { acheteur: Acheteur; onClose: () => void; onLogout: () => void }) {
-  const [message, setMessage] = useState('')
-  const [sending, setSending] = useState(false)
-  const [sent, setSent] = useState(false)
   const [vue, setVue] = useState<'compte' | 'commandes' | 'avis'>('compte')
   const [commandes, setCommandes] = useState<any[]>([])
   const [mesAvis, setMesAvis] = useState<any[]>([])
@@ -758,19 +723,6 @@ function CompteModal({ acheteur, onClose, onLogout }: { acheteur: Acheteur; onCl
     }
   }, [vue, acheteur.id])
 
-  const envoyer = async () => {
-    if (!message.trim()) return
-    setSending(true)
-    try {
-      await reclamationApi.envoyer({
-        type_auteur: 'client', auteur_id: acheteur.id,
-        auteur_nom: acheteur.nom, auteur_telephone: acheteur.telephone,
-        message: message.trim(),
-      })
-      setSent(true); setMessage('')
-    } catch {} finally { setSending(false) }
-  }
-
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4" onClick={onClose}>
       <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
@@ -779,7 +731,6 @@ function CompteModal({ acheteur, onClose, onLogout }: { acheteur: Acheteur; onCl
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-500">✕</button>
         </div>
 
-        {/* Infos compte */}
         <div className="bg-stone-50 rounded-2xl p-4 mb-5 space-y-2">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 bg-amber-100 rounded-full flex items-center justify-center text-xl">👤</div>
@@ -791,7 +742,6 @@ function CompteModal({ acheteur, onClose, onLogout }: { acheteur: Acheteur; onCl
           </div>
         </div>
 
-        {/* Onglets compte / commandes / avis */}
         <div className="flex gap-2 mb-4">
           {([['compte', 'Compte'], ['commandes', 'Commandes'], ['avis', 'Avis']] as [typeof vue, string][]).map(([k, label]) => (
             <button key={k} onClick={() => setVue(k)}
@@ -841,29 +791,6 @@ function CompteModal({ acheteur, onClose, onLogout }: { acheteur: Acheteur; onCl
           </div>
         )}
 
-        {vue === 'compte' && (<>
-        {/* Réclamation */}
-        <p className="text-sm font-bold text-stone-700 mb-2">📨 Une réclamation ?</p>
-        {sent ? (
-          <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 text-center">
-            <p className="text-emerald-600 font-semibold text-sm">✓ Réclamation envoyée à l'administrateur</p>
-            <button onClick={() => setSent(false)} className="text-xs text-stone-400 mt-2 hover:text-stone-600">Envoyer une autre</button>
-          </div>
-        ) : (
-          <>
-            <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={4}
-              placeholder="Décrivez votre problème ou suggestion…"
-              className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
-            <button onClick={envoyer} disabled={sending || !message.trim()}
-              className="w-full mt-3 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-2xl transition-all disabled:opacity-50">
-              {sending ? 'Envoi…' : 'Envoyer ma réclamation'}
-            </button>
-          </>
-        )}
-
-        </>)}
-
-        {/* Déconnexion : efface le compte, il faudra re-saisir nom+téléphone */}
         <button onClick={() => { if (confirm('Se déconnecter ? Vous devrez ressaisir votre nom et téléphone.')) onLogout() }}
           className="w-full mt-4 border border-red-200 text-red-500 hover:bg-red-50 font-semibold py-3 rounded-2xl transition-all">
           🚪 Se déconnecter
@@ -873,8 +800,6 @@ function CompteModal({ acheteur, onClose, onLogout }: { acheteur: Acheteur; onCl
   )
 }
 
-
-// ─── "Pourquoi nous choisir" (client) ──────────────────────────────────────────
 function PourquoiNousChoisir({ texte }: { texte: string }) {
   const [open, setOpen] = useState(false)
   return (
@@ -893,8 +818,6 @@ function PourquoiNousChoisir({ texte }: { texte: string }) {
   )
 }
 
-
-// ─── Localisation + itinéraire du magasin (client) ─────────────────────────────
 function LocalisationMagasin({ store }: { store: Fournisseur }) {
   const [open, setOpen] = useState(false)
   const gmaps = `https://www.google.com/maps/dir/?api=1&destination=${store.latitude},${store.longitude}`

@@ -75,3 +75,20 @@ h1, h2, h3, h4, h5, h6 {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* QREEB — seuls les filtres horizontaux sont glissables sur mobile */
+.filters-scroll {
+  display: flex;
+  flex-wrap: nowrap;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
+  white-space: nowrap;
+}
+.filters-scroll::-webkit-scrollbar { display: none; }
+.filters-scroll > * { flex: 0 0 auto; }

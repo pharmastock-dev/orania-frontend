@@ -1,13 +1,67 @@
-// Catégories de produits proposées (le fournisseur peut aussi en saisir une libre)
-export const CATEGORIES_PRODUITS = [
-  'Pizza', 'Sandwich', 'Tacos', 'Burger', 'Plats', 'Pâtes',
-  'Boissons', 'Desserts', 'Viennoiserie', 'Salades', 'Autre',
+// src/lib/categories.ts
+
+export const CATEGORIES_CLIENT = [
+  'Gourmet',
+  'Burger',
+  'Pizza',
+  'Sandwich',
+  'Sushi',
+  'Crispy',
+  'Patisserie',
+  'Grillades',
+  'Tacos',
+  'Kebab',
+  'Plats',
+  'Restaurant',
+  'Parfumerie',
+  'Épiceries',
+  'Cosmétiques',
+  'Viennoiserie',
 ]
 
-// Emoji par catégorie (pour l'affichage côté client)
-export const CAT_EMOJI: Record<string, string> = {
-  Pizza: '🍕', Sandwich: '🥪', Tacos: '🌮', Burger: '🍔', Plats: '🍽️',
-  Pâtes: '🍝', Boissons: '🥤', Desserts: '🍰', Viennoiserie: '🥐',
-  Salades: '🥗', Autre: '📦', Produits: '📦',
+export const CATEGORIES_PRODUITS = [
+  'Gourmet',
+  'Burger',
+  'Pizza',
+  'Sandwich',
+  'Sushi',
+  'Crispy',
+  'Patisserie',
+  'Grillades',
+  'Tacos',
+  'Kebab',
+  'Plats',
+  'Poutine',
+  'Boissons',
+  'Suppléments',
+]
+
+export const catEmoji = (cat: string): string => {
+  const emojis: Record<string, string> = {
+    gourmet: '🍽️',
+    burger: '🍔',
+    pizza: '🍕',
+    sandwich: '🥪',
+    sushi: '🍣',
+    crispy: '🍟',
+    patisserie: '🧁',
+    grillades: '🍖',
+    tacos: '🌮',
+    kebab: '🌯',
+    plats: '🍲',
+    poutine: '🍟',
+    boissons: '🥤',
+    suppléments: '✨',
+    restaurant: '🍽️',
+    parfumerie: '💄',
+    épiceries: '🛒',
+    cosmétiques: '💅',
+    viennoiserie: '🥐',
+    promo: '🔥',
+  }
+  return emojis[cat.toLowerCase()] || '📌'
 }
-export const catEmoji = (c: string) => CAT_EMOJI[c] ?? '📦'
+
+export const normalizeCategory = (cat: string): string => {
+  return cat.trim().toLowerCase().charAt(0).toUpperCase() + cat.trim().toLowerCase().slice(1)
+}
