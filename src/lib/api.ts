@@ -1,43 +1,6 @@
-// ─── API centralisée ───────────────────────────────────────────────────────
-// Tous les appels au backend FastAPI passent par ici.
-// Backend Render : https://orania-backend.onrender.com
+// src/lib/api.ts
 
-export const API =
-  import.meta.env.VITE_API_URL || 'https://orania-backend.onrender.com'
-
-// ─── Fonction HTTP centrale ────────────────────────────────────────────────
-
-async function req(path: string, options?: RequestInit) {
-  const res = await fetch(`${API}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options?.headers || {}),
-    },
-  })
-
-  if (!res.ok) {
-    let msg = 'Erreur serveur'
-
-    try {
-      const data = await res.json()
-      msg = data?.detail || data?.message || msg
-    } catch {
-      // Réponse non JSON
-    }
-
-    throw new Error(msg)
-  }
-
-  // Certaines requêtes peuvent retourner une réponse vide
-  if (res.status === 204) {
-    return null
-  }
-
-  return res.json()
-}
-
-// ─── TYPES ──────────────────────────────────────────────────────────────────
+export const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
 
 export interface Acheteur {
   id: number
@@ -48,569 +11,214 @@ export interface Acheteur {
 export interface Fournisseur {
   id: number
   nom: string
-  categorie: string
-
-  photo?: string | null
-  adresse?: string | null
-  telephone?: string | null
-  presentation?: string | null
-
-  livraison_gratuite?: boolean | null
-  frais_min?: number | null
-  frais_max?: number | null
-
-  a_promo?: boolean | null
-  note_moyenne?: number | null
-  nb_avis?: number
-
-  latitude?: number | null
-  longitude?: number | null
-
-  heure_ouverture?: string | null
-  heure_fermeture?: string | null
-
-  produits_noms?: string[]
-  produits_categories?: string[]
+  telephone: string
+  categorie?: string
+  adresse?: string
+  photo?: string
+  heure_ouverture?: string
+  heure_fermeture?: string
+  temps_livraison: number
+  frais_min: number
+  frais_max: number
+  livraison_gratuite: boolean
+  a_promo: boolean
+  produits_categories: string[]
+  avis_count: number
+  note_moyenne: number
 }
 
 export interface Produit {
   id: number
+  fournisseur_id: number
   nom: string
   prix: number
-  prix_promo?: number | null
-  categorie?: string | null
-  ingredients?: string | null
-  image_url?: string | null
+  prix_promo?: number
+  categorie?: string
+  photo?: string
   disponible: boolean
-  fournisseur_id?: number
-}
-
-export interface Livreur {
-  id: number
-  nom: string
-  telephone?: string | null
-  fournisseur_id?: number
 }
 
 export interface Commande {
   id: number
+  acheteur_id: number
+  fournisseur_id: number
+  avec_livraison: boolean
+  code_confirmation: string
   statut: string
   prix_total: number
-  avec_livraison: boolean
-
-  code_confirmation?: string
-
-  date_commande: string
-
-  livreur_id?: number | null
-  livreur_nom?: string | null
-
+  latitude?: number
+  longitude?: number
+  created_at: string
   acheteur_nom?: string
-  acheteur_telephone?: string | null
-
-  commerce_nom?: string | null
-  commerce_adresse?: string | null
-  commerce_tel?: string | null
-
-  acheteur_latitude?: number | null
-  acheteur_longitude?: number | null
+  acheteur_telephone?: string
+  fournisseur_nom?: string
 }
 
-export interface LigneCommande {
-  nom: string
-  quantite: number
-  prix_unitaire: number
-}
-
-export interface Avis {
+export interface Livreur {
   id: number
-  note: number
-  commentaire?: string
-  acheteur_id?: number
-  acheteur_nom: string
-}
-
-export interface Evaluation {
-  id?: number
-  note: number
-  commentaire?: string
-  nom: string
-}
-
-// ─── FOURNISSEUR ADMIN ──────────────────────────────────────────────────────
-
-export interface FournisseurAdmin {
-  id: number
+  fournisseur_id: number
   nom: string
   telephone: string
-
-  adresse?: string | null
-  categorie?: string | null
-
-  valide: boolean
-  abonnement_fin?: string | null
-  actif: boolean
 }
 
-// ─── CLIENT ─────────────────────────────────────────────────────────────────
+// ==================== CLIENT API ====================
 
 export const clientApi = {
-  login: (
-    nom: string,
-    telephone: string
-  ): Promise<Acheteur> =>
-    req('/client/login', {
-      method: 'POST',
-      body: JSON.stringify({
-        nom,
-        telephone,
-      }),
-    }),
+  async stores(): Promise<Fournisseur[]> {
+    const res = await fetch(`${API}/fournisseurs`)
+    if (!res.ok) return []
+    return res.json()
+  },
 
-  fournisseurs: (): Promise<Fournisseur[]> =>
-    req('/fournisseurs'),
+  async storeProduits(fournisseurId: number): Promise<Produit[]> {
+    const res = await fetch(`${API}/fournisseurs/${fournisseurId}/produits`)
+    if (!res.ok) return []
+    return res.json()
+  },
 
-  produits: (fid: number): Promise<Produit[]> =>
-    req(`/fournisseurs/${fid}/produits`),
-
-  avis: (fid: number): Promise<Avis[]> =>
-    req(`/fournisseurs/${fid}/avis`),
-
-  commander: (payload: {
+  async commander(payload: {
     acheteur_id: number
     fournisseur_id: number
     avec_livraison: boolean
-    latitude?: number | null
-    longitude?: number | null
-    produits: {
-      produit_id: number
-      quantite: number
-    }[]
-  }): Promise<Commande> =>
-    req('/commandes', {
+    latitude?: number
+    longitude?: number
+    produits: { produit_id: number; quantite: number }[]
+  }): Promise<{ succes: boolean; code_confirmation: string; commande_id: number }> {
+    const res = await fetch(`${API}/commandes`, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
-    }),
+    })
+    if (!res.ok) return { succes: false, code_confirmation: '', commande_id: 0 }
+    return res.json()
+  },
 
-  noterAvis: (payload: {
+  async monAvis(fournisseurId: number, acheteurId: number): Promise<{ note: number; commentaire: string }> {
+    const res = await fetch(`${API}/fournisseurs/${fournisseurId}/mon-avis/${acheteurId}`)
+    if (!res.ok) return { note: 0, commentaire: '' }
+    return res.json()
+  },
+
+  async noterAvis(payload: {
     acheteur_id: number
     fournisseur_id: number
     note: number
-    commentaire: string | null
-  }): Promise<any> =>
-    req('/avis', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-
-  supprimerMonAvis: (eid: number): Promise<any> =>
-    req(`/avis/${eid}`, {
-      method: 'DELETE',
-    }),
-
-  monAvis: (
-    fid: number,
-    aid: number
-  ): Promise<{
-    existe: boolean
-    id?: number
-    note?: number
     commentaire?: string
-  }> =>
-    req(`/fournisseurs/${fid}/mon-avis/${aid}`),
+  }): Promise<{ succes: boolean }> {
+    const res = await fetch(`${API}/avis`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    if (!res.ok) return { succes: false }
+    return res.json()
+  },
 
-  historiqueCommandes: (aid: number): Promise<any[]> =>
-    req(`/acheteurs/${aid}/commandes`),
+  async historiqueCommandes(acheteurId: number): Promise<Commande[]> {
+    const res = await fetch(`${API}/acheteurs/${acheteurId}/commandes`)
+    if (!res.ok) return []
+    return res.json()
+  },
 
-  mesEvaluations: (aid: number): Promise<any[]> =>
-    req(`/acheteurs/${aid}/evaluations`),
+  async login(nom: string, telephone: string): Promise<Acheteur> {
+    const res = await fetch(`${API}/client/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nom, telephone }),
+    })
+    if (!res.ok) throw new Error('Login failed')
+    return res.json()
+  },
 }
 
-// ─── FOURNISSEUR ────────────────────────────────────────────────────────────
-
-export interface LoginFournisseurResult {
-  succes: boolean
-  message: string
-
-  fournisseur_id?: number
-  nom?: string
-  telephone?: string
-  adresse?: string
-  categorie?: string
-
-  heure_ouverture?: string | null
-  heure_fermeture?: string | null
-
-  presentation?: string | null
-
-  latitude?: number | null
-  longitude?: number | null
-
-  livraison_gratuite?: boolean | null
-  frais_min?: number | null
-  frais_max?: number | null
-
-  abonnement_fin?: string
-}
-
-export interface RegisterResult {
-  succes: boolean
-  message: string
-  fournisseur_id?: number
-}
+// ==================== FOURNISSEUR API ====================
 
 export const fournisseurApi = {
-  // ─── Connexion ────────────────────────────────────────────────────────────
+  async produits(fournisseurId: number): Promise<Produit[]> {
+    const res = await fetch(`${API}/fournisseurs/${fournisseurId}/produits`)
+    if (!res.ok) return []
+    return res.json()
+  },
 
-  login: (
-    telephone: string,
-    mot_de_passe: string
-  ): Promise<LoginFournisseurResult> =>
-    req('/login/fournisseur', {
-      method: 'POST',
-      body: JSON.stringify({
-        telephone,
-        mot_de_passe,
-      }),
-    }),
-
-  // ─── Inscription ─────────────────────────────────────────────────────────
-
-  register: (payload: {
-    nom: string
-    telephone: string
-    adresse: string
-    categorie: string
-    latitude?: number | null
-    longitude?: number | null
-    mot_de_passe: string
-  }): Promise<RegisterResult> =>
-    req('/fournisseurs', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-
-  // ─── Produits ────────────────────────────────────────────────────────────
-
-  produits: (fid: number): Promise<Produit[]> =>
-    req(`/fournisseurs/${fid}/produits`),
-
-  ajouterProduit: (payload: {
+  async creerProduit(payload: {
     fournisseur_id: number
     nom: string
     prix: number
     prix_promo?: number
     categorie?: string
-    ingredients?: string
     disponible: boolean
-  }): Promise<any> =>
-    req('/produits', {
+  }): Promise<Produit> {
+    const res = await fetch(`${API}/fournisseurs/${payload.fournisseur_id}/produits`, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
-    }),
-
-  modifierProduit: (
-    pid: number,
-    payload: {
-      nom?: string
-      prix?: number
-      prix_promo?: number
-      retirer_promo?: boolean
-      categorie?: string
-      ingredients?: string
-      disponible?: boolean
-    }
-  ): Promise<any> =>
-    req(`/produits/${pid}`, {
-      method: 'PUT',
-      body: JSON.stringify(payload),
-    }),
-
-  supprimerProduit: (pid: number): Promise<any> =>
-    req(`/produits/${pid}`, {
-      method: 'DELETE',
-    }),
-
-  // ─── Images produits ─────────────────────────────────────────────────────
-
-  uploadImageProduit: async (
-    pid: number,
-    file: File
-  ): Promise<any> => {
-    const fd = new FormData()
-    fd.append('file', file)
-
-    const res = await fetch(`${API}/produits/${pid}/image`, {
-      method: 'POST',
-      body: fd,
     })
-
-    if (!res.ok) {
-      let msg = 'Upload de l’image échoué'
-
-      try {
-        const data = await res.json()
-        msg = data?.detail || data?.message || msg
-      } catch {
-        // Réponse non JSON
-      }
-
-      throw new Error(msg)
-    }
-
+    if (!res.ok) throw new Error('Failed to create product')
     return res.json()
   },
 
-  // ─── Livreurs ────────────────────────────────────────────────────────────
-
-  livreurs: (fid: number): Promise<Livreur[]> =>
-    req(`/fournisseurs/${fid}/livreurs`),
-
-  ajouterLivreur: (payload: {
-    fournisseur_id: number
-    nom: string
-    telephone?: string
-  }): Promise<any> =>
-    req('/livreurs', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-
-  supprimerLivreur: (lid: number): Promise<any> =>
-    req(`/livreurs/${lid}`, {
-      method: 'DELETE',
-    }),
-
-  // ─── Commandes ───────────────────────────────────────────────────────────
-
-  commandes: (
-    fid: number,
-    corbeille = false
-  ): Promise<Commande[]> =>
-    req(
-      `/fournisseurs/${fid}/commandes?corbeille=${corbeille}`
-    ),
-
-  produitsCommande: (
-    cid: number
-  ): Promise<LigneCommande[]> =>
-    req(`/commandes/${cid}/produits`),
-
-  assignerLivreur: (
-    cid: number,
-    livreur_id: number
-  ): Promise<any> =>
-    req(`/commandes/${cid}/assigner`, {
+  async modifierProduit(produitId: number, data: any): Promise<{ succes: boolean }> {
+    const res = await fetch(`${API}/produits/${produitId}`, {
       method: 'PUT',
-      body: JSON.stringify({
-        livreur_id,
-      }),
-    }),
-
-  changerStatut: (
-    cid: number,
-    statut: string
-  ): Promise<any> =>
-    req(`/commandes/${cid}/statut`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        statut,
-      }),
-    }),
-
-  supprimerCommande: (
-    cid: number
-  ): Promise<any> =>
-    req(`/commandes/${cid}/supprimer`, {
-      method: 'PUT',
-    }),
-
-  restaurerCommande: (
-    cid: number
-  ): Promise<any> =>
-    req(`/commandes/${cid}/restaurer`, {
-      method: 'PUT',
-    }),
-
-  // ─── Statistiques / évaluations ─────────────────────────────────────────
-
-  note: (
-    fid: number
-  ): Promise<{
-    moyenne: number
-    nombre: number
-  }> =>
-    req(`/fournisseurs/${fid}/note`),
-
-  statistiques: (
-    fid: number,
-    periode: string
-  ): Promise<any> =>
-    req(
-      `/fournisseurs/${fid}/statistiques?periode=${encodeURIComponent(
-        periode
-      )}`
-    ),
-
-  evaluations: (
-    fid: number
-  ): Promise<Evaluation[]> =>
-    req(`/fournisseurs/${fid}/evaluations`),
-
-  supprimerAvis: (
-    eid: number
-  ): Promise<any> =>
-    req(`/evaluations/${eid}`, {
-      method: 'DELETE',
-    }),
-
-  // ─── Informations du fournisseur ─────────────────────────────────────────
-
-  getInfos: (
-    fid: number
-  ): Promise<any> =>
-    req(`/fournisseurs/${fid}/infos`),
-
-  modifierInfos: (
-    fid: number,
-    payload: {
-      nom?: string
-      categorie?: string
-      adresse?: string
-      telephone?: string
-
-      latitude?: number
-      longitude?: number
-
-      heure_ouverture?: string
-      heure_fermeture?: string
-
-      presentation?: string
-
-      livraison_gratuite?: boolean
-
-      frais_min?: number
-      frais_max?: number
-    }
-  ): Promise<any> =>
-    req(`/fournisseurs/${fid}/infos`, {
-      method: 'PUT',
-      body: JSON.stringify(payload),
-    }),
-
-  // ─── Image du commerce ──────────────────────────────────────────────────
-
-  uploadImageMagasin: async (
-    fid: number,
-    file: File
-  ): Promise<any> => {
-    const fd = new FormData()
-    fd.append('file', file)
-
-    const res = await fetch(
-      `${API}/fournisseurs/${fid}/image`,
-      {
-        method: 'POST',
-        body: fd,
-      }
-    )
-
-    if (!res.ok) {
-      let msg = 'Upload de l’image échoué'
-
-      try {
-        const data = await res.json()
-        msg = data?.detail || data?.message || msg
-      } catch {
-        // Réponse non JSON
-      }
-
-      throw new Error(msg)
-    }
-
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    if (!res.ok) return { succes: false }
     return res.json()
   },
-}
 
-// ─── RÉCLAMATIONS ──────────────────────────────────────────────────────────
-
-export interface Reclamation {
-  id: number
-  type_auteur: string
-  auteur_id?: number | null
-  auteur_nom?: string | null
-  auteur_telephone?: string | null
-  message: string
-  traitee: boolean
-  date_creation: string
-}
-
-export const reclamationApi = {
-  envoyer: (payload: {
-    type_auteur: string
-    auteur_id?: number
-    auteur_nom?: string
-    auteur_telephone?: string
-    message: string
-  }): Promise<any> =>
-    req('/reclamations', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-}
-
-// ─── ADMIN ──────────────────────────────────────────────────────────────────
-
-export const adminApi = {
-  fournisseurs: (): Promise<FournisseurAdmin[]> =>
-    req('/admin/fournisseurs'),
-
-  reclamations: (): Promise<Reclamation[]> =>
-    req('/admin/reclamations'),
-
-  marquerTraitee: (
-    id: number
-  ): Promise<any> =>
-    req(`/admin/reclamations/${id}/traitee`, {
-      method: 'PUT',
-    }),
-
-  supprimerReclamation: (
-    id: number
-  ): Promise<any> =>
-    req(`/admin/reclamations/${id}`, {
+  async supprimerProduit(produitId: number): Promise<{ succes: boolean }> {
+    const res = await fetch(`${API}/produits/${produitId}`, {
       method: 'DELETE',
-    }),
+    })
+    if (!res.ok) return { succes: false }
+    return res.json()
+  },
 
-  valider: (
-    fid: number
-  ): Promise<any> =>
-    req(`/admin/fournisseurs/${fid}/valider`, {
-      method: 'PUT',
-    }),
+  async uploadImage(produitId: number, formData: FormData): Promise<{ succes: boolean; photo: string }> {
+    const res = await fetch(`${API}/produits/${produitId}/image`, {
+      method: 'POST',
+      body: formData,
+    })
+    if (!res.ok) return { succes: false, photo: '' }
+    return res.json()
+  },
 
-  activerAbonnement: (
-    fid: number
-  ): Promise<any> =>
-    req(`/admin/fournisseurs/${fid}/abonnement`, {
-      method: 'PUT',
-    }),
+  async commandes(fournisseurId: number, terminees: boolean = false): Promise<Commande[]> {
+    const res = await fetch(`${API}/fournisseurs/${fournisseurId}/commandes?terminees=${terminees}`)
+    if (!res.ok) return []
+    return res.json()
+  },
 
-  desactiver: (
-    fid: number
-  ): Promise<any> =>
-    req(`/admin/fournisseurs/${fid}/desactiver`, {
+  async changerStatut(commandeId: number, statut: string): Promise<{ succes: boolean }> {
+    const res = await fetch(`${API}/commandes/${commandeId}/statut`, {
       method: 'PUT',
-    }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ statut }),
+    })
+    if (!res.ok) return { succes: false }
+    return res.json()
+  },
 
-  resetMotDePasse: (
-    fid: number,
-    nouveau: string
-  ): Promise<any> =>
-    req(`/admin/fournisseurs/${fid}/motdepasse`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        nouveau_mot_de_passe: nouveau,
-      }),
-    }),
+  async statistiques(fournisseurId: number, periode: string = 'tout'): Promise<any> {
+    const res = await fetch(`${API}/fournisseurs/${fournisseurId}/statistiques?periode=${periode}`)
+    if (!res.ok) return {}
+    return res.json()
+  },
+
+  async livreurs(fournisseurId: number): Promise<Livreur[]> {
+    const res = await fetch(`${API}/fournisseurs/${fournisseurId}/livreurs`)
+    if (!res.ok) return []
+    return res.json()
+  },
+
+  async login(nom: string, telephone: string, categorie?: string, adresse?: string): Promise<any> {
+    const res = await fetch(`${API}/fournisseur/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nom, telephone, categorie, adresse }),
+    })
+    if (!res.ok) throw new Error('Login failed')
+    return res.json()
+  },
 }

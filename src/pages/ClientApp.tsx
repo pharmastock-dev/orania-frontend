@@ -1,294 +1,346 @@
+'use client'
+
 import { useState, useEffect } from 'react'
-import { clientApi, type Acheteur, type Fournisseur, type Produit, type Avis } from '../lib/api'
-import { StarRating, getCat, imgUrl, fmtDA, Spinner, magasinOuvert, hhmm, tempsLivraison } from '../lib/shared'
-import { CATEGORIES_CLIENT, catEmoji } from '../lib/categories'
-import { LogoOrania } from '../components/Logo'
-import { MapPicker, MapView } from '../components/Map'
-import { ArrowLeft, Search, MapPin, Clock, Bike, Flame, User, Phone, Map as MapIcon, Navigation, ChevronDown, Store, Utensils, ReceiptText, History, Star } from 'lucide-react'
+import { ArrowLeft, Search, MapPin, Clock, Bike, Flame, User, Phone, Map as MapIcon, Navigation, ChevronDown, Store, Utensils, ReceiptText, History, Star, Package } from 'lucide-react'
+import { clientApi } from '@/lib/api'
+import type { Fournisseur, Produit, Acheteur, Commande } from '@/lib/api'
+import { CATEGORIES_CLIENT, catEmoji } from '@/lib/categories'
 
-interface CartItem { produit: Produit; quantite: number }
-type CPage = 'login' | 'stores' | 'menu'
-
-export function ClientApp({ onExit }: { onExit: () => void }) {
-  const [page, setPage] = useState<CPage>('login')
-  const [acheteur, setAcheteur] = useState<Acheteur | null>(null)
-  const [store, setStore] = useState<Fournisseur | null>(null)
-
-  useEffect(() => {
-    const saved = localStorage.getItem('acheteur')
-    if (saved) {
-      try {
-        setAcheteur(JSON.parse(saved))
-        const savedStore = localStorage.getItem('client_store')
-        const savedPage = localStorage.getItem('client_page') as CPage | null
-        if (savedPage === 'menu' && savedStore) {
-          setStore(JSON.parse(savedStore)); setPage('menu')
-        } else {
-          setPage('stores')
-        }
-      } catch { localStorage.removeItem('acheteur') }
-    }
-  }, [])
-
-  const goStores = () => {
-    localStorage.setItem('client_page', 'stores'); localStorage.removeItem('client_store')
-    if (((window as any).__oraniaBackDepth || 0) > 0) { window.history.back(); return }
-    setStore(null); setPage('stores')
-  }
-  const goMenu = (s: Fournisseur) => {
-    localStorage.setItem('client_page', 'menu'); localStorage.setItem('client_store', JSON.stringify(s))
-    ;(window as any).__oraniaBackDepth = ((window as any).__oraniaBackDepth || 0) + 1
-    window.history.pushState({ clientPage: 'menu' }, '')
-    setStore(s); setPage('menu')
-  }
-
-  useEffect(() => {
-    const onPop = () => {
-      setPage((cur) => {
-        if (cur === 'menu') {
-          setStore(null)
-          localStorage.setItem('client_page', 'stores'); localStorage.removeItem('client_store')
-          return 'stores'
-        }
-        return cur
-      })
-    }
-    window.addEventListener('popstate', onPop)
-    return () => window.removeEventListener('popstate', onPop)
-  }, [])
-
-  const login = (a: Acheteur) => {
-    setAcheteur(a); localStorage.setItem('client_page', 'stores'); setPage('stores')
-  }
-  const retourAccueil = () => { onExit() }
-  const logout = () => {
-    localStorage.removeItem('acheteur'); localStorage.removeItem('client_page'); localStorage.removeItem('client_store')
-    setAcheteur(null); setStore(null); onExit()
-  }
-
-  if (page === 'login' || !acheteur) return <LoginPage onLogin={login} onExit={onExit} />
-  if (page === 'menu' && store) return <MenuPage acheteur={acheteur} store={store} onBack={goStores} />
-  return <StoresPage acheteur={acheteur} onSelect={goMenu} onRetour={retourAccueil} onLogout={logout} />
+interface ClientAppProps {
+  acheteur: Acheteur | null
+  onLogout: () => void
 }
 
-// ─── Login ────────────────────────────────────────────────────────────────────
-function LoginPage({ onLogin, onExit }: { onLogin: (a: Acheteur) => void; onExit: () => void }) {
-  const [nom, setNom] = useState(''); const [tel, setTel] = useState('')
-  const [loading, setLoading] = useState(false); const [error, setError] = useState('')
-
-  const submit = async () => {
-    if (!nom.trim() || !tel.trim()) { setError('Veuillez remplir tous les champs.'); return }
-    setLoading(true); setError('')
-    try {
-      const data = await clientApi.login(nom.trim(), tel.trim())
-      localStorage.setItem('acheteur', JSON.stringify(data)); onLogin(data)
-    } catch { setError('Impossible de se connecter. Réessayez.') } finally { setLoading(false) }
-  }
-
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-amber-50 to-white px-5 py-10">
-      <div className="mb-10 text-center">
-        <div className="w-28 h-28 bg-white rounded-[28px] flex items-center justify-center mx-auto mb-4 shadow-xl shadow-black/10"><LogoOrania size={80} /></div>
-        <h1 className="text-3xl font-extrabold text-stone-900 tracking-tight">QREEB</h1>
-        <p className="text-stone-400 text-sm mt-1.5">Tout près, tout simplement.</p>
-      </div>
-      <div className="w-full max-w-sm bg-white rounded-3xl shadow-xl shadow-stone-200/60 p-8">
-        <h2 className="text-xl font-bold text-stone-800 mb-1">Bienvenue 👋</h2>
-        <p className="text-stone-400 text-sm mb-7">Entrez votre nom et téléphone — aucun mot de passe requis.</p>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-[11px] font-semibold text-stone-400 uppercase tracking-widest mb-1.5">Votre nom complet</label>
-            <input type="text" value={nom} onChange={(e) => setNom(e.target.value.replace(/[^a-zA-ZàâäéèêëïîôöùûüçÀÂÄÉÈÊËÏÎÔÖÙÛÜÇ '\\-]/g, ''))} placeholder="Ex : Amira Bouali"
-              className="w-full px-4 py-3.5 rounded-2xl border border-stone-200 bg-stone-50 text-stone-800 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all" />
-          </div>
-          <div>
-            <label className="block text-[11px] font-semibold text-stone-400 uppercase tracking-widest mb-1.5">Numéro de téléphone</label>
-            <input type="tel" inputMode="numeric" value={tel} onChange={(e) => setTel(e.target.value.replace(/[^0-9]/g, ''))} placeholder="05 XX XX XX XX" onKeyDown={(e) => e.key === 'Enter' && submit()}
-              className="w-full px-4 py-3.5 rounded-2xl border border-stone-200 bg-stone-50 text-stone-800 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all" />
-          </div>
-          {error && <div className="bg-red-50 border border-red-100 text-red-500 text-sm rounded-2xl px-4 py-3">{error}</div>}
-          <button onClick={submit} disabled={loading}
-            className="w-full bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-amber-200/80 disabled:opacity-60 text-base mt-2">
-            {loading ? 'Connexion…' : 'Continuer →'}
-          </button>
-        </div>
-        <div className="mt-7 pt-5 border-t border-stone-100 text-center">
-          <p className="text-xs text-stone-400">💵 Paiement uniquement en <strong>espèces</strong></p>
-          <button onClick={onExit} className="text-xs text-stone-300 hover:text-stone-500 mt-2 transition-colors inline-flex items-center gap-1"><ArrowLeft size={13} /> Changer d'espace</button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── Store card ───────────────────────────────────────────────────────────────
-function StoreCard({ store, distance, onClick }: { store: Fournisseur; distance?: number | null; onClick: () => void }) {
-  const colors = getCat(store.categorie); const open = magasinOuvert(store.heure_ouverture, store.heure_fermeture); const photo = imgUrl(store.photo)
-  return (
-    <button onClick={onClick} className="group w-full bg-white rounded-3xl overflow-hidden shadow-sm border border-stone-100 hover:shadow-md hover:border-amber-200 active:scale-[0.98] transition-all text-left">
-      <div className="relative h-36 bg-amber-50 overflow-hidden">
-        {photo ? <img src={photo} alt={store.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-          : <div className="w-full h-full flex items-center justify-center"><Store size={48} className="opacity-25" /></div>}
-        {open !== null && <span className={`absolute top-2.5 right-2.5 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm ${open ? 'bg-emerald-500 text-white' : 'bg-stone-400/80 text-white'}`}>{open ? '● Ouvert' : '● Fermé'}</span>}
-        {store.a_promo && <span className="absolute top-2.5 left-2.5 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm bg-pink-500 text-white flex items-center gap-1"><Flame size={10} /> Promo</span>}
-        <span className={`absolute bottom-2.5 left-2.5 text-[10px] font-semibold px-2.5 py-1 rounded-full ${colors.bg} ${colors.text}`}>{store.categorie}</span>
-      </div>
-      <div className="px-4 py-3">
-        <h3 className="font-bold text-stone-800 text-sm leading-tight mb-1.5">{store.nom}</h3>
-        <div className="flex items-center gap-1.5">
-          <StarRating note={Math.round(store.note_moyenne ?? 0)} />
-          <span className="text-xs text-stone-400">{store.note_moyenne ? store.note_moyenne.toFixed(1) : '—'}{store.nb_avis ? ` · ${store.nb_avis} avis` : ''}</span>
-        </div>
-        <div className="flex items-center gap-2 mt-1">
-          {store.heure_ouverture && <p className="text-[11px] text-stone-400"><Clock size={11} className="inline mr-0.5" />{hhmm(store.heure_ouverture)}–{hhmm(store.heure_fermeture)}</p>}
-          {distance != null && <p className="text-[11px] text-amber-600 font-semibold"><MapPin size={11} className="inline mr-0.5" />{distance < 1 ? Math.round(distance * 1000) + ' m' : distance.toFixed(1) + ' km'}</p>}
-        </div>
-        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-          {distance != null && tempsLivraison(distance) && (
-            <span className="text-[11px] text-stone-600 font-medium bg-stone-100 px-2 py-0.5 rounded-full"><Bike size={11} className="inline mr-0.5" />{tempsLivraison(distance)}</span>
-          )}
-          {store.livraison_gratuite
-            ? <span className="text-[11px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full">Livraison gratuite</span>
-            : (store.frais_min != null && <span className="text-[11px] text-stone-600 font-medium bg-stone-100 px-2 py-0.5 rounded-full">Livraison {store.frais_min}{store.frais_max && store.frais_max !== store.frais_min ? `–${store.frais_max}` : ''} DA</span>)
-          }
-        </div>
-      </div>
-    </button>
-  )
-}
-
-// ─── Stores page ──────────────────────────────────────────────────────────────
-type TriMode = 'distance' | 'etoiles'
-
-function distanceKm(la1?: number | null, lo1?: number | null, la2?: number | null, lo2?: number | null): number | null {
-  if (la1 == null || lo1 == null || la2 == null || lo2 == null) return null
-  const R = 6371, toR = (d: number) => (d * Math.PI) / 180
-  const dLa = toR(la2 - la1), dLo = toR(lo2 - lo1)
-  const a = Math.sin(dLa / 2) ** 2 + Math.cos(toR(la1)) * Math.cos(toR(la2)) * Math.sin(dLo / 2) ** 2
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-}
-
-function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Acheteur; onSelect: (s: Fournisseur) => void; onRetour: () => void; onLogout: () => void }) {
-  const [showCompte, setShowCompte] = useState(false)
+export function ClientApp({ acheteur: initialAcheteur, onLogout }: ClientAppProps) {
+  const [page, setPage] = useState<'stores' | 'store' | 'account' | 'orders' | 'reviews'>('stores')
   const [stores, setStores] = useState<Fournisseur[]>([])
-  const [loading, setLoading] = useState(true); const [error, setError] = useState(false)
-  const [search, setSearch] = useState('')
+  const [store, setStore] = useState<Fournisseur | null>(null)
+  const [produits, setProduits] = useState<Produit[]>([])
+  const [cart, setCart] = useState<{ produit: Produit; quantite: number }[]>(() => {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('orania_cart')
+    return saved ? JSON.parse(saved) : []
+  }
+  return []
+})
+  const [acheteur, setAcheteur] = useState(initialAcheteur)
+  const [loading, setLoading] = useState(true)
+  const [orderCode, setOrderCode] = useState('')
+  const [showSheet, setShowSheet] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
   const [filtreCateg, setFiltreCateg] = useState('')
-  const [tri, setTri] = useState<TriMode>('distance')
-  const [filtreOuvert, setFiltreOuvert] = useState<'tous' | 'ouvert' | 'ferme'>('tous')
-  const [filtreGratuit, setFiltreGratuit] = useState(false)
   const [filtrePromo, setFiltrePromo] = useState(false)
-  const [showFiltre, setShowFiltre] = useState(false)
-  const [maPos, setMaPos] = useState<{ lat: number; lng: number } | null>(null)
-  const [posErr, setPosErr] = useState(false)
+  const [livraisonGratuite, setLivraisonGratuite] = useState(false)
+  const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null)
+  const [livraison, setLivraison] = useState(true)
+  const [orderRating, setOrderRating] = useState<number | null>(null)
+  const [orderComment, setOrderComment] = useState('')
+  const [showRatingSheet, setShowRatingSheet] = useState(false)
+  const [ratingOrderId, setRatingOrderId] = useState<number | null>(null)
+  const [storeReview, setStoreReview] = useState<any>(null)
+  const [ordering, setOrdering] = useState(false)
+  const [orders, setOrders] = useState<Commande[]>([])
+  const [orderLoading, setOrderLoading] = useState(false)
 
+  // Load stores
   useEffect(() => {
-    clientApi.fournisseurs().then((d) => { setStores(Array.isArray(d) ? d : []); setLoading(false) }).catch(() => { setError(true); setLoading(false) })
+    const load = async () => {
+      try {
+        const s = await clientApi.stores()
+        setStores(s || [])
+      } catch (e) {
+        console.error('Stores load error', e)
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
   }, [])
 
+  // Load orders when page changes to orders
   useEffect(() => {
-    if (tri === 'distance' && !maPos && !posErr && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setMaPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => setPosErr(true),
-        { timeout: 8000 },
-      )
+    if (page === 'orders' && acheteur?.id) {
+      const load = async () => {
+        setOrderLoading(true)
+        try {
+          const o = await clientApi.historiqueCommandes(acheteur.id)
+          setOrders(o || [])
+        } catch (e) {
+          console.error('Orders load error', e)
+        } finally {
+          setOrderLoading(false)
+        }
+      }
+      load()
     }
-  }, [tri, maPos, posErr])
+  }, [page, acheteur?.id])
 
+  // Filter function
   const quickMatch = (s: Fournisseur, key: string) => {
     if (key === 'promo') return s.a_promo === true
     if (!key) return true
-    
     const normalizedKey = key.trim().toLowerCase()
-    
     return (s.produits_categories || []).some((categorie) => 
       categorie.trim().toLowerCase() === normalizedKey
     )
   }
 
-  const q = search.trim().toLowerCase()
-  let filtered = stores.filter((s) => {
-    if (!quickMatch(s, filtreCateg)) return false
-    if (!q) return true
-    if (s.nom.toLowerCase().includes(q)) return true
-    if (s.categorie?.toLowerCase().includes(q)) return true
-    if ((s.produits_noms || []).some((n) => n.toLowerCase().includes(q))) return true
-    if ((s.produits_categories || []).some((c) => c.toLowerCase().includes(q))) return true
-    return false
+  // Filter stores
+  const filteredStores = stores.filter((s) => {
+    const searchMatch = s.nom.toLowerCase().includes(searchTerm.toLowerCase())
+    const categMatch = !filtreCateg || quickMatch(s, filtreCateg)
+    const promoMatch = !filtrePromo || s.a_promo
+    const livraisonMatch = !livraisonGratuite || s.livraison_gratuite
+    return searchMatch && categMatch && promoMatch && livraisonMatch
   })
 
-  if (filtreOuvert !== 'tous') {
-    filtered = filtered.filter((s) => {
-      const o = magasinOuvert(s.heure_ouverture, s.heure_fermeture)
-      if (filtreOuvert === 'ouvert') return o === true
-      if (filtreOuvert === 'ferme') return o === false
-      return true
-    })
-  }
-  if (filtreGratuit) {
-    filtered = filtered.filter((s) => s.livraison_gratuite === true)
-  }
-  if (filtrePromo) {
-    filtered = filtered.filter((s) => s.a_promo === true)
+  // Store functions
+  const onStoreClick = async (s: Fournisseur) => {
+    setStore(s)
+    setPage('store')
+    try {
+      const prods = await clientApi.storeProduits(s.id)
+      setProduits(prods || [])
+      if (acheteur) {
+        const review = await clientApi.monAvis(s.id, acheteur.id)
+        setStoreReview(review)
+      }
+    } catch (e) {
+      console.error('Store load error', e)
+    }
   }
 
-  filtered = [...filtered].sort((a, b) => {
-    if (tri === 'etoiles') return (b.note_moyenne ?? 0) - (a.note_moyenne ?? 0)
-    const da = distanceKm(maPos?.lat, maPos?.lng, a.latitude, a.longitude)
-    const db = distanceKm(maPos?.lat, maPos?.lng, b.latitude, b.longitude)
-    if (da == null && db == null) return 0
-    if (da == null) return 1
-    if (db == null) return -1
-    return da - db
-  })
+  const onBack = () => {
+    setPage('stores')
+    setStore(null)
+    setProduits([])
+  }
 
-  return (
-    <div className="min-h-screen bg-stone-50">
-      <div className="bg-white border-b border-stone-100 sticky top-0 z-20 shadow-sm shadow-stone-50">
-        <div className="px-4 pt-4 pb-2 flex items-center gap-3 max-w-lg mx-auto">
-          <button onClick={onRetour} title="Retour à l'accueil"
-            className="shrink-0 w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700"><ArrowLeft size={20} /></button>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2"><LogoOrania size={26} /><h1 className="font-extrabold text-stone-900 text-lg truncate">QREEB</h1></div>
-            <p className="text-xs text-stone-400 ml-8 truncate">Bonjour, {acheteur.nom} 👋</p>
+  // Cart functions
+  const prixEff = (p: Produit) => Number(p.prix_promo != null ? p.prix_promo : p.prix)
+  const totalItems = cart.reduce((s, i) => s + i.quantite, 0)
+  const totalPrice = cart.reduce((s, i) => s + prixEff(i.produit) * i.quantite, 0)
+
+  const addToCart = (p: Produit) => {
+    const existing = cart.find((i) => i.produit.id === p.id)
+    let newCart
+    if (existing) {
+      newCart = cart.map((i) => (i.produit.id === p.id ? { ...i, quantite: i.quantite + 1 } : i))
+    } else {
+      newCart = [...cart, { produit: p, quantite: 1 }]
+    }
+    setCart(newCart)
+    localStorage.setItem('orania_cart', JSON.stringify(newCart))
+  }
+
+  const placeOrder = async () => {
+    if (!acheteur || !acheteur.id) {
+      alert('Lâchez-vous d\'abord!')
+      return
+    }
+    if (cart.length === 0) {
+      alert('Votre panier est vide!')
+      return
+    }
+    setOrdering(true)
+    let pos: { latitude?: number; longitude?: number } = {}
+    if (livraison) {
+      if (position) {
+        pos = { latitude: position.lat, longitude: position.lng }
+      } else if (navigator.geolocation) {
+        try {
+          const p = await new Promise<GeolocationPosition>((res, rej) =>
+            navigator.geolocation.getCurrentPosition(res, rej, { timeout: 6000 }))
+          pos = { latitude: p.coords.latitude, longitude: p.coords.longitude }
+        } catch {}
+      }
+    }
+    try {
+      const cmd = await clientApi.commander({
+        acheteur_id: acheteur.id,
+        fournisseur_id: store!.id,
+        avec_livraison: livraison,
+        ...pos,
+        produits: cart.map((i) => ({ produit_id: i.produit.id, quantite: i.quantite })),
+      })
+      setOrderCode(cmd.code_confirmation || '------')
+      setCart([])
+      localStorage.removeItem('orania_cart')
+    } catch (e) { 
+      console.error('Order error', e)
+      setOrderCode('------') 
+    }
+    setShowSheet(false)
+    setOrdering(false)
+  }
+
+  const submitRating = async () => {
+    if (!acheteur || !orderRating || !ratingOrderId || !store) return
+    try {
+      await clientApi.noterAvis({
+        acheteur_id: acheteur.id,
+        fournisseur_id: store.id,
+        note: orderRating,
+        commentaire: orderComment || undefined,
+      })
+      setOrderRating(null)
+      setOrderComment('')
+      setShowRatingSheet(false)
+      setRatingOrderId(null)
+      alert('Merci pour votre avis!')
+    } catch (e) {
+      console.error('Rating error', e)
+    }
+  }
+
+  // Stores page
+  if (page === 'stores' && !loading) {
+    return (
+      <div className="min-h-screen bg-stone-50 pb-20">
+        {/* HEADER */}
+        <div className="bg-white border-b border-stone-100 sticky top-0 z-10 px-4 py-3">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h1 className="font-extrabold text-stone-900 text-lg">Orania</h1>
+              <p className="text-xs text-stone-500">Tout Oran, en un clic</p>
+            </div>
+            <button
+              onClick={() => setPage('account')}
+              className="w-10 h-10 rounded-xl bg-amber-100 hover:bg-amber-200 active:scale-95 transition-all flex items-center justify-center text-amber-600"
+            >
+              <User size={20} />
+            </button>
           </div>
-          <button onClick={() => setShowCompte(true)} className="shrink-0 text-xs text-stone-500 hover:text-amber-600 transition-colors px-3 py-1.5 rounded-xl hover:bg-amber-50 inline-flex items-center gap-1"><User size={14} />Compte</button>
+
+          {/* SEARCH */}
+          <div className="flex gap-2">
+            <div className="flex-1 bg-stone-100 rounded-xl px-3 py-2.5 flex items-center gap-2">
+              <Search size={16} className="text-stone-400" />
+              <input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="pizza, thé, sushi..."
+                className="bg-transparent text-sm w-full outline-none text-stone-900 placeholder-stone-400"
+              />
+            </div>
+            <button className="w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-600">
+              <Navigation size={18} />
+            </button>
+          </div>
         </div>
-        {showCompte && <CompteModal acheteur={acheteur} onClose={() => setShowCompte(false)} onLogout={onLogout} />}
 
-        <div className="px-4 pb-3 pt-1 max-w-lg mx-auto flex gap-2">
-          <div className="relative flex-1">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 text-base pointer-events-none"><Search size={16} /></span>
-            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Chercher : tacos, pizza, sushi…"
-              className="w-full pl-10 pr-4 py-3 bg-stone-100 border border-transparent rounded-2xl text-sm text-stone-700 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all" />
-            {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600">✕</button>}
+        {/* FILTERS */}
+        <div className="bg-white px-4 py-3 border-b border-stone-100 sticky top-[80px] z-9 overflow-x-auto">
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={() => setLivraisonGratuite((v) => !v)}
+              className={`shrink-0 text-xs font-semibold px-4 py-1.5 rounded-full transition-all ${
+                livraisonGratuite ? 'bg-green-500 text-white' : 'bg-green-50 text-green-600 hover:bg-green-100'
+              }`}
+            >
+              <Bike size={13} className="inline mr-1" />
+              Livraison gratuite
+            </button>
+
+            <button
+              onClick={() => setFiltrePromo((v) => !v)}
+              className={`shrink-0 text-xs font-semibold px-4 py-1.5 rounded-full transition-all ${
+                filtrePromo ? 'bg-pink-500 text-white' : 'bg-pink-50 text-pink-600 hover:bg-pink-100'
+              }`}
+            >
+              <Flame size={13} className="inline mr-1" />
+              En promo
+            </button>
+
+            <button
+              onClick={() => {
+                setFiltreCateg('')
+                setFiltrePromo(false)
+                setLivraisonGratuite(false)
+              }}
+              className="shrink-0 text-xs font-semibold px-4 py-1.5 rounded-full bg-stone-100 text-stone-600 hover:bg-stone-200 transition-all"
+            >
+              Réinitialiser
+            </button>
           </div>
-          <button onClick={() => setShowFiltre((v) => !v)}
-            className={`px-3 rounded-2xl text-sm font-semibold transition-all whitespace-nowrap ${showFiltre ? 'bg-amber-500 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
-            ⚙️ {tri === 'distance' ? 'Proche' : 'Top'}
+        </div>
+
+        {/* STORES */}
+        <div className="px-4 py-4 space-y-3">
+          {filteredStores.length === 0 ? (
+            <div className="text-center py-10">
+              <Store size={32} className="mx-auto mb-2 text-stone-300" />
+              <p className="text-stone-500 text-sm">Aucun restaurant trouvé</p>
+            </div>
+          ) : (
+            filteredStores.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => onStoreClick(s)}
+                className="w-full text-left bg-white rounded-xl border border-stone-100 hover:border-stone-200 overflow-hidden active:scale-98 transition-all"
+              >
+                <img src={s.photo || '/placeholder.png'} alt={s.nom} className="w-full h-32 object-cover" />
+                <div className="p-3 space-y-1">
+                  <div className="flex items-start justify-between">
+                    <h3 className="font-bold text-stone-900 text-sm">{s.nom}</h3>
+                    {s.a_promo && <span className="text-xs bg-pink-100 text-pink-600 px-2 py-1 rounded-full font-semibold">🔥 Promo</span>}
+                  </div>
+                  <p className="text-xs text-stone-500">
+                    {s.categorie || 'Restauration'} • {s.avis_count > 0 ? `${s.note_moyenne?.toFixed(1)} ⭐` : 'Nouveau'}
+                  </p>
+                  <div className="flex items-center gap-2 text-xs text-stone-600 pt-1 flex-wrap">
+                    <Clock size={12} />
+                    {s.temps_livraison} min
+                    {s.livraison_gratuite && (
+                      <>
+                        <span>•</span>
+                        <Bike size={12} />
+                        Livraison gratuite
+                      </>
+                    )}
+                  </div>
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // Store menu page
+  if (page === 'store' && store) {
+    return (
+      <div className="min-h-screen bg-stone-50 pb-24">
+        {/* BANNER */}
+        <div className="relative">
+          <img src={store.photo || '/placeholder.png'} alt={store.nom} className="w-full h-40 object-cover" />
+          <button
+            onClick={onBack}
+            className="absolute top-3 left-3 w-10 h-10 rounded-xl bg-white/80 backdrop-blur hover:bg-white active:scale-95 transition-all flex items-center justify-center text-stone-900"
+          >
+            <ArrowLeft size={20} />
           </button>
         </div>
 
-        <div className="px-4 pb-3 max-w-lg mx-auto">
-          <div className="filters-scroll bg-stone-50 border border-stone-100 rounded-2xl p-1.5 flex gap-1.5 overflow-x-auto scrollbar-hide">
-            <button onClick={() => { setTri('distance'); setFiltrePromo(false) }} className={`shrink-0 min-w-[130px] text-xs font-bold py-2.5 px-3 rounded-xl transition-all ${tri === 'distance' && !filtrePromo ? 'bg-amber-500 text-white shadow-sm' : 'bg-white text-stone-500'}`}>📍 Plus proches</button>
-            <button onClick={() => { setTri('etoiles'); setFiltrePromo(false) }} className={`shrink-0 min-w-[130px] text-xs font-bold py-2.5 px-3 rounded-xl transition-all ${tri === 'etoiles' && !filtrePromo ? 'bg-amber-500 text-white shadow-sm' : 'bg-white text-stone-500'}`}>⭐ Mieux notés</button>
-            <button onClick={() => setFiltrePromo((v) => !v)} className={`shrink-0 min-w-[110px] text-xs font-bold py-2.5 px-3 rounded-xl transition-all ${filtrePromo ? 'bg-pink-500 text-white' : 'bg-white text-pink-600'}`}>🔥 Promos</button>
-            <button onClick={() => setFiltreOuvert((v) => v === 'ouvert' ? 'tous' : 'ouvert')} className={`shrink-0 min-w-[105px] text-xs font-bold py-2.5 px-3 rounded-xl transition-all ${filtreOuvert === 'ouvert' ? 'bg-emerald-500 text-white' : 'bg-white text-stone-500'}`}>🟢 Ouverts</button>
-            <button onClick={() => setFiltreGratuit((v) => !v)} className={`shrink-0 min-w-[135px] text-xs font-bold py-2.5 px-3 rounded-xl transition-all ${filtreGratuit ? 'bg-emerald-500 text-white' : 'bg-white text-stone-500'}`}>🛵 Livraison gratuite</button>
+        {/* STORE INFO */}
+        <div className="px-4 py-3 bg-white border-b border-stone-100">
+          <h2 className="font-extrabold text-stone-900 text-lg">{store.nom}</h2>
+          <p className="text-xs text-stone-500 mt-1">
+            {store.avis_count > 0 ? `${store.note_moyenne?.toFixed(1)} ⭐ • ${store.avis_count} avis` : 'Nouveau'}
+          </p>
+          <div className="flex items-center gap-2 text-xs text-stone-600 mt-2 pt-2 border-t border-stone-100 flex-wrap">
+            <Clock size={14} />
+            {store.temps_livraison} min
+            {store.livraison_gratuite && (
+              <>
+                <span>•</span>
+                <Bike size={14} />
+                Livraison gratuite
+              </>
+            )}
           </div>
         </div>
-
-        {showFiltre && (
-          <div className="px-4 pb-3 max-w-lg mx-auto">
-            <div className="bg-stone-50 border border-stone-100 rounded-2xl p-3 flex gap-2">
-              <button onClick={() => setTri('distance')} className={`flex-1 text-sm font-semibold py-2 rounded-xl transition-all ${tri === 'distance' ? 'bg-amber-500 text-white' : 'bg-white text-stone-500 border border-stone-200'}`}>📍 Plus proches</button>
-              <button onClick={() => setTri('etoiles')} className={`flex-1 text-sm font-semibold py-2 rounded-xl transition-all ${tri === 'etoiles' ? 'bg-amber-500 text-white' : 'bg-white text-stone-500 border border-stone-200'}`}>⭐ Mieux notés</button>
-            </div>
-            {tri === 'distance' && posErr && <p className="text-[11px] text-amber-600 mt-2">📍 Localisation refusée — tri par distance indisponible.</p>}
-          </div>
-        )}
 
         {/* CATEGORIES FILTER */}
         <div className="px-4 py-3 bg-white border-b border-stone-100 overflow-x-auto">
@@ -305,7 +357,7 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
               <button
                 key={c}
                 onClick={() => setFiltreCateg(c)}
-                className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition-all ${
+                className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition-all whitespace-nowrap ${
                   filtreCateg === c ? 'bg-amber-500 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                 }`}
               >
@@ -314,530 +366,293 @@ function StoresPage({ acheteur, onSelect, onRetour, onLogout }: { acheteur: Ache
             ))}
           </div>
         </div>
-      </div>
 
-      <div className="px-4 py-4 max-w-lg mx-auto">
-        {loading && <Spinner label="Chargement des commerces…" />}
-        {error && !loading && (
-          <div className="text-center py-20"><p className="text-5xl mb-4">⚡</p><p className="text-stone-600 font-semibold mb-1">API inaccessible</p><p className="text-stone-400 text-sm">Vérifiez votre connexion</p></div>
-        )}
-        {!loading && !error && filtered.length === 0 && (
-          <div className="text-center py-20"><p className="text-5xl mb-4">🔍</p><p className="text-stone-600 font-semibold mb-1">Aucun résultat</p><p className="text-stone-400 text-sm">Essayez un autre filtre ou mot-clé</p></div>
-        )}
-        {!loading && !error && filtered.length > 0 && (
-          <>
-            <p className="text-xs text-stone-400 mb-3">{filtered.length} résultat{filtered.length > 1 ? 's' : ''}{q ? ` pour « ${search} »` : ''}</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{filtered.map((s) => {
-              const dist = distanceKm(maPos?.lat, maPos?.lng, s.latitude, s.longitude)
-              return <StoreCard key={s.id} store={s} distance={dist} onClick={() => onSelect(s)} />
-            })}</div>
-          </>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ─── Menu page ────────────────────────────────────────────────────────────────
-function MenuPage({ acheteur, store, onBack }: { acheteur: Acheteur; store: Fournisseur; onBack: () => void }) {
-  const [produits, setProduits] = useState<Produit[]>([])
-  const [avis, setAvis] = useState<Avis[]>([])
-  const [loading, setLoading] = useState(true)
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    try {
-      const raw = localStorage.getItem('orania_cart')
-      if (raw) { const parsed = JSON.parse(raw); if (parsed.storeId === store.id) return parsed.items || [] }
-    } catch {}
-    return []
-  })
-  const [showSheet, setShowSheet] = useState(false)
-  const [livraison, setLivraison] = useState(true)
-  const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null)
-  const [ordering, setOrdering] = useState(false)
-  const [orderCode, setOrderCode] = useState<string | null>(null)
-  const [showReviews, setShowReviews] = useState(false)
-  const [myNote, setMyNote] = useState(0)
-  const [myComment, setMyComment] = useState('')
-  const [avisDone, setAvisDone] = useState(false)
-  const [filtreCat, setFiltreCat] = useState('Tous')
-  const [monAvisId, setMonAvisId] = useState<number | null>(null)
-  const [editingAvis, setEditingAvis] = useState(false)
-  const [maPos, setMaPos] = useState<{ lat: number; lng: number } | null>(null)
-
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setMaPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => {}, { timeout: 6000 }
-      )
-    }
-  }, [])
-  const distMenu = distanceKm(maPos?.lat, maPos?.lng, store.latitude, store.longitude)
-
-  const chargerAvis = () => clientApi.avis(store.id).then((a) => setAvis(Array.isArray(a) ? a : [])).catch(() => {})
-
-  useEffect(() => {
-    Promise.all([clientApi.produits(store.id), clientApi.avis(store.id), clientApi.monAvis(store.id, acheteur.id)])
-      .then(([p, a, mine]) => {
-        setProduits(Array.isArray(p) ? p : [])
-        setAvis(Array.isArray(a) ? a : [])
-        if (mine && mine.existe) {
-          setMonAvisId(mine.id!); setMyNote(mine.note!); setMyComment(mine.commentaire || ''); setAvisDone(true)
-        }
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
-  }, [store.id, acheteur.id])
-
-  useEffect(() => {
-    if (cart.length > 0) localStorage.setItem('orania_cart', JSON.stringify({ storeId: store.id, storeName: store.nom, items: cart }))
-    else localStorage.removeItem('orania_cart')
-  }, [cart, store.id, store.nom])
-
-  const add = (p: Produit) => {
-    try {
-      const raw = localStorage.getItem('orania_cart')
-      if (raw) {
-        const parsed = JSON.parse(raw)
-        if (parsed.storeId && parsed.storeId !== store.id && (parsed.items?.length > 0)) {
-          const ok = window.confirm(`Votre panier contient déjà des produits de « ${parsed.storeName || 'un autre commerce'} ».\n\nVous ne pouvez commander que d'un seul commerce à la fois. Vider le panier précédent et commander ici ?`)
-          if (!ok) return
-          localStorage.removeItem('orania_cart')
-          setCart([{ produit: p, quantite: 1 }])
-          return
-        }
-      }
-    } catch {}
-    setCart((prev) => { const f = prev.find((i) => i.produit.id === p.id); return f ? prev.map((i) => i.produit.id === p.id ? { ...i, quantite: i.quantite + 1 } : i) : [...prev, { produit: p, quantite: 1 }] })
-  }
-  const remove = (id: number) => setCart((prev) => { const f = prev.find((i) => i.produit.id === id); return f && f.quantite > 1 ? prev.map((i) => i.produit.id === id ? { ...i, quantite: i.quantite - 1 } : i) : prev.filter((i) => i.produit.id !== id) })
-  const qty = (id: number) => cart.find((i) => i.produit.id === id)?.quantite ?? 0
-  const prixEff = (p: Produit) => Number(p.prix_promo != null ? p.prix_promo : p.prix)
-  const totalItems = cart.reduce((s, i) => s + i.quantite, 0)
-  const totalPrice = cart.reduce((s, i) => s + prixEff(i.produit) * i.quantite, 0)
-
-  const placeOrder = async () => {
-    if (!acheteur || !acheteur.id) return
-    setOrdering(true)
-    let pos: { latitude?: number; longitude?: number } = {}
-    if (livraison) {
-      if (position) {
-        pos = { latitude: position.lat, longitude: position.lng }
-      } else if (navigator.geolocation) {
-        try {
-          const p = await new Promise<GeolocationPosition>((res, rej) =>
-            navigator.geolocation.getCurrentPosition(res, rej, { timeout: 6000 }))
-          pos = { latitude: p.coords.latitude, longitude: p.coords.longitude }
-        } catch {}
-      }
-    }
-    try {
-      const cmd = await clientApi.commander({
-        acheteur_id: acheteur.id, fournisseur_id: store.id, avec_livraison: livraison,
-        ...pos,
-        produits: cart.map((i) => ({ produit_id: i.produit.id, quantite: i.quantite })),
-      })
-      setOrderCode(cmd.code_confirmation || '------')
-    } catch { setOrderCode('------') }
-    setCart([]); localStorage.removeItem('orania_cart'); setShowSheet(false); setOrdering(false)
-  }
-
-  const submitAvis = async () => {
-    if (myNote === 0) return
-    try {
-      const r = await clientApi.noterAvis({ acheteur_id: acheteur.id, fournisseur_id: store.id, note: myNote, commentaire: myComment || null })
-      if (r && r.id) setMonAvisId(r.id)
-    } catch {}
-    await chargerAvis()
-    setAvisDone(true); setEditingAvis(false)
-  }
-
-  const supprimerMonAvis = async () => {
-    if (!monAvisId) return
-    if (!confirm('Supprimer votre avis ?')) return
-    try { await clientApi.supprimerMonAvis(monAvisId) } catch {}
-    setMonAvisId(null); setMyNote(0); setMyComment(''); setAvisDone(false); setEditingAvis(false)
-    await chargerAvis()
-  }
-
-  const groupes: Record<string, Produit[]> = {}
-  produits.forEach((p) => { const c = p.categorie || 'Autre'; (groupes[c] = groupes[c] || []).push(p) })
-  const cats = Object.keys(groupes).sort()
-  const banner = imgUrl(store.photo)
-  const ouvert = magasinOuvert(store.heure_ouverture, store.heure_fermeture)
-  const commandeActive = ouvert !== false
-
-  return (
-    <div className="min-h-screen bg-stone-50 pb-36">
-      <div className="bg-white border-b border-stone-100 sticky top-0 z-20 shadow-sm shadow-stone-50">
-        <div className="px-4 py-3.5 flex items-center gap-3 max-w-lg mx-auto">
-          <button onClick={onBack} title="Retour" className="w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700 shrink-0"><ArrowLeft size={20} /></button>
-          <div className="flex-1 min-w-0">
-            <h2 className="font-extrabold text-stone-800 truncate text-base">{store.nom}</h2>
-            <div className="flex items-center gap-2">
-              <StarRating note={Math.round(store.note_moyenne ?? 0)} />
-              <span className="text-xs text-stone-400">{store.note_moyenne ? store.note_moyenne.toFixed(1) : '—'}{store.nb_avis ? ` · ${store.nb_avis} avis` : ''}</span>
+        {/* PRODUCTS */}
+        <div className="px-4 py-4 space-y-3">
+          {produits.filter((p) => !filtreCateg || p.categorie?.toLowerCase() === filtreCateg.toLowerCase()).length === 0 ? (
+            <div className="text-center py-10 text-stone-500">
+              <Package size={32} className="mx-auto mb-2 text-stone-300" />
+              <p>Aucun produit</p>
             </div>
-          </div>
-          <span className={`shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full ${getCat(store.categorie).bg} ${getCat(store.categorie).text}`}>{store.categorie}</span>
-        </div>
-      </div>
-
-      {ouvert === false && (
-        <div className="max-w-lg mx-auto px-4 pt-3">
-          <div className="bg-stone-800 text-white rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
-            <div>
-              <p className="font-bold text-sm">🔒 Commerce fermé</p>
-              <p className="text-xs text-stone-300 mt-0.5">Menu et prix visibles, commande indisponible.</p>
-            </div>
-            {store.heure_ouverture && <span className="text-xs font-semibold bg-white/10 px-2.5 py-1.5 rounded-xl whitespace-nowrap">Ouvre à {hhmm(store.heure_ouverture)}</span>}
-          </div>
-        </div>
-      )}
-
-      {banner && <div className="relative h-40 bg-amber-50 overflow-hidden max-w-lg mx-auto"><img src={banner} alt={store.nom} className="w-full h-full object-cover" /><div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" /></div>}
-
-      <div className="max-w-lg mx-auto px-4 pt-3">
-        <div className="bg-white rounded-2xl border border-stone-100 shadow-sm grid grid-cols-3 divide-x divide-stone-100">
-          <div className="px-2 py-3 text-center">
-            <p className="text-[10px] text-stone-400 uppercase tracking-wide mb-0.5">Livraison</p>
-            <p className="text-sm font-bold text-stone-800">
-              {store.livraison_gratuite ? <span className="text-emerald-600">Gratuite</span>
-                : (store.frais_min != null ? `${store.frais_min}${store.frais_max && store.frais_max !== store.frais_min ? '–'+store.frais_max : ''} DA` : '—')}
-            </p>
-          </div>
-          <div className="px-2 py-3 text-center">
-            <p className="text-[10px] text-stone-400 uppercase tracking-wide mb-0.5">Temps</p>
-            <p className="text-sm font-bold text-stone-800">{tempsLivraison(distMenu) || '—'}</p>
-          </div>
-          <div className="px-2 py-3 text-center">
-            <p className="text-[10px] text-stone-400 uppercase tracking-wide mb-0.5">Note</p>
-            <p className="text-sm font-bold text-stone-800">{store.note_moyenne ? `★ ${store.note_moyenne.toFixed(1)}` : '—'}</p>
-          </div>
-        </div>
-      </div>
-
-      {(store.adresse || store.telephone || store.heure_ouverture) && (
-        <div className="max-w-lg mx-auto px-4 pt-4">
-          <div className="bg-white rounded-2xl border border-stone-100 p-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-stone-500">
-            {store.adresse && <span><MapPin size={13} className="inline mr-1" />{store.adresse}</span>}
-            {store.telephone && <a href={`tel:${store.telephone}`} className="text-blue-600 hover:underline"><Phone size={13} className="inline mr-1" />{store.telephone}</a>}
-            {store.heure_ouverture && <span><Clock size={11} className="inline mr-0.5" />{hhmm(store.heure_ouverture)}–{hhmm(store.heure_fermeture)}</span>}
-          </div>
-        </div>
-      )}
-
-      {store.latitude != null && store.longitude != null && (
-        <LocalisationMagasin store={store} />
-      )}
-
-      {store.presentation && <PourquoiNousChoisir texte={store.presentation} />}
-
-      {loading ? <Spinner /> : (
-        <div className="px-4 py-5 space-y-7 max-w-lg mx-auto">
-          {produits.length === 0 ? (
-            <div className="text-center py-12"><div className="flex justify-center mb-3"><Utensils size={40} className="text-stone-300" /></div><p className="text-stone-500">Aucun produit disponible</p></div>
           ) : (
-            <>
-            {cats.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto scrollbar-hide -mt-2">
-                <button onClick={() => setFiltreCat('__promo__')}
-                  className={`shrink-0 text-xs font-bold px-4 py-1.5 rounded-full transition-all ${filtreCat === '__promo__' ? 'bg-pink-500 text-white shadow-sm' : 'bg-pink-50 text-pink-600'}`}>
-                  <span className="inline-flex items-center gap-1"><Flame size={13} />Promotions</span>
+            produits
+              .filter((p) => !filtreCateg || p.categorie?.toLowerCase() === filtreCateg.toLowerCase())
+              .map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => addToCart(p)}
+                  className="w-full text-left bg-white rounded-xl p-3 border border-stone-100 hover:border-stone-200 active:scale-98 transition-all"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1">
+                      <h4 className="font-bold text-stone-900 text-sm">{p.nom}</h4>
+                      <p className="text-xs text-stone-500 mt-0.5">{catEmoji(p.categorie || '')} {p.categorie}</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="font-bold text-amber-600">{prixEff(p)} DA</span>
+                        {p.prix_promo && <span className="text-xs line-through text-stone-400">{p.prix} DA</span>}
+                      </div>
+                    </div>
+                    {p.photo && <img src={p.photo} alt={p.nom} className="w-16 h-16 object-cover rounded-lg" />}
+                  </div>
                 </button>
-                {['Tous', ...cats].map((c) => (
-                  <button key={c} onClick={() => setFiltreCat(c)}
-                    className={`shrink-0 text-xs font-semibold px-4 py-1.5 rounded-full transition-all ${filtreCat === c ? 'bg-amber-500 text-white shadow-sm' : 'bg-stone-100 text-stone-500'}`}>
-                    {c === 'Tous' ? 'Tous' : `${catEmoji(c)} ${c}`}
+              ))
+          )}
+        </div>
+
+        {/* CART SHEET */}
+        {showSheet && cart.length > 0 && (
+          <div className="fixed inset-0 bg-black/30 z-40 flex items-end" onClick={() => setShowSheet(false)}>
+            <div className="w-full bg-white rounded-t-2xl p-4 space-y-3 max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+              <h3 className="font-extrabold text-stone-900">Votre commande</h3>
+
+              {/* CART ITEMS */}
+              <div className="space-y-2 max-h-48 overflow-y-auto flex-1">
+                {cart.map((item) => (
+                  <div key={item.produit.id} className="flex justify-between items-center py-2 border-b border-stone-100">
+                    <div>
+                      <p className="font-semibold text-stone-900 text-sm">{item.produit.nom}</p>
+                      <p className="text-xs text-stone-500">{prixEff(item.produit)} DA × {item.quantite}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          const newCart = cart.map((i) => (i.produit.id === item.produit.id ? { ...i, quantite: Math.max(0, i.quantite - 1) } : i)).filter((i) => i.quantite > 0)
+                          setCart(newCart)
+                          localStorage.setItem('orania_cart', JSON.stringify(newCart))
+                        }}
+                        className="w-6 h-6 rounded bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center text-xs font-bold"
+                      >
+                        −
+                      </button>
+                      <span className="text-sm font-semibold w-6 text-center">{item.quantite}</span>
+                      <button
+                        onClick={() => {
+                          const newCart = cart.map((i) => (i.produit.id === item.produit.id ? { ...i, quantite: i.quantite + 1 } : i))
+                          setCart(newCart)
+                          localStorage.setItem('orania_cart', JSON.stringify(newCart))
+                        }}
+                        className="w-6 h-6 rounded bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center text-xs font-bold"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* DELIVERY */}
+              <div className="py-3 border-t border-stone-200">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={livraison} onChange={(e) => setLivraison(e.target.checked)} className="w-4 h-4" />
+                  <span className="text-sm font-semibold text-stone-900">Avec livraison (+{store.frais_min}-{store.frais_max} DA)</span>
+                </label>
+              </div>
+
+              {/* TOTAL */}
+              <div className="flex justify-between items-center py-3 border-t border-stone-200 font-bold text-stone-900">
+                <span>Total</span>
+                <span>{totalPrice + (livraison ? store.frais_min : 0)} DA</span>
+              </div>
+
+              {/* PLACE ORDER */}
+              <button
+                onClick={placeOrder}
+                disabled={ordering}
+                className="w-full bg-amber-500 hover:bg-amber-600 active:scale-95 disabled:opacity-50 text-white font-bold py-3 rounded-lg transition-all"
+              >
+                {ordering ? 'Traitement...' : '🚀 Commander'}
+              </button>
+
+              {orderCode && orderCode !== '------' && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                  <p className="text-xs text-green-600">Commande confirmée!</p>
+                  <p className="font-bold text-green-700 text-lg">{orderCode}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* CART BUTTON */}
+        {cart.length > 0 && !showSheet && (
+          <button
+            onClick={() => setShowSheet(true)}
+            className="fixed bottom-4 left-4 right-4 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-between px-4 shadow-lg"
+          >
+            <span>Panier ({totalItems})</span>
+            <span>{totalPrice} DA</span>
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  // Account page
+  if (page === 'account') {
+    return (
+      <div className="min-h-screen bg-stone-50 pb-10">
+        {/* HEADER */}
+        <div className="bg-white border-b border-stone-100 px-4 py-3 flex items-center gap-3">
+          <button onClick={() => setPage('stores')} className="w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700">
+            <ArrowLeft size={20} />
+          </button>
+          <h2 className="font-extrabold text-stone-900">Mon compte</h2>
+        </div>
+
+        {/* ACCOUNT INFO */}
+        {acheteur && (
+          <div className="px-4 py-4 space-y-4">
+            <div className="bg-white rounded-xl border border-stone-100 p-4 space-y-2">
+              <p className="text-xs text-stone-500 uppercase font-bold">Profil</p>
+              <h3 className="font-bold text-stone-900">{acheteur.nom}</h3>
+              <p className="text-sm text-stone-600">{acheteur.telephone}</p>
+            </div>
+
+            {/* TABS */}
+            <div className="flex gap-2 border-b border-stone-100">
+              <button
+                onClick={() => setPage('orders')}
+                className={`flex-1 py-3 text-sm font-semibold border-b-2 transition-all ${
+                  page === 'orders' ? 'text-amber-600 border-amber-600' : 'text-stone-500 border-transparent hover:text-stone-600'
+                }`}
+              >
+                <ReceiptText size={16} className="inline mr-1" />
+                Commandes
+              </button>
+              <button
+                onClick={() => setPage('reviews')}
+                className={`flex-1 py-3 text-sm font-semibold border-b-2 transition-all ${
+                  page === 'reviews' ? 'text-amber-600 border-amber-600' : 'text-stone-500 border-transparent hover:text-stone-600'
+                }`}
+              >
+                <Star size={16} className="inline mr-1" />
+                Avis
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* LOGOUT */}
+        <div className="px-4 pt-4">
+          <button
+            onClick={onLogout}
+            className="w-full bg-red-100 hover:bg-red-200 text-red-600 font-bold py-2 rounded-lg transition-all"
+          >
+            Se déconnecter
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Orders page
+  if (page === 'orders') {
+    return (
+      <div className="min-h-screen bg-stone-50">
+        <div className="bg-white border-b border-stone-100 px-4 py-3 flex items-center gap-3">
+          <button
+            onClick={() => setPage('account')}
+            className="w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <h2 className="font-extrabold text-stone-900">Commandes</h2>
+        </div>
+
+        <div className="px-4 py-4 space-y-3">
+          {orderLoading ? (
+            <p className="text-center text-stone-500">Chargement...</p>
+          ) : orders.length === 0 ? (
+            <div className="text-center py-10 text-stone-500">
+              <History size={32} className="mx-auto mb-2 text-stone-300" />
+              <p>Aucune commande</p>
+            </div>
+          ) : (
+            orders.map((o) => (
+              <div key={o.id} className="bg-white rounded-xl border border-stone-100 p-4 space-y-2">
+                <div className="flex justify-between items-center">
+                  <h4 className="font-bold text-stone-900">Commande #{o.id}</h4>
+                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-semibold">{o.statut}</span>
+                </div>
+                <p className="text-sm text-stone-600">{o.fournisseur_nom}</p>
+                <p className="text-lg font-bold text-amber-600">{o.prix_total} DA</p>
+                <button
+                  onClick={() => {
+                    setRatingOrderId(o.id)
+                    setShowRatingSheet(true)
+                  }}
+                  className="w-full text-sm bg-stone-100 hover:bg-stone-200 text-stone-700 py-2 rounded-lg font-semibold"
+                >
+                  ⭐ Évaluer
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* RATING SHEET */}
+        {showRatingSheet && (
+          <div className="fixed inset-0 bg-black/30 z-40 flex items-end" onClick={() => setShowRatingSheet(false)}>
+            <div className="w-full bg-white rounded-t-2xl p-4 space-y-4" onClick={(e) => e.stopPropagation()}>
+              <h3 className="font-extrabold text-stone-900">Évaluer votre commande</h3>
+
+              {/* STARS */}
+              <div className="flex gap-2 justify-center">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    onClick={() => setOrderRating(star)}
+                    className="text-4xl transition-all hover:scale-110"
+                  >
+                    {star <= (orderRating || 0) ? '⭐' : '☆'}
                   </button>
                 ))}
               </div>
-            )}
-            {cats.filter((cat) => filtreCat === 'Tous' || filtreCat === '__promo__' || cat === filtreCat).map((cat) => {
-              const items = filtreCat === '__promo__' ? groupes[cat].filter((p) => p.prix_promo != null) : groupes[cat]
-              if (items.length === 0) return null
-              return (
-              <div key={cat}>
-                <h3 className="text-[11px] font-bold uppercase tracking-widest text-stone-400 mb-3 flex items-center gap-2"><span className="flex-1 h-px bg-stone-100" />{catEmoji(cat)} {cat}<span className="flex-1 h-px bg-stone-100" /></h3>
-                <div className="space-y-3">
-                  {items.map((p) => {
-                    const q = qty(p.id); const pimg = imgUrl(p.image_url)
-                    return (
-                      <div key={p.id} className={`bg-white rounded-2xl p-4 flex gap-3 shadow-sm border border-stone-100 transition-opacity ${!p.disponible ? 'opacity-45' : ''}`}>
-                        {pimg && <div className="rounded-xl bg-amber-50 overflow-hidden shrink-0" style={{ width: 70, height: 70 }}><img src={pimg} alt={p.nom} className="w-full h-full object-cover" /></div>}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-stone-800 text-sm">{p.nom}
-                            {p.prix_promo != null && <span className="ml-1.5 text-[9px] bg-pink-100 text-pink-600 font-bold px-1.5 py-0.5 rounded-full align-middle">PROMO</span>}
-                          </p>
-                          {p.ingredients && <p className="text-[11px] text-stone-400 mt-0.5 leading-snug"><ReceiptText size={11} className="inline mr-0.5" />{p.ingredients}</p>}
-                          {!p.disponible && <span className="inline-block mt-1 text-[10px] font-semibold bg-red-50 text-red-400 px-2 py-0.5 rounded-full">Indisponible</span>}
-                          {p.prix_promo != null
-                            ? <p className="mt-1.5 text-sm"><span className="text-pink-600 font-extrabold">{fmtDA(p.prix_promo)}</span> <span className="text-stone-400 line-through text-xs ml-1">{fmtDA(p.prix)}</span></p>
-                            : <p className="text-amber-600 font-extrabold text-sm mt-1.5">{fmtDA(p.prix)}</p>}
-                        </div>
-                        {p.disponible && commandeActive && (
-                          <div className="flex items-center gap-2 shrink-0 self-center">
-                            {q > 0 ? (
-                              <>
-                                <button onClick={() => remove(p.id)} className="w-8 h-8 rounded-full bg-stone-100 text-stone-700 font-bold text-base flex items-center justify-center hover:bg-stone-200 active:scale-90 transition-all">−</button>
-                                <span className="text-sm font-bold text-stone-700 w-5 text-center">{q}</span>
-                                <button onClick={() => add(p)} className="w-8 h-8 rounded-full bg-amber-500 text-white font-bold text-base flex items-center justify-center hover:bg-amber-600 active:scale-90 transition-all shadow-sm shadow-amber-200">+</button>
-                              </>
-                            ) : (
-                              <button onClick={() => add(p)} className="w-8 h-8 rounded-full bg-amber-500 text-white font-bold text-base flex items-center justify-center hover:bg-amber-600 active:scale-90 transition-all shadow-sm shadow-amber-200">+</button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )})}
-            </>
-          )}
 
-          <div className="bg-white rounded-3xl shadow-sm border border-stone-100 overflow-hidden">
-            <button className="w-full flex items-center justify-between px-5 py-4" onClick={() => setShowReviews((v) => !v)}>
-              <div className="flex items-center gap-2"><span className="text-base">⭐</span><span className="font-bold text-stone-800">Avis clients</span>{avis.length > 0 && <span className="text-xs bg-amber-100 text-amber-700 font-semibold px-2 py-0.5 rounded-full">{avis.length}</span>}</div>
-              <span className="text-stone-400" style={{ display: 'inline-block', transform: showReviews ? 'rotate(180deg)' : 'rotate(0deg)' }}><ChevronDown size={16} /></span>
-            </button>
-            {showReviews && (
-              <div className="px-5 pb-5 space-y-5">
-                {(!avisDone || editingAvis) ? (
-                  <div className="bg-amber-50 rounded-2xl p-4">
-                    <p className="text-sm font-bold text-stone-700 mb-3">{editingAvis ? 'Modifier votre avis' : 'Donner votre avis'}</p>
-                    <StarRating note={myNote} size="lg" onRate={setMyNote} />
-                    {myNote > 0 && <textarea value={myComment} onChange={(e) => setMyComment(e.target.value)} placeholder="Votre commentaire (optionnel)…" rows={2} className="mt-3 w-full px-3 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />}
-                    <div className="flex gap-2 mt-3">
-                      <button onClick={submitAvis} disabled={myNote === 0} className="bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all disabled:opacity-40">{editingAvis ? 'Enregistrer' : 'Envoyer mon avis'}</button>
-                      {editingAvis && <button onClick={() => setEditingAvis(false)} className="bg-stone-200 text-stone-600 text-sm font-semibold px-4 py-2.5 rounded-xl">Annuler</button>}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4">
-                    <div className="flex items-center justify-between">
-                      <p className="text-emerald-600 font-semibold text-sm">✓ Votre avis</p>
-                      <StarRating note={myNote} />
-                    </div>
-                    {myComment && <p className="text-sm text-stone-600 mt-2">{myComment}</p>}
-                    <div className="flex gap-2 mt-3">
-                      <button onClick={() => setEditingAvis(true)} className="bg-white border border-stone-200 text-stone-600 text-xs font-semibold px-4 py-2 rounded-xl hover:bg-stone-50">✏️ Modifier</button>
-                      <button onClick={supprimerMonAvis} className="bg-red-50 text-red-500 text-xs font-semibold px-4 py-2 rounded-xl hover:bg-red-100">🗑️ Supprimer</button>
-                    </div>
-                  </div>
-                )}
-                {avis.length === 0 ? <p className="text-stone-400 text-sm text-center py-3">Soyez le premier à laisser un avis</p> : (
-                  <div className="space-y-4">
-                    {avis.filter((a) => a.acheteur_id !== acheteur.id).map((a) => (
-                      <div key={a.id} className="border-t border-stone-100 pt-4 first:border-t-0 first:pt-0">
-                        <div className="flex items-center justify-between mb-1"><span className="text-sm font-bold text-stone-700">{a.acheteur_nom}</span><StarRating note={a.note} /></div>
-                        {a.commentaire && <p className="text-xs text-stone-500 leading-relaxed">{a.commentaire}</p>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+              {/* COMMENT */}
+              <textarea
+                value={orderComment}
+                onChange={(e) => setOrderComment(e.target.value)}
+                placeholder="Commentaire (optionnel)"
+                className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-500"
+                rows={3}
+              />
 
-      {commandeActive && totalItems > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 px-4 py-4 bg-white/80 backdrop-blur-md border-t border-stone-100">
-          <div className="max-w-lg mx-auto">
-            <button onClick={() => setShowSheet(true)} className="w-full bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white rounded-2xl px-5 py-4 flex items-center justify-between shadow-xl shadow-amber-200/70 transition-all">
-              <div className="bg-amber-400/50 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">{totalItems}</div>
-              <span className="font-bold text-base">Commander</span>
-              <span className="font-extrabold text-base">{fmtDA(totalPrice)}</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {showSheet && (
-        <div className="fixed inset-0 bg-black/50 z-40 flex items-end" onClick={() => !ordering && setShowSheet(false)}>
-          <div className="bg-white w-full rounded-t-3xl px-5 pt-4 pb-8 shadow-2xl max-h-[85vh] overflow-y-auto max-w-lg mx-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="w-10 h-1 bg-stone-200 rounded-full mx-auto mb-5" />
-            <h3 className="text-lg font-extrabold text-stone-800 mb-4">Récapitulatif</h3>
-            <div className="space-y-2.5 mb-4">
-              {cart.map((item) => (
-                <div key={item.produit.id} className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2"><span className="bg-amber-100 text-amber-700 font-bold text-xs w-5 h-5 rounded-full flex items-center justify-center">{item.quantite}</span><span className="text-stone-700">{item.produit.nom}</span></div>
-                  <span className="text-stone-500 font-semibold">{fmtDA(prixEff(item.produit) * item.quantite)}</span>
-                </div>
-              ))}
+              {/* SUBMIT */}
+              <button
+                onClick={submitRating}
+                className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 rounded-lg active:scale-95 transition-all"
+              >
+                Envoyer
+              </button>
             </div>
-            <div className="flex justify-between items-center font-extrabold text-stone-800 text-base border-t border-stone-100 pt-4 mb-4"><span>Total produits</span><span>{fmtDA(totalPrice)}</span></div>
-            <div className="bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3 mb-5"><p className="text-xs text-amber-700 font-medium">💵 Paiement en <strong>espèces</strong>. Le prix de livraison sera convenu avec le commerce au <strong>{acheteur.telephone}</strong>.</p></div>
-            <p className="text-xs font-bold text-stone-500 uppercase tracking-widest mb-3">Mode de réception</p>
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              {[{ val: true, emoji: '🛵', label: 'Avec livraison' }, { val: false, emoji: '🏃', label: 'À emporter' }].map(({ val, emoji, label }) => (
-                <button key={label} onClick={() => setLivraison(val)} className={`flex flex-col items-center gap-1.5 py-4 rounded-2xl border-2 font-semibold text-sm transition-all ${livraison === val ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-stone-200 text-stone-500 hover:border-stone-300'}`}><span className="text-xl">{emoji}</span>{label}</button>
-              ))}
-            </div>
-            {livraison && (
-              <div className="mb-5">
-                <p className="text-xs font-bold text-stone-500 uppercase tracking-widest mb-2">📍 Votre position de livraison</p>
-                <p className="text-[11px] text-stone-400 mb-2">Déplacez le marqueur ou cliquez sur la carte pour indiquer où livrer.</p>
-                <MapPicker value={position} onChange={setPosition} />
-                {position && <p className="text-[11px] text-emerald-600 mt-1.5 font-semibold">✓ Position enregistrée</p>}
-              </div>
-            )}
-            <button onClick={placeOrder} disabled={ordering} className="w-full bg-amber-500 hover:bg-amber-600 text-white font-extrabold py-4 rounded-2xl transition-all shadow-lg shadow-amber-200 disabled:opacity-60 text-base">{ordering ? 'Envoi…' : 'Confirmer la commande'}</button>
-          </div>
-        </div>
-      )}
-
-      {orderCode && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center px-4">
-          <div className="bg-white w-full max-w-sm rounded-3xl p-8 text-center shadow-2xl">
-            <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-5"><span className="text-4xl">✅</span></div>
-            <h3 className="text-2xl font-extrabold text-stone-800 mb-1.5">Commande envoyée !</h3>
-            <p className="text-stone-400 text-sm mb-6">Votre code de confirmation</p>
-            <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-5 mb-5"><p className="text-4xl font-extrabold tracking-[0.4em] text-amber-600 font-mono">{orderCode}</p></div>
-            <p className="text-xs text-stone-400 mb-2">Le commerce <strong className="text-stone-600">{store.nom}</strong> vous contactera au</p>
-            <p className="text-base font-bold text-stone-700 mb-7">{acheteur.telephone}</p>
-            <button onClick={() => { setOrderCode(null); onBack() }} className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-4 rounded-2xl transition-all">Retour aux commerces</button>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function CompteModal({ acheteur, onClose, onLogout }: { acheteur: Acheteur; onClose: () => void; onLogout: () => void }) {
-  const [vue, setVue] = useState<'compte' | 'commandes' | 'avis'>('compte')
-  const [commandes, setCommandes] = useState<any[]>([])
-  const [mesAvis, setMesAvis] = useState<any[]>([])
-  const [loadingH, setLoadingH] = useState(false)
-
-  useEffect(() => {
-    if (vue === 'commandes' && commandes.length === 0) {
-      setLoadingH(true)
-      clientApi.historiqueCommandes(acheteur.id).then((d) => setCommandes(Array.isArray(d) ? d : [])).catch(() => {}).finally(() => setLoadingH(false))
-    }
-    if (vue === 'avis' && mesAvis.length === 0) {
-      setLoadingH(true)
-      clientApi.mesEvaluations(acheteur.id).then((d) => setMesAvis(Array.isArray(d) ? d : [])).catch(() => {}).finally(() => setLoadingH(false))
-    }
-  }, [vue, acheteur.id])
-
-  return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4" onClick={onClose}>
-      <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="text-lg font-extrabold text-stone-800">Mon compte</h3>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-500">✕</button>
-        </div>
-
-        <div className="bg-stone-50 rounded-2xl p-4 mb-5 space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 bg-amber-100 rounded-full flex items-center justify-center text-xl">👤</div>
-            <div><p className="text-[11px] text-stone-400 uppercase tracking-widest">Nom</p><p className="font-semibold text-stone-700">{acheteur.nom}</p></div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 bg-blue-100 rounded-full flex items-center justify-center text-xl">📞</div>
-            <div><p className="text-[11px] text-stone-400 uppercase tracking-widest">Téléphone</p><p className="font-semibold text-stone-700">{acheteur.telephone}</p></div>
-          </div>
-        </div>
-
-        <div className="flex gap-2 mb-4">
-          {([['compte', 'Compte'], ['commandes', 'Commandes'], ['avis', 'Avis']] as [typeof vue, string][]).map(([k, label]) => (
-            <button key={k} onClick={() => setVue(k)}
-              className={`flex-1 text-xs font-semibold py-2 rounded-xl transition-all ${vue === k ? 'bg-stone-800 text-white' : 'bg-stone-100 text-stone-500'}`}>
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {vue === 'commandes' && (
-          <div className="mb-5">
-            {loadingH ? <p className="text-center text-stone-400 text-sm py-6">Chargement…</p>
-              : commandes.length === 0 ? <p className="text-center text-stone-400 text-sm py-6"><History size={28} className="mx-auto mb-2 opacity-40" />Aucune commande pour l'instant</p>
-              : <div className="space-y-2">
-                  {commandes.map((c) => (
-                    <div key={c.id} className="bg-stone-50 rounded-2xl p-3 border border-stone-100">
-                      <div className="flex justify-between items-start mb-1">
-                        <p className="font-bold text-stone-800 text-sm">{c.commerce_nom || 'Commerce'}</p>
-                        <span className="text-[10px] font-semibold bg-stone-200 text-stone-600 px-2 py-0.5 rounded-full capitalize">{c.statut}</span>
-                      </div>
-                      <p className="text-[11px] text-stone-400 mb-1.5">{c.produits?.map((pr: any) => `${pr.quantite}× ${pr.nom}`).join(', ')}</p>
-                      <div className="flex justify-between items-center">
-                        <span className="text-amber-600 font-bold text-sm">{fmtDA(c.prix_total)}</span>
-                        <span className="text-[10px] text-stone-400">Code : {c.code_confirmation}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>}
           </div>
         )}
-
-        {vue === 'avis' && (
-          <div className="mb-5">
-            {loadingH ? <p className="text-center text-stone-400 text-sm py-6">Chargement…</p>
-              : mesAvis.length === 0 ? <p className="text-center text-stone-400 text-sm py-6"><Star size={28} className="mx-auto mb-2 opacity-40" />Aucune évaluation laissée</p>
-              : <div className="space-y-2">
-                  {mesAvis.map((a) => (
-                    <div key={a.id} className="bg-stone-50 rounded-2xl p-3 border border-stone-100">
-                      <div className="flex justify-between items-center mb-1">
-                        <p className="font-bold text-stone-800 text-sm">{a.commerce_nom || 'Commerce'}</p>
-                        <StarRating note={a.note} />
-                      </div>
-                      {a.commentaire && <p className="text-[12px] text-stone-500 italic">« {a.commentaire} »</p>}
-                    </div>
-                  ))}
-                </div>}
-          </div>
-        )}
-
-        <button onClick={() => { if (confirm('Se déconnecter ? Vous devrez ressaisir votre nom et téléphone.')) onLogout() }}
-          className="w-full mt-4 border border-red-200 text-red-500 hover:bg-red-50 font-semibold py-3 rounded-2xl transition-all">
-          🚪 Se déconnecter
-        </button>
       </div>
-    </div>
-  )
-}
+    )
+  }
 
-function PourquoiNousChoisir({ texte }: { texte: string }) {
-  const [open, setOpen] = useState(false)
-  return (
-    <div className="max-w-lg mx-auto px-4 pt-4">
-      <button onClick={() => setOpen((v) => !v)}
-        className="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-2xl px-4 py-3.5 flex items-center justify-between shadow-lg shadow-amber-200/50 active:scale-[0.98] transition-all">
-        <span className="font-bold flex items-center gap-2">Pourquoi nous choisir ?</span>
-        <span style={{ display: 'inline-block', transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .2s' }}><ChevronDown size={16} /></span>
-      </button>
-      {open && (
-        <div className="bg-white border border-amber-100 rounded-2xl p-4 mt-2 animate-in">
-          <p className="text-sm text-stone-600 leading-relaxed whitespace-pre-line">{texte}</p>
+  // Reviews page
+  if (page === 'reviews') {
+    return (
+      <div className="min-h-screen bg-stone-50">
+        <div className="bg-white border-b border-stone-100 px-4 py-3 flex items-center gap-3">
+          <button
+            onClick={() => setPage('account')}
+            className="w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 active:scale-95 transition-all flex items-center justify-center text-stone-700"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <h2 className="font-extrabold text-stone-900">Mes avis</h2>
         </div>
-      )}
-    </div>
-  )
-}
 
-function LocalisationMagasin({ store }: { store: Fournisseur }) {
-  const [open, setOpen] = useState(false)
-  const gmaps = `https://www.google.com/maps/dir/?api=1&destination=${store.latitude},${store.longitude}`
-  return (
-    <div className="max-w-lg mx-auto px-4 pt-4">
-      <button onClick={() => setOpen((v) => !v)}
-        className="w-full bg-white border border-stone-200 rounded-2xl px-4 py-3.5 flex items-center justify-between shadow-sm active:scale-[0.98] transition-all">
-        <span className="font-bold text-stone-700 flex items-center gap-2"><MapIcon size={16} />Où se trouve ce commerce ?</span>
-        <span style={{ display: 'inline-block', transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .2s' }} className="text-stone-400"><ChevronDown size={16} /></span>
-      </button>
-      {open && (
-        <div className="mt-2">
-          <MapView lat={store.latitude!} lng={store.longitude!} height={220} />
-          <a href={gmaps} target="_blank" rel="noopener"
-            className="mt-2 flex items-center justify-center gap-2 w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-2xl transition-all shadow-lg shadow-amber-500/30">
-            <span className="inline-flex items-center gap-1.5"><Navigation size={16} />Voir l'itinéraire pour récupérer ma commande</span>
-          </a>
-          <p className="text-[11px] text-stone-400 text-center mt-1.5">Ouvre Google Maps avec le trajet et la distance jusqu'au commerce.</p>
+        <div className="px-4 py-10 text-center text-stone-500">
+          <Star size={32} className="mx-auto mb-2 text-stone-300" />
+          <p>Vos avis apparaîtront ici</p>
         </div>
-      )}
-    </div>
-  )
+      </div>
+    )
+  }
+
+  return null
 }
