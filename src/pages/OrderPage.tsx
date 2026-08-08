@@ -77,7 +77,7 @@ export default function OrderPage() {
             <p className="font-semibold text-[var(--color-ink-900)]">{commande.fournisseur_nom || "Commerce"}</p>
             <p className="font-bold text-[var(--color-ink-900)]">{formatPrix(commande.prix_total)}</p>
           </div>
-          <p className="text-xs text-[var(--color-ink-500)] mt-1">{commande.avec_livraison ? "Livraison" : "À emporter"}</p>
+          <p className="text-xs text-[var(--color-ink-500)] mt-1">{commande.avec_livraison ? "Livraison" : "À récupérer"}</p>
           {commande.code_confirmation && (
             <p className="text-xs text-[var(--color-ink-500)] mt-2">Code de confirmation : <span className="font-semibold text-[var(--color-ink-900)]">{commande.code_confirmation}</span></p>
           )}

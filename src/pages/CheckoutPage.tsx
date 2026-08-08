@@ -118,15 +118,7 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        <div className="flex items-start gap-2 mt-4 bg-[var(--color-orange-100)] text-[var(--color-orange-700,#a35009)] text-sm rounded-xl px-3.5 py-3">
-          <Wallet size={16} className="mt-0.5 shrink-0" />
-          <span>
-            Paiement en <strong>espèces</strong>. Le prix de livraison sera convenu avec le commerce
-            {telephoneCommerce ? <> au <strong>{telephoneCommerce}</strong></> : ""}.
-          </span>
-        </div>
-
-        <p className="text-sm font-semibold text-[var(--color-ink-700)] mt-6 mb-2">Mode de réception</p>
+        <p className="text-sm font-semibold text-[var(--color-ink-700)] mt-4 mb-2">Mode de réception</p>
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={() => setMode("livraison")}
@@ -144,8 +136,22 @@ export default function CheckoutPage() {
             }`}
           >
             <PersonStanding size={22} className={mode === "retrait" ? "text-[var(--color-orange-600)]" : "text-[var(--color-ink-500)]"} />
-            <span className="font-semibold text-sm">À emporter</span>
+            <span className="font-semibold text-sm">À récupérer</span>
           </button>
+        </div>
+
+        <div className="flex items-start gap-2 mt-4 bg-[var(--color-orange-100)] text-[var(--color-orange-700,#a35009)] text-sm rounded-xl px-3.5 py-3">
+          <Wallet size={16} className="mt-0.5 shrink-0" />
+          <span>
+            {mode === "retrait" ? (
+              <>Paiement en <strong>espèces</strong>.</>
+            ) : (
+              <>
+                Paiement en <strong>espèces</strong>. Le prix de livraison sera convenu avec le commerce
+                {telephoneCommerce ? <> au <strong>{telephoneCommerce}</strong></> : ""}.
+              </>
+            )}
+          </span>
         </div>
 
         {mode === "livraison" && (
