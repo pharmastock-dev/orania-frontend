@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, SearchX, Search as SearchIcon, LocateFixed } from "lucide-react";
+import { AlertTriangle, SearchX, Search as SearchIcon, LocateFixed, MapPin } from "lucide-react";
 import ClientHeader from "../components/ClientHeader";
 import FilterBar, { type Tri, type FiltreMulti } from "../components/FilterBar";
 import CategoryBar from "../components/CategoryBar";
 import StoreCard from "../components/StoreCard";
+import Button from "../components/Button";
 import { CardSkeleton } from "../components/Loading";
 import EmptyState from "../components/EmptyState";
 import { useApp } from "../context/AppContext";
@@ -24,6 +25,25 @@ export default function ClientHomePage() {
   const [filtresActifs, setFiltresActifs] = useState<FiltreMulti[]>([]);
   const [procheLoading, setProcheLoading] = useState(false);
 
+  // La position est OBLIGATOIRE pour voir les commerces (distance, tri "proches",
+  // temps de livraison estimé partout dans l'app en dépendent). Tant qu'elle
+  // n'est pas activée, on affiche un écran de blocage au lieu de la liste.
+  const [demandePositionEnCours, setDemandePositionEnCours] = useState(false);
+  const [erreurPosition, setErreurPosition] = useState<string | null>(null);
+
+  async function demanderPosition() {
+    setDemandePositionEnCours(true);
+    setErreurPosition(null);
+    try {
+      const pos = await getPositionActuelle();
+      setPosition(pos);
+    } catch (err) {
+      setErreurPosition(err instanceof Error ? err.message : "Localisation indisponible.");
+    } finally {
+      setDemandePositionEnCours(false);
+    }
+  }
+
   function toggleFiltre(f: FiltreMulti) {
     setFiltresActifs((prev) => (prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]));
   }
@@ -42,6 +62,7 @@ export default function ClientHomePage() {
   }
 
   useEffect(() => {
+    if (!position) return; // pas la peine de charger les commerces avant d'avoir la position
     let annule = false;
     setLoading(true);
     setErreur(null);
@@ -58,7 +79,7 @@ export default function ClientHomePage() {
     return () => {
       annule = true;
     };
-  }, []);
+  }, [position]);
 
   const resultats = useMemo(() => {
     // Un commerce pas encore validé par l'admin (ou suspendu) ne doit jamais
@@ -100,6 +121,39 @@ export default function ClientHomePage() {
 
     return liste;
   }, [fournisseurs, categorie, recherche, filtresActifs, tri, position]);
+
+  // ---- Écran de blocage tant que la position n'est pas activée ----
+  if (!position) {
+    return (
+      <div className="min-h-screen bg-[var(--color-ink-50)] flex flex-col">
+        <div className="max-w-2xl w-full mx-auto px-4 pt-5">
+          <ClientHeader showBack />
+        </div>
+        <div className="flex-1 flex items-center justify-center px-6">
+          <div className="max-w-sm w-full text-center flex flex-col items-center">
+            <span className="h-16 w-16 rounded-2xl bg-[var(--color-orange-100)] text-[var(--color-orange-600)] flex items-center justify-center">
+              <MapPin size={28} />
+            </span>
+            <h1 className="font-display font-bold text-lg text-[var(--color-ink-900)] mt-4">Activez votre position</h1>
+            <p className="text-[var(--color-ink-500)] mt-2">
+              Orania a besoin de votre position pour vous montrer les commerces proches de chez vous, avec la distance et le temps de livraison estimé.
+            </p>
+
+            {erreurPosition && (
+              <div className="w-full flex items-start gap-2 bg-red-50 text-red-700 text-sm rounded-xl px-3.5 py-3 mt-4 text-left">
+                <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                <span>{erreurPosition} Vérifiez que la localisation est autorisée pour ce site dans les réglages de votre navigateur ou de votre téléphone, puis réessayez.</span>
+              </div>
+            )}
+
+            <Button fullWidth className="mt-5" icon={<LocateFixed size={16} />} loading={demandePositionEnCours} onClick={demanderPosition}>
+              Activer ma position
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--color-ink-50)] pb-6">
