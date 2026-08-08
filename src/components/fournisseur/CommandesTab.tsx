@@ -308,7 +308,7 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
 
           <div class="footer">
             <p class="merci">Merci pour votre commande !</p>
-            <p>via Orania â€” orania.dz</p>
+            <p>via QREEB â€” orania.dz</p>
           </div>
         </div>
       </body></html>
