@@ -21,18 +21,51 @@ interface RequestOptions {
   isFormData?: boolean;
 }
 
+// Le backend gratuit (Render) peut mettre jusqu'à 30-60s à se réveiller s'il
+// était inactif. Plutôt que d'afficher une erreur au premier échec, on
+// réessaie automatiquement avec un délai croissant avant d'abandonner.
+const TENTATIVES = [
+  { timeout: 10000, attente: 0 },
+  { timeout: 20000, attente: 2000 },
+  { timeout: 30000, attente: 3000 },
+];
+
+function attendre(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchAvecReessai(url: string, init: RequestInit): Promise<Response> {
+  let derniereErreur: unknown;
+  for (let i = 0; i < TENTATIVES.length; i++) {
+    const { timeout, attente } = TENTATIVES[i];
+    if (attente) await attendre(attente);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    try {
+      const response = await fetch(url, { ...init, signal: controller.signal });
+      clearTimeout(timer);
+      return response;
+    } catch (err) {
+      clearTimeout(timer);
+      derniereErreur = err;
+      // On ne réessaie que sur un échec réseau/timeout, pas indéfiniment.
+    }
+  }
+  throw derniereErreur;
+}
+
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { method = "GET", body, isFormData = false } = options;
 
   let response: Response;
   try {
-    response = await fetch(`${BASE_URL}${path}`, {
+    response = await fetchAvecReessai(`${BASE_URL}${path}`, {
       method,
       headers: isFormData ? undefined : { "Content-Type": "application/json" },
       body: body ? (isFormData ? (body as FormData) : JSON.stringify(body)) : undefined,
     });
   } catch {
-    throw new ApiError("Impossible de contacter le serveur.", 0);
+    throw new ApiError("Impossible de contacter le serveur. Vérifiez votre connexion et réessayez.", 0);
   }
 
   if (!response.ok) {
