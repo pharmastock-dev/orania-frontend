@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Package, Bike, BarChart3, Store, RefreshCw, LogOut, ClipboardList, Flag } from "lucide-react";
+import { Package, Bike, BarChart3, Store, RefreshCw, LogOut, ClipboardList, Flag, BellOff, X } from "lucide-react";
 import DashboardHeader from "../components/DashboardHeader";
 import ReclamationModal from "../components/ReclamationModal";
 import { useApp } from "../context/AppContext";
+import { verifierEtatNotifications } from "../utils/notifications";
 import ProduitsTab from "../components/fournisseur/ProduitsTab";
 import CommandesTab from "../components/fournisseur/CommandesTab";
 import StatsTab from "../components/fournisseur/StatsTab";
@@ -26,10 +27,19 @@ export default function FournisseurDashboard() {
   const [onglet, setOnglet] = useState<Onglet>("produits");
   const [refreshKey, setRefreshKey] = useState(0);
   const [reclamationOuverte, setReclamationOuverte] = useState(false);
+  const [notifsProblematiques, setNotifsProblematiques] = useState(false);
+  const [avertissementFerme, setAvertissementFerme] = useState(false);
 
   useEffect(() => {
     if (!fournisseurConnecte) navigate("/commercant");
   }, [fournisseurConnecte, navigate]);
+
+  useEffect(() => {
+    verifierEtatNotifications().then((etat) => {
+      // "native-absent" = version web, pas concerné par ce contrôle.
+      setNotifsProblematiques(etat === "denied");
+    });
+  }, []);
 
   if (!fournisseurConnecte) return null;
 
@@ -71,6 +81,32 @@ export default function FournisseurDashboard() {
           }
         />
 
+        {notifsProblematiques && !avertissementFerme && (
+          <div className="mt-4 bg-red-50 border border-red-200 rounded-2xl p-4 relative">
+            <button
+              onClick={() => setAvertissementFerme(true)}
+              className="absolute top-3 right-3 text-red-400 hover:text-red-600"
+              aria-label="Fermer"
+            >
+              <X size={16} />
+            </button>
+            <div className="flex items-start gap-2.5 pr-6">
+              <BellOff size={18} className="text-red-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-red-700 text-sm">Notifications désactivées sur ce téléphone</p>
+                <p className="text-red-700 text-sm mt-1">
+                  Vous ne recevrez pas d'alerte pour les nouvelles commandes. Pour réactiver :
+                </p>
+                <ol className="text-red-700 text-sm mt-2 list-decimal list-inside space-y-0.5">
+                  <li>Paramètres du téléphone → Applications → QREEB</li>
+                  <li>Notifications → activez l'autorisation</li>
+                  <li>Vérifiez aussi Batterie → "Non restreint" (surtout sur Samsung)</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-2.5 overflow-x-auto scroll-row mt-5 pb-1">
           {TABS.map((t) => {
             const Icon = t.icon;
@@ -94,7 +130,7 @@ export default function FournisseurDashboard() {
 
         <div className="mt-5">
           {onglet === "produits" && <ProduitsTab key={`p-${refreshKey}`} fournisseurId={fournisseurConnecte.id} />}
-          {onglet === "commandes" && <CommandesTab key={`c-${refreshKey}`} fournisseurId={fournisseurConnecte.id} />}
+          {onglet === "commandes" && <CommandesTab key={`c-${refreshKey}`} fournisseurId={fournisseurConnecte.id} onGererLivreurs={() => setOnglet("livreurs")} />}
           {onglet === "livreurs" && <LivreursTab key={`l-${refreshKey}`} fournisseurId={fournisseurConnecte.id} />}
           {onglet === "stats" && <StatsTab key={`s-${refreshKey}`} fournisseurId={fournisseurConnecte.id} />}
           {onglet === "commerce" && <MonCommerceTab key={`m-${refreshKey}`} />}
