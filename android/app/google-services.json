@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "334946245403",
+    "project_id": "orania-30cd2",
+    "storage_bucket": "orania-30cd2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:334946245403:android:9ce11dc36f79780086d1be",
+        "android_client_info": {
+          "package_name": "com.orania.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBp0WCiavoD6Iz4l5uGJS8-QUrWHKRwU0I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

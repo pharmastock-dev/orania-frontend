@@ -317,3 +317,10 @@ export const getReclamations = () => http.get<Reclamation[]>("/admin/reclamation
 export const traiterReclamation = (reclamationId: number) => http.put<{ succes: boolean }>(`/admin/reclamations/${reclamationId}/traitee`, undefined, true);
 
 export const supprimerReclamation = (reclamationId: number) => http.del<{ succes: boolean }>(`/admin/reclamations/${reclamationId}`, true);
+
+// ---------- Notifications push ----------
+export const enregistrerTokenAcheteur = (acheteurId: number, deviceToken: string) =>
+  http.post<{ succes: boolean }>(`/acheteurs/${acheteurId}/device-token`, { device_token: deviceToken });
+
+export const enregistrerTokenFournisseur = (fournisseurId: number, deviceToken: string) =>
+  http.post<{ succes: boolean }>(`/fournisseurs/${fournisseurId}/device-token`, { device_token: deviceToken });
