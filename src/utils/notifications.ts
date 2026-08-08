@@ -98,3 +98,19 @@ async function nettoyerEcouteurs() {
 export function estAppNative() {
   return Capacitor.isNativePlatform();
 }
+
+/**
+ * Vérifie l'état actuel de la permission notifications, sans en redemander
+ * une. Utile pour afficher un avertissement dans l'interface si elle a été
+ * coupée après coup par l'utilisateur ou par le système (Android "Supprimer
+ * les autorisations si l'app est inutilisée" — plus agressif sur Samsung).
+ */
+export async function verifierEtatNotifications(): Promise<"native-absent" | "granted" | "denied" | "prompt"> {
+  if (!Capacitor.isNativePlatform()) return "native-absent";
+  try {
+    const permission = await PushNotifications.checkPermissions();
+    return permission.receive as "granted" | "denied" | "prompt";
+  } catch {
+    return "denied";
+  }
+}
