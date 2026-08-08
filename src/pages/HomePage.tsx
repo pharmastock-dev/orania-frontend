@@ -1,22 +1,22 @@
-import { useNavigate } from "react-router-dom";
+﻿import { useNavigate } from "react-router-dom";
 import { ShoppingBag, Store as StoreIcon, Headset, ChevronRight } from "lucide-react";
 import Logo from "../components/Logo";
 
-// L'espace Administration n'est volontairement PAS listé ici — réservé au
-// propriétaire de l'app, accessible uniquement en connaissant l'URL /admin
-// directement (jamais affichée ni liée nulle part dans l'interface publique).
+// L'espace Administration n'est volontairement PAS listÃ© ici â€” rÃ©servÃ© au
+// propriÃ©taire de l'app, accessible uniquement en connaissant l'URL /admin
+// directement (jamais affichÃ©e ni liÃ©e nulle part dans l'interface publique).
 const CHOICES = [
   {
     icon: ShoppingBag,
     title: "Je suis un client",
-    subtitle: "Commander auprès des commerces",
+    subtitle: "Commander auprÃ¨s des commerces",
     to: "/client",
     accent: "bg-[var(--color-orange-500)]",
   },
   {
     icon: StoreIcon,
-    title: "Je suis un commerçant",
-    subtitle: "Gérer mon commerce et mes commandes",
+    title: "Je suis un commerÃ§ant",
+    subtitle: "GÃ©rer mon commerce et mes commandes",
     to: "/commercant",
     accent: "bg-[var(--color-navy-900)]",
   },
@@ -37,13 +37,13 @@ export default function HomePage() {
       {/* vrai fond fourni (motifs food/shopping/localisation) */}
       <div
         className="pointer-events-none absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: "url(/background-qreeb.jpg)" }}
+        style={{ backgroundImage: "url(/background.png)" }}
       />
 
       <div className="relative max-w-md mx-auto px-6 pt-16 pb-10 flex flex-col items-center text-center">
         <Logo size={72} />
         <h1 className="font-display text-3xl font-extrabold text-white mt-5">QREEB</h1>
-        <p className="text-white/70 mt-1.5 text-[15px]">Tout près, tout simplement.</p>
+        <p className="text-white/70 mt-1.5 text-[15px]">Tout prÃ¨s, tout simplement.</p>
 
         <div className="w-full flex flex-col gap-3 mt-10">
           {CHOICES.map((c) => (
@@ -67,3 +67,4 @@ export default function HomePage() {
     </div>
   );
 }
+

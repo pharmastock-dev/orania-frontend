@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { AppProvider, useApp } from "./context/AppContext";
-import { ToastProvider } from "./context/ToastContext";
+import { ToastProvider, useToast } from "./context/ToastContext";
 import RequireClient from "./components/RequireClient";
 import { initPushNotifications } from "./utils/notifications";
 import { enregistrerTokenAcheteur, enregistrerTokenFournisseur } from "./api";
@@ -32,15 +32,23 @@ import NotFoundPage from "./pages/NotFoundPage";
 function NotificationsPush() {
   const { client, fournisseurConnecte } = useApp();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const clientInitialise = useRef<number | null>(null);
   const fournisseurInitialise = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!client || clientInitialise.current === client.id) return;
+    if (!client) {
+      clientInitialise.current = null; // se déconnecter doit permettre une reconnexion propre
+      return;
+    }
+    if (clientInitialise.current === client.id) return;
     clientInitialise.current = client.id;
     initPushNotifications({
+      onDebug: (msg) => showToast("🔔 " + msg, "info"),
       onToken: (token) => {
-        enregistrerTokenAcheteur(client.id, token).catch(() => {});
+        enregistrerTokenAcheteur(client.id, token)
+          .then(() => showToast("🔔 Token client enregistré côté serveur ✓", "success"))
+          .catch((err) => showToast("🔔 Échec enregistrement token : " + String(err), "error"));
       },
       onNotificationTap: (data) => {
         if (data.type === "statut_commande" && data.commande_id) {
@@ -48,14 +56,21 @@ function NotificationsPush() {
         }
       },
     });
-  }, [client, navigate]);
+  }, [client, navigate, showToast]);
 
   useEffect(() => {
-    if (!fournisseurConnecte || fournisseurInitialise.current === fournisseurConnecte.id) return;
+    if (!fournisseurConnecte) {
+      fournisseurInitialise.current = null; // idem côté commerçant
+      return;
+    }
+    if (fournisseurInitialise.current === fournisseurConnecte.id) return;
     fournisseurInitialise.current = fournisseurConnecte.id;
     initPushNotifications({
+      onDebug: (msg) => showToast("🔔 " + msg, "info"),
       onToken: (token) => {
-        enregistrerTokenFournisseur(fournisseurConnecte.id, token).catch(() => {});
+        enregistrerTokenFournisseur(fournisseurConnecte.id, token)
+          .then(() => showToast("🔔 Token commerçant enregistré côté serveur ✓", "success"))
+          .catch((err) => showToast("🔔 Échec enregistrement token : " + String(err), "error"));
       },
       onNotificationTap: (data) => {
         if (data.type === "nouvelle_commande") {
@@ -63,7 +78,7 @@ function NotificationsPush() {
         }
       },
     });
-  }, [fournisseurConnecte, navigate]);
+  }, [fournisseurConnecte, navigate, showToast]);
 
   return null;
 }
