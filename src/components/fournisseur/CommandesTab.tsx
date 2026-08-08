@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, ClipboardX, Navigation, Printer, Calendar, Wallet2, Bike, Trash2, Store as StoreIcon, RotateCcw, ChevronDown } from "lucide-react";
 import Button from "../Button";
 import Modal from "../Modal";
@@ -20,21 +20,31 @@ import { ApiError } from "../../api/client";
 import { formatPrix } from "../../utils/format";
 import type { Commande, StatutCommande, Livreur, LigneCommande } from "../../types";
 
-// LibellÃ©s alignÃ©s sur les VRAIS statuts backend â€” chacun n'existe que pour
-// un seul mode (livraison OU retrait), pas besoin de double libellÃ©.
+// Libellés alignés sur les VRAIS statuts backend — chacun n'existe que pour
+// un seul mode (livraison OU retrait), pas besoin de double libellé.
 const LABELS: Record<StatutCommande, string> = {
-  en_attente: "Non livrÃ©e",
+  en_attente: "Non livrée",
   en_route: "En route",
-  livre: "LivrÃ©e",
-  non_recupere: "Non rÃ©cupÃ©rÃ©e",
-  recupere: "RÃ©cupÃ©rÃ©e",
+  livre: "Livrée",
+  non_recupere: "Non récupérée",
+  recupere: "Récupérée",
+  annulee: "Annulée",
 };
 
 function estTerminee(c: Commande) {
   return c.statut === "livre" || c.statut === "recupere";
 }
 
+function estAnnulee(c: Commande) {
+  return c.statut === "annulee";
+}
+
+function peutEtreRefusee(c: Commande) {
+  return c.statut === "en_attente" || c.statut === "non_recupere";
+}
+
 function prochainStatut(c: Commande): StatutCommande | null {
+  if (estAnnulee(c)) return null;
   if (!c.avec_livraison) {
     return c.statut === "non_recupere" ? "recupere" : null;
   }
@@ -44,7 +54,7 @@ function prochainStatut(c: Commande): StatutCommande | null {
 }
 
 type FiltreType = "tous" | "avec_livraison" | "a_recuperer";
-type FiltreStatut = "tous" | "non_terminee" | "terminee";
+type FiltreStatut = "tous" | "non_terminee" | "terminee" | "annulee";
 
 export default function CommandesTab({ fournisseurId }: { fournisseurId: number }) {
   const { showToast } = useToast();
@@ -105,9 +115,23 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
     try {
       await updateCommandeStatut(c.id, suivant);
       setCommandes((prev) => prev.map((x) => (x.id === c.id ? { ...x, statut: suivant } : x)));
-      showToast(`Commande #${c.id} â†’ ${LABELS[suivant]}`, "success");
+      showToast(`Commande #${c.id} → ${LABELS[suivant]}`, "success");
     } catch (err) {
-      showToast(err instanceof ApiError ? err.message : "Impossible de mettre Ã  jour le statut.", "error");
+      showToast(err instanceof ApiError ? err.message : "Impossible de mettre à jour le statut.", "error");
+    } finally {
+      setMajEnCours(null);
+    }
+  }
+
+  async function refuser(c: Commande) {
+    if (!window.confirm(`Refuser la commande #${c.id} ? Le client verra qu'elle a été annulée.`)) return;
+    setMajEnCours(c.id);
+    try {
+      await updateCommandeStatut(c.id, "annulee");
+      setCommandes((prev) => prev.map((x) => (x.id === c.id ? { ...x, statut: "annulee" } : x)));
+      showToast(`Commande #${c.id} refusée`, "info");
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : "Impossible de refuser la commande.", "error");
     } finally {
       setMajEnCours(null);
     }
@@ -119,7 +143,7 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
     try {
       await supprimerCommande(suppressionCommande.id);
       setCommandes((prev) => prev.filter((x) => x.id !== suppressionCommande.id));
-      showToast(`Commande #${suppressionCommande.id} dÃ©placÃ©e vers la corbeille`, "success");
+      showToast(`Commande #${suppressionCommande.id} déplacée vers la corbeille`, "success");
       setSuppressionCommande(null);
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : "Impossible de supprimer la commande.", "error");
@@ -134,7 +158,7 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
       await restaurerCommande(c.id);
       setCorbeille((prev) => prev.filter((x) => x.id !== c.id));
       setCommandes((prev) => [c, ...prev]);
-      showToast(`Commande #${c.id} restaurÃ©e`, "success");
+      showToast(`Commande #${c.id} restaurée`, "success");
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : "Impossible de restaurer la commande.", "error");
     } finally {
@@ -146,9 +170,9 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
     const livreur = livreurs.find((l) => l.id === livreurId);
     try {
       await assignerLivreur(c.id, livreurId);
-      // Le vrai backend passe automatiquement le statut Ã  "en_route" Ã  l'assignation.
+      // Le vrai backend passe automatiquement le statut à "en_route" à l'assignation.
       setCommandes((prev) => prev.map((x) => (x.id === c.id ? { ...x, livreur_id: livreurId, livreur_nom: livreur?.nom, statut: "en_route" } : x)));
-      showToast(`${livreur?.nom || "Livreur"} assignÃ© Ã  la commande #${c.id}`, "success");
+      showToast(`${livreur?.nom || "Livreur"} assigné à la commande #${c.id}`, "success");
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : "Impossible d'assigner ce livreur.", "error");
     }
@@ -157,12 +181,12 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
   async function imprimer(c: Commande) {
     let fraisLivraison = "";
     if (c.avec_livraison) {
-      const saisie = window.prompt("Prix de livraison Ã  insÃ©rer sur le bon (DA) :", "");
+      const saisie = window.prompt("Prix de livraison à insérer sur le bon (DA) :", "");
       if (saisie === null) return;
       fraisLivraison = saisie;
     }
 
-    // Largeur d'imprimante ticket â€” les deux standards du marchÃ© sont 58mm et
+    // Largeur d'imprimante ticket — les deux standards du marché sont 58mm et
     // 80mm. On ne demande qu'une fois, puis on retient le choix.
     let largeur = localStorage.getItem("qreeb_largeur_imprimante");
     if (!largeur) {
@@ -183,7 +207,7 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
     }
     const win = window.open("", "_blank", "width=380,height=640");
     if (!win) {
-      showToast("Le navigateur a bloquÃ© la fenÃªtre d'impression. Autorisez les popups pour ce site puis rÃ©essayez.", "error");
+      showToast("Le navigateur a bloqué la fenêtre d'impression. Autorisez les popups pour ce site puis réessayez.", "error");
       return;
     }
     const fraisNum = fraisLivraison ? Number(fraisLivraison) || 0 : 0;
@@ -197,7 +221,7 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
         (p) => `
         <div class="item">
           <div class="item-top">
-            <span class="item-qty">${p.quantite}Ã—</span>
+            <span class="item-qty">${p.quantite}×</span>
             <span class="item-nom">${p.nom}</span>
             <span class="item-prix">${formatPrix((p.prix_unitaire || 0) * p.quantite)}</span>
           </div>
@@ -206,7 +230,7 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
       .join("");
 
     win.document.write(`
-      <html><head><title>Commande #${c.id} â€” ${c.commerce_nom || "QREEB"}</title>
+      <html><head><title>Commande #${c.id} — ${c.commerce_nom || "QREEB"}</title>
       <meta charset="utf-8" />
       <style>
         @page { size: ${mm}mm auto; margin: 3mm; }
@@ -277,10 +301,10 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
           <div class="meta-row"><span class="meta-label">Date</span><span class="meta-value">${dateTexte}</span></div>
           <div class="meta-row"><span class="meta-label">Heure</span><span class="meta-value">${heureTexte}</span></div>
           <div class="meta-row"><span class="meta-label">Client</span><span class="meta-value">${c.acheteur_nom || ""}</span></div>
-          <div class="meta-row"><span class="meta-label">TÃ©lÃ©phone</span><span class="meta-value">${c.acheteur_telephone || ""}</span></div>
+          <div class="meta-row"><span class="meta-label">Téléphone</span><span class="meta-value">${c.acheteur_telephone || ""}</span></div>
 
           <div style="text-align:center;">
-            <span class="badge-mode">${c.avec_livraison ? "ðŸš² LIVRAISON" : "ðŸª Ã€ EMPORTER"}</span>
+            <span class="badge-mode">${c.avec_livraison ? "🚲 LIVRAISON" : "🏪 À RÉCUPÉRER"}</span>
           </div>
 
           ${c.code_confirmation ? `
@@ -291,8 +315,8 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
 
           <hr class="divider" />
 
-          <div class="section-title">DÃ©tail de la commande</div>
-          ${lignesProduits || '<p style="color:#8a93a6; font-size:12px;">DÃ©tail des produits indisponible.</p>'}
+          <div class="section-title">Détail de la commande</div>
+          ${lignesProduits || '<p style="color:#8a93a6; font-size:12px;">Détail des produits indisponible.</p>'}
 
           <hr class="divider" />
 
@@ -308,7 +332,7 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
 
           <div class="footer">
             <p class="merci">Merci pour votre commande !</p>
-            <p>via QREEB â€” orania.dz</p>
+            <p>via QREEB</p>
           </div>
         </div>
       </body></html>
@@ -323,13 +347,14 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
     if (filtreType === "avec_livraison") liste = liste.filter((c) => c.avec_livraison);
     if (filtreType === "a_recuperer") liste = liste.filter((c) => !c.avec_livraison);
     if (filtreStatut === "terminee") liste = liste.filter(estTerminee);
-    if (filtreStatut === "non_terminee") liste = liste.filter((c) => !estTerminee(c));
+    if (filtreStatut === "non_terminee") liste = liste.filter((c) => !estTerminee(c) && !estAnnulee(c));
+    if (filtreStatut === "annulee") liste = liste.filter(estAnnulee);
     if (jour) liste = liste.filter((c) => c.created_at && c.created_at.slice(0, 10) === jour);
     return liste;
   }, [commandes, filtreType, filtreStatut, jour]);
 
-  // Seules les commandes rÃ©ellement abouties (livrÃ©es/rÃ©cupÃ©rÃ©es) comptent dans le
-  // total affichÃ© â€” une commande en attente ou refusÃ©e ne doit pas gonfler le chiffre.
+  // Seules les commandes réellement abouties (livrées/récupérées) comptent dans le
+  // total affiché — une commande en attente ou refusée ne doit pas gonfler le chiffre.
   const commandesTerminees = resultats.filter(estTerminee);
   const totalAffiche = commandesTerminees.reduce((s, c) => s + (c.prix_total || 0), 0);
 
@@ -353,7 +378,7 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
           <Wallet2 size={18} />
         </span>
         <div className="flex-1">
-          <p className="text-xs text-white/60">Total livrÃ©/rÃ©cupÃ©rÃ© ({commandesTerminees.length} commande{commandesTerminees.length > 1 ? "s" : ""})</p>
+          <p className="text-xs text-white/60">Total livré/récupéré ({commandesTerminees.length} commande{commandesTerminees.length > 1 ? "s" : ""})</p>
           <p className="font-bold text-lg text-white">{formatPrix(totalAffiche)}</p>
         </div>
       </div>
@@ -362,8 +387,8 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
         <div className="flex gap-2 overflow-x-auto scroll-row">
           {([
             { key: "tous", label: "Tous" },
-            { key: "avec_livraison", label: "ðŸš² Livraison" },
-            { key: "a_recuperer", label: "ðŸª Ã€ emporter" },
+            { key: "avec_livraison", label: "🚲 Livraison" },
+            { key: "a_recuperer", label: "🏪 À récupérer" },
           ] as const).map((f) => (
             <button
               key={f.key}
@@ -378,7 +403,8 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
           {([
             { key: "tous", label: "Tous statuts" },
             { key: "non_terminee", label: "En cours" },
-            { key: "terminee", label: "TerminÃ©es" },
+            { key: "terminee", label: "Terminées" },
+            { key: "annulee", label: "Annulées" },
           ] as const).map((f) => (
             <button key={f.key} onClick={() => setFiltreStatut(f.key)} className={`shrink-0 px-3 py-2 rounded-full text-xs font-semibold border ${filtreStatut === f.key ? "bg-[var(--color-orange-500)] text-white border-[var(--color-orange-500)]" : "bg-white text-[var(--color-ink-700)] border-[var(--color-ink-100)]"}`}>
               {f.label}
@@ -387,7 +413,7 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
           <div className="flex items-center gap-1.5 shrink-0 bg-white border border-[var(--color-ink-100)] rounded-full pl-3 pr-1 py-1">
             <Calendar size={13} className="text-[var(--color-ink-500)]" />
             <input type="date" value={jour} onChange={(e) => setJour(e.target.value)} className="text-xs outline-none bg-transparent" />
-            {jour && <button onClick={() => setJour("")} className="text-xs text-[var(--color-ink-500)] px-1">âœ•</button>}
+            {jour && <button onClick={() => setJour("")} className="text-xs text-[var(--color-ink-500)] px-1">✕</button>}
           </div>
         </div>
         <button
@@ -414,17 +440,17 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
               <div key={c.id} className={`bg-white rounded-2xl border p-4 ${afficherCorbeille ? "border-[var(--color-ink-100)] opacity-70" : "border-[var(--color-ink-100)]"}`}>
                 <div className="flex items-center justify-between">
                   <p className="font-bold text-[var(--color-ink-900)]">Commande #{c.id}</p>
-                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${afficherCorbeille ? "bg-red-50 text-red-600" : termine ? "bg-[var(--color-green-100)] text-[var(--color-green-600)]" : "bg-[var(--color-orange-100)] text-[var(--color-orange-600)]"}`}>
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${afficherCorbeille || estAnnulee(c) ? "bg-red-50 text-red-600" : termine ? "bg-[var(--color-green-100)] text-[var(--color-green-600)]" : "bg-[var(--color-orange-100)] text-[var(--color-orange-600)]"}`}>
                     {LABELS[c.statut] || c.statut}
                   </span>
                 </div>
 
                 <span className={`inline-flex items-center gap-1.5 mt-2 text-xs font-bold px-3 py-1.5 rounded-full border-2 ${c.avec_livraison ? "border-[var(--color-navy-900)] text-[var(--color-navy-900)] bg-[var(--color-navy-900)]/5" : "border-[var(--color-pink-500)] text-[var(--color-pink-600)] bg-[var(--color-pink-100)]"}`}>
                   {c.avec_livraison ? <Bike size={13} /> : <StoreIcon size={13} />}
-                  {c.avec_livraison ? "Ã€ LIVRER" : "Ã€ RÃ‰CUPÃ‰RER"}
+                  {c.avec_livraison ? "À LIVRER" : "À RÉCUPÉRER"}
                 </span>
 
-                <p className="text-sm text-[var(--color-ink-700)] mt-2">{c.acheteur_nom} Â· {c.acheteur_telephone}</p>
+                <p className="text-sm text-[var(--color-ink-700)] mt-2">{c.acheteur_nom} · {c.acheteur_telephone}</p>
                 {c.code_confirmation && (
                   <p className="text-xs text-[var(--color-ink-500)] mt-1">
                     Code de confirmation : <span className="font-bold tracking-wider text-[var(--color-ink-900)]">{c.code_confirmation}</span>
@@ -432,18 +458,18 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
                 )}
 
                 <button onClick={() => toggleDetails(c)} className="flex items-center gap-1 text-xs font-semibold text-[var(--color-navy-700)] mt-2">
-                  DÃ©tail des produits <ChevronDown size={13} className={details ? "rotate-180" : ""} />
+                  Détail des produits <ChevronDown size={13} className={details ? "rotate-180" : ""} />
                 </button>
                 {details === "chargement" ? (
                   <p className="text-xs text-[var(--color-ink-500)] mt-1">Chargement...</p>
                 ) : Array.isArray(details) ? (
                   <div className="mt-2 bg-[var(--color-ink-50)] rounded-xl p-2.5 flex flex-col gap-1">
                     {details.length === 0 ? (
-                      <p className="text-xs text-[var(--color-ink-500)]">DÃ©tail indisponible.</p>
+                      <p className="text-xs text-[var(--color-ink-500)]">Détail indisponible.</p>
                     ) : (
                       details.map((p, i) => (
                         <div key={i} className="flex justify-between text-sm text-[var(--color-ink-700)]">
-                          <span>{p.quantite} Ã— {p.nom}</span>
+                          <span>{p.quantite} × {p.nom}</span>
                           <span className="font-medium">{formatPrix((p.prix_unitaire || 0) * p.quantite)}</span>
                         </div>
                       ))
@@ -458,7 +484,7 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
 
                 {c.avec_livraison && c.livreur_nom && (
                   <p className="flex items-center gap-1.5 mt-2 text-xs font-semibold text-[var(--color-pink-600)]">
-                    <Bike size={13} /> Livreur assignÃ© : {c.livreur_nom}
+                    <Bike size={13} /> Livreur assigné : {c.livreur_nom}
                   </p>
                 )}
 
@@ -488,7 +514,7 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
                           disabled={livreurs.length === 0}
                           className="flex-1 text-xs bg-[var(--color-ink-50)] border border-[var(--color-ink-100)] rounded-lg px-2 outline-none disabled:opacity-50"
                         >
-                          <option value="" disabled>{livreurs.length === 0 ? "Aucun livreur â€” ajoutez-en un dans l'onglet Livreurs" : "ðŸš´ Assigner un livreur"}</option>
+                          <option value="" disabled>{livreurs.length === 0 ? "Aucun livreur — ajoutez-en un dans l'onglet Livreurs" : "🚴 Assigner un livreur"}</option>
                           {livreurs.map((l) => (
                             <option key={l.id} value={l.id}>{l.nom}</option>
                           ))}
@@ -503,11 +529,18 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
                       </button>
                     </div>
 
-                    {suivant && (
-                      <Button size="sm" fullWidth className="mt-2" onClick={() => avancer(c)} loading={majEnCours === c.id}>
-                        Marquer Â« {LABELS[suivant]} Â»
-                      </Button>
-                    )}
+                    <div className="flex gap-2 mt-2">
+                      {peutEtreRefusee(c) && (
+                        <Button variant="outline" size="sm" onClick={() => refuser(c)} loading={majEnCours === c.id}>
+                          Refuser
+                        </Button>
+                      )}
+                      {suivant && (
+                        <Button size="sm" fullWidth onClick={() => avancer(c)} loading={majEnCours === c.id}>
+                          Marquer « {LABELS[suivant]} »
+                        </Button>
+                      )}
+                    </div>
                   </>
                 )}
               </div>
@@ -528,7 +561,7 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
         {suppressionCommande && (
           <div>
             <p className="text-sm text-[var(--color-ink-700)] mb-4">
-              La commande <strong>#{suppressionCommande.id}</strong> sera dÃ©placÃ©e vers la corbeille â€” restaurable Ã  tout moment.
+              La commande <strong>#{suppressionCommande.id}</strong> sera déplacée vers la corbeille — restaurable à tout moment.
             </p>
             <div className="flex gap-2">
               <Button variant="outline" fullWidth onClick={() => setSuppressionCommande(null)}>Annuler</Button>
@@ -540,4 +573,3 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
     </div>
   );
 }
-
