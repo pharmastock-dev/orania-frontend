@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, SearchX, Search as SearchIcon, LocateFixed, MapPin } from "lucide-react";
 import ClientHeader from "../components/ClientHeader";
 import FilterBar, { type Tri, type FiltreMulti } from "../components/FilterBar";
@@ -26,8 +26,8 @@ export default function ClientHomePage() {
   const [procheLoading, setProcheLoading] = useState(false);
 
   // La position est OBLIGATOIRE pour voir les commerces (distance, tri "proches",
-  // temps de livraison estimé partout dans l'app en dépendent). Tant qu'elle
-  // n'est pas activée, on affiche un écran de blocage au lieu de la liste.
+  // temps de livraison estimÃ© partout dans l'app en dÃ©pendent). Tant qu'elle
+  // n'est pas activÃ©e, on affiche un Ã©cran de blocage au lieu de la liste.
   const [demandePositionEnCours, setDemandePositionEnCours] = useState(false);
   const [erreurPosition, setErreurPosition] = useState<string | null>(null);
 
@@ -82,8 +82,8 @@ export default function ClientHomePage() {
   }, [position]);
 
   const resultats = useMemo(() => {
-    // Un commerce pas encore validé par l'admin (ou suspendu) ne doit jamais
-    // apparaître côté client, même si le backend le renvoie dans la liste brute.
+    // Un commerce pas encore validÃ© par l'admin (ou suspendu) ne doit jamais
+    // apparaÃ®tre cÃ´tÃ© client, mÃªme si le backend le renvoie dans la liste brute.
     let liste = fournisseurs.filter((f) => f.valide !== false && f.actif !== false);
 
     if (categorie !== "tous") {
@@ -122,7 +122,7 @@ export default function ClientHomePage() {
     return liste;
   }, [fournisseurs, categorie, recherche, filtresActifs, tri, position]);
 
-  // ---- Écran de blocage tant que la position n'est pas activée ----
+  // ---- Ã‰cran de blocage tant que la position n'est pas activÃ©e ----
   if (!position) {
     return (
       <div className="min-h-screen bg-[var(--color-ink-50)] flex flex-col">
@@ -136,13 +136,13 @@ export default function ClientHomePage() {
             </span>
             <h1 className="font-display font-bold text-lg text-[var(--color-ink-900)] mt-4">Activez votre position</h1>
             <p className="text-[var(--color-ink-500)] mt-2">
-              Orania a besoin de votre position pour vous montrer les commerces proches de chez vous, avec la distance et le temps de livraison estimé.
+              QREEB a besoin de votre position pour vous montrer les commerces proches de chez vous, avec la distance et le temps de livraison estimÃ©.
             </p>
 
             {erreurPosition && (
               <div className="w-full flex items-start gap-2 bg-red-50 text-red-700 text-sm rounded-xl px-3.5 py-3 mt-4 text-left">
                 <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-                <span>{erreurPosition} Vérifiez que la localisation est autorisée pour ce site dans les réglages de votre navigateur ou de votre téléphone, puis réessayez.</span>
+                <span>{erreurPosition} VÃ©rifiez que la localisation est autorisÃ©e pour ce site dans les rÃ©glages de votre navigateur ou de votre tÃ©lÃ©phone, puis rÃ©essayez.</span>
               </div>
             )}
 
@@ -203,12 +203,12 @@ export default function ClientHomePage() {
         ) : resultats.length === 0 ? (
           <EmptyState
             icon={<SearchX size={36} />}
-            title="Aucun commerce trouvé"
-            description="Essayez une autre recherche, catégorie ou filtre."
+            title="Aucun commerce trouvÃ©"
+            description="Essayez une autre recherche, catÃ©gorie ou filtre."
           />
         ) : (
           <>
-            <p className="text-sm text-[var(--color-ink-500)]">{resultats.length} résultat{resultats.length > 1 ? "s" : ""}</p>
+            <p className="text-sm text-[var(--color-ink-500)]">{resultats.length} rÃ©sultat{resultats.length > 1 ? "s" : ""}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {resultats.map((f) => (
                 <StoreCard key={f.id} fournisseur={f} positionClient={position} />
@@ -220,3 +220,4 @@ export default function ClientHomePage() {
     </div>
   );
 }
+

@@ -1,8 +1,8 @@
-import { CapacitorConfig } from '@capacitor/cli';
+﻿import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.orania.app',
-  appName: 'Orania',
+  appName: 'QREEB',
   webDir: 'dist',
   server: {
     androidScheme: 'https'

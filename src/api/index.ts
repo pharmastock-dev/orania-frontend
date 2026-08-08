@@ -1,22 +1,22 @@
-// ============================================================
-// QREEB — Couche API
-// Alignée sur le VRAI backend en production : orania-backend
-// (FastAPI + PostgreSQL/Neon + Cloudinary + bcrypt, déployé sur Render).
-// Le backend utilise des noms de champs différents des nôtres à certains
-// endroits (image_url, presentation, nb_avis...) — on les normalise ici
-// pour que le reste de l'app garde des noms cohérents (photo, description,
+﻿// ============================================================
+// QREEB â€” Couche API
+// AlignÃ©e sur le VRAI backend en production : backend
+// (FastAPI + PostgreSQL/Neon + Cloudinary + bcrypt, dÃ©ployÃ© sur Render).
+// Le backend utilise des noms de champs diffÃ©rents des nÃ´tres Ã  certains
+// endroits (image_url, presentation, nb_avis...) â€” on les normalise ici
+// pour que le reste de l'app garde des noms cohÃ©rents (photo, description,
 // avis_count...) sans rien changer ailleurs.
 // ============================================================
 
 import { http, BASE_URL, CLE_TOKEN_ADMIN } from "./client";
 import type { Fournisseur, Produit, Commande, Avis, Livreur, Statistiques, StatutCommande, Reclamation, LigneCommande } from "../types";
 
-// ---------- Santé ----------
+// ---------- SantÃ© ----------
 export const checkHealth = () => http.get<{ status: string }>("/health");
 
 // ============================================================
-// Normalisation — le backend renvoie image_url/presentation/nb_avis,
-// on retravaille ça en photo/description/avis_count une fois pour toutes.
+// Normalisation â€” le backend renvoie image_url/presentation/nb_avis,
+// on retravaille Ã§a en photo/description/avis_count une fois pour toutes.
 // ============================================================
 function normaliserFournisseur(raw: any): Fournisseur {
   return {
@@ -35,10 +35,10 @@ function normaliserProduit(raw: any): Produit {
   };
 }
 
-// ---------- Authentification commerçant ----------
-// IMPORTANT : deux routes bien distinctes côté vrai backend —
-// POST /fournisseurs pour CRÉER un compte (nécessite validation admin après),
-// POST /login/fournisseur pour SE CONNECTER à un compte déjà validé.
+// ---------- Authentification commerÃ§ant ----------
+// IMPORTANT : deux routes bien distinctes cÃ´tÃ© vrai backend â€”
+// POST /fournisseurs pour CRÃ‰ER un compte (nÃ©cessite validation admin aprÃ¨s),
+// POST /login/fournisseur pour SE CONNECTER Ã  un compte dÃ©jÃ  validÃ©.
 export interface FournisseurSession {
   id: number;
   nom: string;
@@ -82,13 +82,13 @@ export const loginFournisseur = async (telephone: string, mot_de_passe: string) 
 };
 
 // ---------- Authentification client ----------
-// "Trouver ou créer" par téléphone, aucun mot de passe côté client.
+// "Trouver ou crÃ©er" par tÃ©lÃ©phone, aucun mot de passe cÃ´tÃ© client.
 export const loginClient = (nom: string, telephone: string) =>
   http.post<{ succes: boolean; id: number; nom: string; telephone: string }>("/client/login", { nom, telephone });
 
 // ---------- Fournisseurs (commerces) ----------
-// GET /fournisseurs ne renvoie QUE les commerces validés + abonnement actif
-// (filtré côté serveur) — inutile de refiltrer côté client.
+// GET /fournisseurs ne renvoie QUE les commerces validÃ©s + abonnement actif
+// (filtrÃ© cÃ´tÃ© serveur) â€” inutile de refiltrer cÃ´tÃ© client.
 export const getFournisseurs = async () => {
   const liste = await http.get<any[]>("/fournisseurs");
   return liste.map(normaliserFournisseur);
@@ -101,7 +101,7 @@ export const getFournisseurInfos = async (fournisseurId: number) => {
 };
 
 export const updateFournisseur = (fournisseurId: number, data: Partial<Fournisseur>) => {
-  // On retraduit vers les noms réels attendus par PUT /fournisseurs/{id}/infos.
+  // On retraduit vers les noms rÃ©els attendus par PUT /fournisseurs/{id}/infos.
   const payload: any = { ...data };
   if ("description" in data) {
     payload.presentation = data.description;
@@ -117,7 +117,7 @@ export const getProduits = async (fournisseurId: number) => {
   return liste.map(normaliserProduit);
 };
 
-// ATTENTION : POST /produits (route À PLAT, PAS nichée sous /fournisseurs/{id}/produits).
+// ATTENTION : POST /produits (route Ã€ PLAT, PAS nichÃ©e sous /fournisseurs/{id}/produits).
 export const createProduit = async (fournisseurId: number, data: { nom: string; prix: number; prix_promo?: number | null; categorie: string; ingredients?: string; disponible?: boolean }) => {
   const raw = await http.post<any>("/produits", { fournisseur_id: fournisseurId, ...data });
   return normaliserProduit(raw);
@@ -164,7 +164,7 @@ export const updateCommandeStatut = (commandeId: number, statut: StatutCommande)
 export const assignerLivreur = (commandeId: number, livreurId: number) =>
   http.put<{ succes: boolean; message?: string; statut?: string }>(`/commandes/${commandeId}/assigner`, { livreur_id: livreurId });
 
-// Suppression douce (le vrai backend n'a PAS de DELETE ici) — restaurable.
+// Suppression douce (le vrai backend n'a PAS de DELETE ici) â€” restaurable.
 export const supprimerCommande = (commandeId: number) => http.put<{ succes: boolean }>(`/commandes/${commandeId}/supprimer`);
 export const restaurerCommande = (commandeId: number) => http.put<{ succes: boolean }>(`/commandes/${commandeId}/restaurer`);
 
@@ -190,9 +190,9 @@ function normaliserCommandeFournisseur(raw: any): Commande {
   };
 }
 
-// Le vrai backend ne distingue pas "en cours" / "terminées" — seulement
-// actives (corbeille=false, par défaut) vs supprimées (corbeille=true).
-// On récupère les actives et on filtre nous-mêmes par statut si besoin.
+// Le vrai backend ne distingue pas "en cours" / "terminÃ©es" â€” seulement
+// actives (corbeille=false, par dÃ©faut) vs supprimÃ©es (corbeille=true).
+// On rÃ©cupÃ¨re les actives et on filtre nous-mÃªmes par statut si besoin.
 export const getCommandesFournisseur = async (fournisseurId: number) => {
   const liste = await http.get<any[]>(`/fournisseurs/${fournisseurId}/commandes?corbeille=false`);
   return liste.map(normaliserCommandeFournisseur);
@@ -203,11 +203,11 @@ export const getCommandesFournisseurCorbeille = async (fournisseurId: number) =>
   return liste.map(normaliserCommandeFournisseur);
 };
 
-// Détail des produits d'une commande CÔTÉ COMMERÇANT (pas embarqué dans la
-// liste ci-dessus, contrairement à la liste acheteur).
+// DÃ©tail des produits d'une commande CÃ”TÃ‰ COMMERÃ‡ANT (pas embarquÃ© dans la
+// liste ci-dessus, contrairement Ã  la liste acheteur).
 export const getProduitsCommande = (commandeId: number) => http.get<LigneCommande[]>(`/commandes/${commandeId}/produits`);
 
-// Côté acheteur, les produits SONT déjà embarqués dans la réponse.
+// CÃ´tÃ© acheteur, les produits SONT dÃ©jÃ  embarquÃ©s dans la rÃ©ponse.
 export const getCommandesAcheteur = async (acheteurId: number) => {
   const liste = await http.get<any[]>(`/acheteurs/${acheteurId}/commandes`);
   return liste.map((raw) => ({
@@ -225,8 +225,8 @@ export const getCommandesAcheteur = async (acheteurId: number) => {
 };
 
 // ---------- Avis ----------
-// GET .../mon-avis renvoie { existe, id?, note?, commentaire? } — on ramène
-// ça à { note, commentaire } avec note=0 par défaut, comme le reste de l'app l'attend.
+// GET .../mon-avis renvoie { existe, id?, note?, commentaire? } â€” on ramÃ¨ne
+// Ã§a Ã  { note, commentaire } avec note=0 par dÃ©faut, comme le reste de l'app l'attend.
 export const getMonAvis = async (fournisseurId: number, acheteurId: number) => {
   const r = await http.get<{ existe: boolean; id?: number; note?: number; commentaire?: string }>(`/fournisseurs/${fournisseurId}/mon-avis/${acheteurId}`);
   return { note: r.existe ? r.note ?? 0 : 0, commentaire: r.existe ? r.commentaire ?? "" : "" };
@@ -236,7 +236,7 @@ export const postAvis = (data: Avis) => http.post<{ id: number; note: number; co
 
 export const getAvisFournisseur = (fournisseurId: number) => http.get<Avis[]>(`/fournisseurs/${fournisseurId}/avis`);
 
-// Le vrai backend appelle ça "évaluations", pas "avis", pour la liste d'un client.
+// Le vrai backend appelle Ã§a "Ã©valuations", pas "avis", pour la liste d'un client.
 export const getAvisAcheteur = async (acheteurId: number) => {
   const liste = await http.get<any[]>(`/acheteurs/${acheteurId}/evaluations`);
   return liste.map((r) => ({ id: r.id, note: r.note, commentaire: r.commentaire, fournisseur_id: r.fournisseur_id, fournisseur_nom: r.commerce_nom, acheteur_id: acheteurId })) as Avis[];
@@ -251,7 +251,7 @@ export const getStatistiques = (fournisseurId: number, periode: "jour" | "semain
 // ---------- Livreurs ----------
 export const getLivreurs = (fournisseurId: number) => http.get<Livreur[]>(`/fournisseurs/${fournisseurId}/livreurs`);
 
-// ATTENTION : POST /livreurs (À PLAT, pas nichée sous /fournisseurs/{id}/livreurs).
+// ATTENTION : POST /livreurs (Ã€ PLAT, pas nichÃ©e sous /fournisseurs/{id}/livreurs).
 export const creerLivreur = (fournisseurId: number, data: { nom: string; telephone?: string }) =>
   http.post<Livreur>("/livreurs", { fournisseur_id: fournisseurId, ...data });
 
@@ -259,8 +259,8 @@ export const supprimerLivreur = (livreurId: number) => http.del<{ succes: boolea
 
 // ---------- Admin ----------
 // Le vrai backend exige maintenant un jeton (POST /admin/login), plus de
-// simple code côté client. Le jeton est stocké en sessionStorage et ajouté
-// automatiquement (auth=true) à chaque appel admin.
+// simple code cÃ´tÃ© client. Le jeton est stockÃ© en sessionStorage et ajoutÃ©
+// automatiquement (auth=true) Ã  chaque appel admin.
 
 export const adminLogin = (motDePasse: string) =>
   http.post<{ succes: boolean; token?: string; message?: string }>("/admin/login", { mot_de_passe: motDePasse });
@@ -283,26 +283,26 @@ export const validerFournisseur = (fournisseurId: number) =>
 export const prolongerAbonnement = (fournisseurId: number) =>
   http.put<{ succes: boolean; abonnement_fin?: string; message?: string }>(`/admin/fournisseurs/${fournisseurId}/abonnement`, undefined, true);
 
-// Le vrai backend n'a pas de "suspendre/réactiver" séparés : désactiver met fin
-// à l'abonnement immédiatement, réactiver = reprolonger d'un an (même route que ci-dessus).
+// Le vrai backend n'a pas de "suspendre/rÃ©activer" sÃ©parÃ©s : dÃ©sactiver met fin
+// Ã  l'abonnement immÃ©diatement, rÃ©activer = reprolonger d'un an (mÃªme route que ci-dessus).
 export const desactiverFournisseur = (fournisseurId: number) =>
   http.put<{ succes: boolean; message?: string }>(`/admin/fournisseurs/${fournisseurId}/desactiver`, undefined, true);
 
 export const reactiverFournisseur = (fournisseurId: number) => prolongerAbonnement(fournisseurId);
 
-// Le vrai backend exige que l'admin choisisse LUI-MÊME le nouveau mot de passe
-// (pas de génération auto côté serveur) — l'appelant doit donc le demander avant.
+// Le vrai backend exige que l'admin choisisse LUI-MÃŠME le nouveau mot de passe
+// (pas de gÃ©nÃ©ration auto cÃ´tÃ© serveur) â€” l'appelant doit donc le demander avant.
 export const reinitialiserMotDePasse = (fournisseurId: number, nouveauMotDePasse: string) =>
   http.put<{ succes: boolean; message?: string }>(`/admin/fournisseurs/${fournisseurId}/motdepasse`, { nouveau_mot_de_passe: nouveauMotDePasse }, true);
 
-// Suppression DÉFINITIVE d'un commerce (ses produits + livreurs aussi).
-// Commandes et avis passés restent en base, orphelins, pour l'historique.
+// Suppression DÃ‰FINITIVE d'un commerce (ses produits + livreurs aussi).
+// Commandes et avis passÃ©s restent en base, orphelins, pour l'historique.
 export const supprimerFournisseurAdmin = (fournisseurId: number) =>
   http.del<{ succes: boolean; message?: string }>(`/admin/fournisseurs/${fournisseurId}`, true);
 
-// ---------- Réclamations ----------
-// Le vrai backend n'a ni "sujet" séparé, ni lien direct vers un fournisseur —
-// juste un message libre + les coordonnées de l'auteur.
+// ---------- RÃ©clamations ----------
+// Le vrai backend n'a ni "sujet" sÃ©parÃ©, ni lien direct vers un fournisseur â€”
+// juste un message libre + les coordonnÃ©es de l'auteur.
 export const creerReclamation = (data: Reclamation) =>
   http.post<{ succes: boolean; message?: string }>("/reclamations", {
     type_auteur: data.type_auteur,
@@ -324,3 +324,4 @@ export const enregistrerTokenAcheteur = (acheteurId: number, deviceToken: string
 
 export const enregistrerTokenFournisseur = (fournisseurId: number, deviceToken: string) =>
   http.post<{ succes: boolean }>(`/fournisseurs/${fournisseurId}/device-token`, { device_token: deviceToken });
+

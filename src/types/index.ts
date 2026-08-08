@@ -1,9 +1,9 @@
-// ============================================================
-// QREEB — Types centraux
-// Alignés sur le VRAI backend en production (orania-backend, Postgres +
-// Cloudinary + bcrypt, déployé sur Render). Certains champs bruts du backend
-// (image_url, presentation, nb_avis...) sont normalisés dans src/api/index.ts
-// vers ces noms-ci, pour que le reste de l'app n'ait rien à changer.
+﻿// ============================================================
+// QREEB â€” Types centraux
+// AlignÃ©s sur le VRAI backend en production (backend, Postgres +
+// Cloudinary + bcrypt, dÃ©ployÃ© sur Render). Certains champs bruts du backend
+// (image_url, presentation, nb_avis...) sont normalisÃ©s dans src/api/index.ts
+// vers ces noms-ci, pour que le reste de l'app n'ait rien Ã  changer.
 // ============================================================
 
 export interface Client {
@@ -52,10 +52,10 @@ export interface Produit {
 
 export type ModeReception = "livraison" | "retrait";
 
-// Statuts RÉELS acceptés par le vrai backend — pas de "en_cours" générique ni
-// d'"annulee" (n'existent pas côté serveur). Départ : en_attente (livraison)
-// ou non_recupere (retrait) ; en_route posé automatiquement à l'assignation
-// d'un livreur ; livre/recupere posés manuellement par le commerçant.
+// Statuts RÃ‰ELS acceptÃ©s par le vrai backend â€” pas de "en_cours" gÃ©nÃ©rique ni
+// d'"annulee" (n'existent pas cÃ´tÃ© serveur). DÃ©part : en_attente (livraison)
+// ou non_recupere (retrait) ; en_route posÃ© automatiquement Ã  l'assignation
+// d'un livreur ; livre/recupere posÃ©s manuellement par le commerÃ§ant.
 export type StatutCommande = "en_attente" | "en_route" | "livre" | "non_recupere" | "recupere" | "annulee";
 
 export interface LigneCommande {
@@ -80,13 +80,13 @@ export interface Commande {
   created_at?: string;
   produits?: LigneCommande[];
   supprime?: boolean;
-  // présent seulement sur GET /fournisseurs/{id}/commandes :
+  // prÃ©sent seulement sur GET /fournisseurs/{id}/commandes :
   acheteur_nom?: string;
   acheteur_telephone?: string;
   commerce_nom?: string;
   commerce_adresse?: string;
   commerce_tel?: string;
-  // présent seulement sur GET /acheteurs/{id}/commandes :
+  // prÃ©sent seulement sur GET /acheteurs/{id}/commandes :
   fournisseur_nom?: string;
 }
 
@@ -121,8 +121,8 @@ export interface Statistiques {
 
 export type AuteurReclamation = "client" | "fournisseur";
 
-// Le vrai backend n'a pas de champ "sujet" séparé ni de lien direct vers un
-// fournisseur précis — juste un message libre + coordonnées de l'auteur.
+// Le vrai backend n'a pas de champ "sujet" sÃ©parÃ© ni de lien direct vers un
+// fournisseur prÃ©cis â€” juste un message libre + coordonnÃ©es de l'auteur.
 export interface Reclamation {
   id?: number;
   type_auteur: AuteurReclamation;
@@ -139,7 +139,7 @@ export interface Coordonnees {
   longitude: number;
 }
 
-// ---- Panier (local, lié à un seul commerce) ----
+// ---- Panier (local, liÃ© Ã  un seul commerce) ----
 export interface CartItem {
   produit: Produit;
   quantite: number;
@@ -150,3 +150,4 @@ export interface Cart {
   fournisseurNom: string | null;
   items: CartItem[];
 }
+
