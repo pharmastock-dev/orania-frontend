@@ -161,6 +161,18 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
       if (saisie === null) return;
       fraisLivraison = saisie;
     }
+
+    // Largeur d'imprimante ticket — les deux standards du marché sont 58mm et
+    // 80mm. On ne demande qu'une fois, puis on retient le choix.
+    let largeur = localStorage.getItem("qreeb_largeur_imprimante");
+    if (!largeur) {
+      const choix = window.prompt("Largeur de votre imprimante ticket : tapez 58 ou 80 (en mm)", "80");
+      largeur = choix === "58" ? "58" : "80";
+      localStorage.setItem("qreeb_largeur_imprimante", largeur);
+    }
+    const mm = largeur === "58" ? 58 : 80;
+    const tailleBase = mm === 58 ? 11 : 13;
+
     let lignes = detailsOuverts[c.id];
     if (!lignes || lignes === "chargement") {
       try {
@@ -176,32 +188,129 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
     }
     const fraisNum = fraisLivraison ? Number(fraisLivraison) || 0 : 0;
     const totalAvecLivraison = c.prix_total + fraisNum;
+    const date = c.created_at ? new Date(c.created_at) : null;
+    const dateTexte = date ? date.toLocaleDateString("fr-FR") : "";
+    const heureTexte = date ? date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "";
+
     const lignesProduits = (Array.isArray(lignes) ? lignes : [])
-      .map((p) => `<div class="ligne"><span>${p.quantite} × ${p.nom}</span><span>${formatPrix((p.prix_unitaire || 0) * p.quantite)}</span></div>`)
+      .map(
+        (p) => `
+        <div class="item">
+          <div class="item-top">
+            <span class="item-qty">${p.quantite}×</span>
+            <span class="item-nom">${p.nom}</span>
+            <span class="item-prix">${formatPrix((p.prix_unitaire || 0) * p.quantite)}</span>
+          </div>
+        </div>`
+      )
       .join("");
+
     win.document.write(`
-      <html><head><title>Commande #${c.id}</title>
+      <html><head><title>Commande #${c.id} — ${c.commerce_nom || "Orania"}</title>
+      <meta charset="utf-8" />
       <style>
-        @page { margin: 8mm; }
-        body { font-family: -apple-system, sans-serif; padding: 10px; font-size: 14px; color: #131a2b; }
-        h2 { margin: 0 0 2px 0; font-size: 18px; }
-        .slogan { color: #6b7280; font-size: 11px; margin: 0 0 14px 0; }
-        p { margin: 4px 0; }
-        .ligne { display: flex; justify-content: space-between; border-bottom: 1px dashed #ddd; padding: 6px 0; }
-        .tot { font-weight: bold; font-size: 16px; border-top: 2px solid #131a2b; margin-top: 10px; padding-top: 10px; display: flex; justify-content: space-between; }
-        .badge { display: inline-block; background: #eef0f4; padding: 2px 8px; border-radius: 10px; font-size: 12px; margin-top: 4px; }
+        @page { size: ${mm}mm auto; margin: 3mm; }
+        * { box-sizing: border-box; }
+        body {
+          font-family: 'Segoe UI', -apple-system, sans-serif;
+          padding: 0; margin: 0;
+          color: #131a2b;
+          width: ${mm}mm;
+          font-size: ${tailleBase}px;
+        }
+        .receipt { padding: 3mm; }
+        .logo { display: block; margin: 0 auto 4px; height: ${mm === 58 ? 30 : 38}px; object-fit: contain; }
+        .header { text-align: center; margin-bottom: 8px; }
+        .header .commerce-nom {
+          margin: 0; font-size: ${tailleBase + 6}px; font-weight: 800;
+          letter-spacing: 0.3px; color: #131a2b; line-height: 1.15;
+        }
+        .header .via { margin: 2px 0 0; font-size: ${tailleBase - 2}px; color: #8a93a6; }
+        .commerce-infos { text-align: center; font-size: ${tailleBase - 2}px; color: #4b5563; margin-top: 4px; line-height: 1.5; }
+        .divider { border: none; border-top: 1.5px dashed #c7cdd8; margin: 10px 0; }
+        .divider-solid { border: none; border-top: 2px solid #131a2b; margin: 8px 0; }
+        .meta-row { display: flex; justify-content: space-between; font-size: ${tailleBase - 1}px; margin: 3px 0; }
+        .meta-label { color: #8a93a6; }
+        .meta-value { font-weight: 600; text-align: right; }
+        .badge-mode {
+          display: inline-block; margin-top: 6px;
+          padding: 4px 12px; border-radius: 20px;
+          font-size: ${tailleBase - 2}px; font-weight: 700; letter-spacing: 0.3px;
+          background: #fff2e8; color: #d9611a;
+        }
+        .code-box {
+          margin-top: 10px; padding: 8px 10px;
+          background: #f4f6f9; border-radius: 8px;
+          text-align: center;
+        }
+        .code-box .label { font-size: ${tailleBase - 3}px; color: #8a93a6; text-transform: uppercase; letter-spacing: 0.5px; }
+        .code-box .code { font-size: ${tailleBase + 5}px; font-weight: 800; letter-spacing: 4px; color: #131a2b; margin-top: 2px; }
+        .section-title { font-size: ${tailleBase - 3}px; font-weight: 700; color: #8a93a6; text-transform: uppercase; letter-spacing: 0.5px; margin: 12px 0 6px; }
+        .item { padding: 4px 0; }
+        .item-top { display: flex; align-items: baseline; gap: 6px; }
+        .item-qty { font-weight: 700; color: #d9611a; flex-shrink: 0; min-width: 20px; }
+        .item-nom { flex: 1; }
+        .item-prix { font-weight: 600; white-space: nowrap; }
+        .sous-total-row { display: flex; justify-content: space-between; font-size: ${tailleBase - 1}px; padding: 3px 0; color: #4b5563; }
+        .total-row { display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px; }
+        .total-row .label { font-size: ${tailleBase}px; font-weight: 700; }
+        .total-row .value { font-size: ${tailleBase + 9}px; font-weight: 800; color: #131a2b; }
+        .footer { text-align: center; margin-top: 14px; font-size: ${tailleBase - 2}px; color: #8a93a6; }
+        .footer .merci { font-size: ${tailleBase + 1}px; font-weight: 700; color: #131a2b; margin-bottom: 2px; }
+        .footer p { margin: 2px 0; }
       </style>
       </head><body>
-      <h2>QREEB</h2>
-      <p class="slogan">Tout près, tout simplement.</p>
-      <p><strong>Commande #${c.id}</strong></p>
-      <p>${c.acheteur_nom || ""} — ${c.acheteur_telephone || ""}</p>
-      ${c.code_confirmation ? `<p>Code de confirmation : <strong>${c.code_confirmation}</strong></p>` : ""}
-      <span class="badge">${c.avec_livraison ? "🚲 Livraison" : "🏪 À emporter"}</span>
-      <p style="color:#6b7280; font-size:12px;">${c.created_at ? new Date(c.created_at).toLocaleString("fr-FR") : ""}</p>
-      ${lignesProduits || '<p style="color:#6b7280;">Détail des produits indisponible.</p>'}
-      ${c.avec_livraison ? `<div class="ligne"><span>Frais de livraison</span><span>${fraisNum} DA</span></div>` : ""}
-      <div class="tot"><span>TOTAL</span><span>${c.avec_livraison ? formatPrix(totalAvecLivraison) : formatPrix(c.prix_total)}</span></div>
+        <div class="receipt">
+          <div class="header">
+            <img class="logo" src="/logo-orania.png" alt="" onerror="this.style.display='none'" />
+            <p class="commerce-nom">${c.commerce_nom || "Commerce"}</p>
+            <p class="via">via Orania</p>
+            <div class="commerce-infos">
+              ${c.commerce_adresse ? `<div>${c.commerce_adresse}</div>` : ""}
+              ${c.commerce_tel ? `<div>${c.commerce_tel}</div>` : ""}
+            </div>
+          </div>
+
+          <hr class="divider" />
+
+          <div class="meta-row"><span class="meta-label">Commande</span><span class="meta-value">#${c.id}</span></div>
+          <div class="meta-row"><span class="meta-label">Date</span><span class="meta-value">${dateTexte}</span></div>
+          <div class="meta-row"><span class="meta-label">Heure</span><span class="meta-value">${heureTexte}</span></div>
+          <div class="meta-row"><span class="meta-label">Client</span><span class="meta-value">${c.acheteur_nom || ""}</span></div>
+          <div class="meta-row"><span class="meta-label">Téléphone</span><span class="meta-value">${c.acheteur_telephone || ""}</span></div>
+
+          <div style="text-align:center;">
+            <span class="badge-mode">${c.avec_livraison ? "🚲 LIVRAISON" : "🏪 À EMPORTER"}</span>
+          </div>
+
+          ${c.code_confirmation ? `
+          <div class="code-box">
+            <div class="label">Code de confirmation</div>
+            <div class="code">${c.code_confirmation}</div>
+          </div>` : ""}
+
+          <hr class="divider" />
+
+          <div class="section-title">Détail de la commande</div>
+          ${lignesProduits || '<p style="color:#8a93a6; font-size:12px;">Détail des produits indisponible.</p>'}
+
+          <hr class="divider" />
+
+          <div class="sous-total-row"><span>Sous-total produits</span><span>${formatPrix(c.prix_total)}</span></div>
+          ${c.avec_livraison ? `<div class="sous-total-row"><span>Frais de livraison</span><span>${fraisNum} DA</span></div>` : ""}
+
+          <hr class="divider-solid" />
+
+          <div class="total-row">
+            <span class="label">TOTAL</span>
+            <span class="value">${c.avec_livraison ? formatPrix(totalAvecLivraison) : formatPrix(c.prix_total)}</span>
+          </div>
+
+          <div class="footer">
+            <p class="merci">Merci pour votre commande !</p>
+            <p>via Orania — orania.dz</p>
+          </div>
+        </div>
       </body></html>
     `);
     win.document.close();
