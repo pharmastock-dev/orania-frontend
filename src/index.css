@@ -1,94 +1,65 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Nunito:wght@400;500;600;700&display=swap');
-@import 'tailwindcss';
+@import "tailwindcss";
 
 @theme {
-  --font-display: 'Plus Jakarta Sans', sans-serif;
-  --font-body: 'Nunito', sans-serif;
+  /* QREEB identity */
+  --color-navy-950: #0b1730;
+  --color-navy-900: #101f3d;
+  --color-navy-800: #172a4d;
+  --color-navy-700: #22385f;
+  --color-navy-600: #304872;
 
-  /* Palette Orania */
-  --color-amber-50: #fff4ec;
-  --color-amber-100: #ffe4d1;
-  --color-amber-200: #ffc9a3;
-  --color-amber-400: #ff8c3a;
-  --color-amber-500: #ff6b00;
-  --color-amber-600: #e85f00;
-  --color-amber-700: #c24e00;
+  --color-orange-600: #d9640a;
+  --color-orange-500: #f5790c;
+  --color-orange-400: #ff9433;
+  --color-orange-100: #ffe8d2;
 
-  --color-stone-50: #f4f6f9;
-  --color-stone-100: #e4e9f0;
-  --color-stone-200: #c9d3e0;
-  --color-stone-300: #9fb0c6;
-  --color-stone-400: #64789a;
-  --color-stone-500: #3a557a;
-  --color-stone-600: #24456b;
-  --color-stone-700: #1a3c5e;
-  --color-stone-800: #12355b;
-  --color-stone-900: #0d2743;
+  --color-green-600: #128a43;
+  --color-green-500: #16a34a;
+  --color-green-100: #dcf7e6;
 
-  --color-emerald-50: #eafaf0;
-  --color-emerald-100: #d0f3de;
-  --color-emerald-500: #2eaf61;
-  --color-emerald-600: #249a52;
-  --color-emerald-700: #1c7d42;
+  --color-pink-600: #c8156a;
+  --color-pink-500: #ec1e79;
+  --color-pink-100: #fde0ee;
+
+  --color-ink-900: #131a2b;
+  --color-ink-700: #3a4257;
+  --color-ink-500: #6b7280;
+  --color-ink-300: #b8bec9;
+  --color-ink-100: #eef0f4;
+  --color-ink-50: #f6f7fa;
+
+  --font-display: "Sora", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
 }
 
-/* Base layout — ne pas compresser les composants et laisser les pages défiler */
-*, *::before, *::after {
-  box-sizing: border-box;
+@layer base {
+  html, body, #root {
+    height: 100%;
+  }
+  body {
+    font-family: var(--font-body);
+    color: var(--color-ink-900);
+    background: var(--color-ink-50);
+    -webkit-tap-highlight-color: transparent;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  /* Hide scrollbar for horizontally scrollable rows, keep it scrollable */
+  .scroll-row {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scroll-row::-webkit-scrollbar {
+    display: none;
+  }
+  button {
+    cursor: pointer;
+  }
 }
 
-html {
-  width: 100%;
-  min-height: 100%;
-  overflow-x: hidden;
-  -webkit-tap-highlight-color: transparent;
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }
-
-body, #root {
-  width: 100%;
-  min-height: 100dvh;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  font-family: var(--font-body), 'Nunito', sans-serif;
-  background-color: #f4f6f9;
-  color: #0d2743;
-  -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-}
-
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-display), 'Plus Jakarta Sans', sans-serif;
-}
-
-/* Cacher la barre de scroll tout en gardant le défilement */
-.no-scrollbar::-webkit-scrollbar,
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-
-.no-scrollbar,
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-/* QREEB — seuls les filtres horizontaux sont glissables sur mobile */
-.filters-scroll {
-  display: flex;
-  flex-wrap: nowrap;
-  max-width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  touch-action: pan-x;
-  overscroll-behavior-x: contain;
-  white-space: nowrap;
-}
-.filters-scroll::-webkit-scrollbar { display: none; }
-.filters-scroll > * { flex: 0 0 auto; }

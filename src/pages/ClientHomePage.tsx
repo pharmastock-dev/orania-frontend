@@ -1,0 +1,168 @@
+import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, SearchX, Search as SearchIcon, LocateFixed } from "lucide-react";
+import ClientHeader from "../components/ClientHeader";
+import FilterBar, { type Tri, type FiltreMulti } from "../components/FilterBar";
+import CategoryBar from "../components/CategoryBar";
+import StoreCard from "../components/StoreCard";
+import { CardSkeleton } from "../components/Loading";
+import EmptyState from "../components/EmptyState";
+import { useApp } from "../context/AppContext";
+import { getFournisseurs } from "../api";
+import { ApiError } from "../api/client";
+import { estOuvertMaintenant } from "../utils/format";
+import { getPositionActuelle, distanceMetres } from "../utils/geo";
+import type { Fournisseur } from "../types";
+
+export default function ClientHomePage() {
+  const { position, setPosition } = useApp();
+  const [fournisseurs, setFournisseurs] = useState<Fournisseur[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [recherche, setRecherche] = useState("");
+  const [categorie, setCategorie] = useState("tous");
+  const [tri, setTri] = useState<Tri>(null);
+  const [filtresActifs, setFiltresActifs] = useState<FiltreMulti[]>([]);
+  const [procheLoading, setProcheLoading] = useState(false);
+
+  function toggleFiltre(f: FiltreMulti) {
+    setFiltresActifs((prev) => (prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]));
+  }
+
+  async function handleProche() {
+    setProcheLoading(true);
+    try {
+      const pos = await getPositionActuelle();
+      setPosition(pos);
+      setTri("proches");
+    } catch (err) {
+      setErreur(err instanceof Error ? err.message : "Localisation indisponible.");
+    } finally {
+      setProcheLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    let annule = false;
+    setLoading(true);
+    setErreur(null);
+    getFournisseurs()
+      .then((data) => {
+        if (!annule) setFournisseurs(data || []);
+      })
+      .catch((err) => {
+        if (!annule) setErreur(err instanceof ApiError ? err.message : "Impossible de contacter le serveur.");
+      })
+      .finally(() => {
+        if (!annule) setLoading(false);
+      });
+    return () => {
+      annule = true;
+    };
+  }, []);
+
+  const resultats = useMemo(() => {
+    // Un commerce pas encore validé par l'admin (ou suspendu) ne doit jamais
+    // apparaître côté client, même si le backend le renvoie dans la liste brute.
+    let liste = fournisseurs.filter((f) => f.valide !== false && f.actif !== false);
+
+    if (categorie !== "tous") {
+      const q = categorie.toLowerCase();
+      liste = liste.filter(
+        (f) =>
+          (f.categorie || "").toLowerCase() === q ||
+          (f.produits_categories || []).some((c) => c.toLowerCase() === q)
+      );
+    }
+
+    if (recherche.trim()) {
+      const q = recherche.trim().toLowerCase();
+      liste = liste.filter(
+        (f) =>
+          f.nom.toLowerCase().includes(q) ||
+          (f.categorie || "").toLowerCase().includes(q) ||
+          (f.produits_categories || []).some((c) => c.toLowerCase().includes(q)) ||
+          (f.produits_noms || []).some((n) => n.toLowerCase().includes(q))
+      );
+    }
+
+    if (filtresActifs.includes("promos")) liste = liste.filter((f) => f.a_promo);
+    if (filtresActifs.includes("ouverts")) liste = liste.filter((f) => estOuvertMaintenant(f.heure_ouverture, f.heure_fermeture));
+    if (filtresActifs.includes("gratuite")) liste = liste.filter((f) => f.livraison_gratuite);
+
+    if (tri === "notes") liste = [...liste].sort((a, b) => (b.note_moyenne ?? 0) - (a.note_moyenne ?? 0));
+    if (tri === "proches" && position) {
+      liste = [...liste].sort((a, b) => {
+        const da = a.latitude != null && a.longitude != null ? distanceMetres(position, { latitude: a.latitude, longitude: a.longitude }) : Infinity;
+        const db = b.latitude != null && b.longitude != null ? distanceMetres(position, { latitude: b.latitude, longitude: b.longitude }) : Infinity;
+        return da - db;
+      });
+    }
+
+    return liste;
+  }, [fournisseurs, categorie, recherche, filtresActifs, tri, position]);
+
+  return (
+    <div className="min-h-screen bg-[var(--color-ink-50)] pb-6">
+      <div className="max-w-6xl mx-auto px-4 pt-5 flex flex-col gap-4">
+        <div className="max-w-2xl w-full mx-auto lg:mx-0 flex flex-col gap-4">
+          <ClientHeader showBack />
+
+          <div className="flex items-center gap-2">
+            <div className="flex-1 flex items-center gap-2 bg-white border border-[var(--color-ink-100)] rounded-xl px-3.5 py-3">
+              <SearchIcon size={18} className="text-[var(--color-ink-500)] shrink-0" />
+              <input
+                value={recherche}
+                onChange={(e) => setRecherche(e.target.value)}
+                placeholder="Chercher : tacos, pizza, sushi..."
+                className="flex-1 min-w-0 bg-transparent outline-none text-[15px] placeholder:text-[var(--color-ink-500)]"
+              />
+            </div>
+            <button
+              onClick={handleProche}
+              className={`shrink-0 flex items-center gap-1.5 px-3.5 py-3 rounded-xl border font-semibold text-sm ${
+                tri === "proches" ? "bg-[var(--color-navy-900)] text-white border-[var(--color-navy-900)]" : "bg-white text-[var(--color-navy-900)] border-[var(--color-ink-100)]"
+              }`}
+            >
+              <LocateFixed size={16} className={procheLoading ? "animate-spin" : ""} />
+              Proche
+            </button>
+          </div>
+
+          <FilterBar tri={tri} onTriChange={setTri} filtresActifs={filtresActifs} onToggleFiltre={toggleFiltre} />
+        </div>
+
+        <CategoryBar actif={categorie} onChange={setCategorie} />
+
+        {erreur && (
+          <div className="flex items-start gap-2 bg-red-50 text-red-700 text-sm rounded-xl px-3.5 py-3">
+            <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+            <span>{erreur}</span>
+          </div>
+        )}
+
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <CardSkeleton />
+            <CardSkeleton />
+            <CardSkeleton />
+          </div>
+        ) : resultats.length === 0 ? (
+          <EmptyState
+            icon={<SearchX size={36} />}
+            title="Aucun commerce trouvé"
+            description="Essayez une autre recherche, catégorie ou filtre."
+          />
+        ) : (
+          <>
+            <p className="text-sm text-[var(--color-ink-500)]">{resultats.length} résultat{resultats.length > 1 ? "s" : ""}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {resultats.map((f) => (
+                <StoreCard key={f.id} fournisseur={f} positionClient={position} />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
