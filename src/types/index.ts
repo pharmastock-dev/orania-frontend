@@ -56,7 +56,7 @@ export type ModeReception = "livraison" | "retrait";
 // d'"annulee" (n'existent pas côté serveur). Départ : en_attente (livraison)
 // ou non_recupere (retrait) ; en_route posé automatiquement à l'assignation
 // d'un livreur ; livre/recupere posés manuellement par le commerçant.
-export type StatutCommande = "en_attente" | "en_route" | "livre" | "non_recupere" | "recupere";
+export type StatutCommande = "en_attente" | "en_route" | "livre" | "non_recupere" | "recupere" | "annulee";
 
 export interface LigneCommande {
   produit_id?: number;

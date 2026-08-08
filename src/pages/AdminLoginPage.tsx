@@ -3,30 +3,36 @@ import { useNavigate } from "react-router-dom";
 import { ShieldCheck } from "lucide-react";
 import BackButton from "../components/BackButton";
 import Button from "../components/Button";
-
-// NOTE : l'authentification admin doit être branchée sur un vrai endpoint
-// backend (ex: POST /admin/login) avant la mise en production. En l'absence
-// de cet endpoint dans le cahier des charges, on protège l'accès par un
-// code d'accès simple côté client — à remplacer, ne jamais stocker de
-// vrai mot de passe admin dans le frontend.
-// Code d'accès admin — configurable via VITE_ADMIN_PASSWORD dans .env, sinon
-// retombe sur "qreeb-admin" par défaut. Ne stocke jamais de vrai mot de passe
-// sensible en dur dans le frontend en production.
-const CODE_ACCES_TEMPORAIRE = (import.meta.env.VITE_ADMIN_PASSWORD as string | undefined) || "qreeb-admin";
+import { adminLogin, stockerTokenAdmin } from "../api";
+import { ApiError } from "../api/client";
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
   const [code, setCode] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (code.trim() !== CODE_ACCES_TEMPORAIRE) {
-      setErreur("Code d'accès incorrect.");
+    if (!code.trim()) {
+      setErreur("Merci de renseigner le mot de passe.");
       return;
     }
-    sessionStorage.setItem("qreeb_admin_session", "1");
-    navigate("/admin/dashboard");
+    setLoading(true);
+    setErreur(null);
+    try {
+      const res = await adminLogin(code.trim());
+      if (!res.succes || !res.token) {
+        setErreur(res.message || "Mot de passe incorrect.");
+        return;
+      }
+      stockerTokenAdmin(res.token);
+      navigate("/admin/dashboard");
+    } catch (err) {
+      setErreur(err instanceof ApiError ? err.message : "Impossible de contacter le serveur.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -46,11 +52,11 @@ export default function AdminLoginPage() {
             value={code}
             onChange={(e) => setCode(e.target.value)}
             type="password"
-            placeholder="Code d'accès administrateur"
+            placeholder="Mot de passe administrateur"
             className="w-full bg-white rounded-xl px-4 py-3 outline-none"
           />
           {erreur && <p className="text-sm text-red-200 bg-red-500/20 rounded-xl px-3 py-2">{erreur}</p>}
-          <Button type="submit" fullWidth className="mt-2">Accéder au tableau de bord</Button>
+          <Button type="submit" loading={loading} fullWidth className="mt-2">Accéder au tableau de bord</Button>
         </form>
       </div>
     </div>

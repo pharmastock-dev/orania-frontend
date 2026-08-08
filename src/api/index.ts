@@ -8,7 +8,7 @@
 // avis_count...) sans rien changer ailleurs.
 // ============================================================
 
-import { http, BASE_URL } from "./client";
+import { http, BASE_URL, CLE_TOKEN_ADMIN } from "./client";
 import type { Fournisseur, Produit, Commande, Avis, Livreur, Statistiques, StatutCommande, Reclamation, LigneCommande } from "../types";
 
 // ---------- Santé ----------
@@ -258,25 +258,47 @@ export const creerLivreur = (fournisseurId: number, data: { nom: string; telepho
 export const supprimerLivreur = (livreurId: number) => http.del<{ succes: boolean; message?: string }>(`/livreurs/${livreurId}`);
 
 // ---------- Admin ----------
-export const getFournisseursAdmin = () => http.get<Fournisseur[]>("/admin/fournisseurs");
+// Le vrai backend exige maintenant un jeton (POST /admin/login), plus de
+// simple code côté client. Le jeton est stocké en sessionStorage et ajouté
+// automatiquement (auth=true) à chaque appel admin.
+
+export const adminLogin = (motDePasse: string) =>
+  http.post<{ succes: boolean; token?: string; message?: string }>("/admin/login", { mot_de_passe: motDePasse });
+
+export function stockerTokenAdmin(token: string) {
+  sessionStorage.setItem(CLE_TOKEN_ADMIN, token);
+}
+export function effacerTokenAdmin() {
+  sessionStorage.removeItem(CLE_TOKEN_ADMIN);
+}
+export function estConnecteAdmin() {
+  return !!sessionStorage.getItem(CLE_TOKEN_ADMIN);
+}
+
+export const getFournisseursAdmin = () => http.get<Fournisseur[]>("/admin/fournisseurs", true);
 
 export const validerFournisseur = (fournisseurId: number) =>
-  http.put<{ succes: boolean; abonnement_fin?: string; message?: string }>(`/admin/fournisseurs/${fournisseurId}/valider`);
+  http.put<{ succes: boolean; abonnement_fin?: string; message?: string }>(`/admin/fournisseurs/${fournisseurId}/valider`, undefined, true);
 
 export const prolongerAbonnement = (fournisseurId: number) =>
-  http.put<{ succes: boolean; abonnement_fin?: string; message?: string }>(`/admin/fournisseurs/${fournisseurId}/abonnement`);
+  http.put<{ succes: boolean; abonnement_fin?: string; message?: string }>(`/admin/fournisseurs/${fournisseurId}/abonnement`, undefined, true);
 
 // Le vrai backend n'a pas de "suspendre/réactiver" séparés : désactiver met fin
 // à l'abonnement immédiatement, réactiver = reprolonger d'un an (même route que ci-dessus).
 export const desactiverFournisseur = (fournisseurId: number) =>
-  http.put<{ succes: boolean; message?: string }>(`/admin/fournisseurs/${fournisseurId}/desactiver`);
+  http.put<{ succes: boolean; message?: string }>(`/admin/fournisseurs/${fournisseurId}/desactiver`, undefined, true);
 
 export const reactiverFournisseur = (fournisseurId: number) => prolongerAbonnement(fournisseurId);
 
 // Le vrai backend exige que l'admin choisisse LUI-MÊME le nouveau mot de passe
 // (pas de génération auto côté serveur) — l'appelant doit donc le demander avant.
 export const reinitialiserMotDePasse = (fournisseurId: number, nouveauMotDePasse: string) =>
-  http.put<{ succes: boolean; message?: string }>(`/admin/fournisseurs/${fournisseurId}/motdepasse`, { nouveau_mot_de_passe: nouveauMotDePasse });
+  http.put<{ succes: boolean; message?: string }>(`/admin/fournisseurs/${fournisseurId}/motdepasse`, { nouveau_mot_de_passe: nouveauMotDePasse }, true);
+
+// Suppression DÉFINITIVE d'un commerce (ses produits + livreurs aussi).
+// Commandes et avis passés restent en base, orphelins, pour l'historique.
+export const supprimerFournisseurAdmin = (fournisseurId: number) =>
+  http.del<{ succes: boolean; message?: string }>(`/admin/fournisseurs/${fournisseurId}`, true);
 
 // ---------- Réclamations ----------
 // Le vrai backend n'a ni "sujet" séparé, ni lien direct vers un fournisseur —
@@ -290,8 +312,8 @@ export const creerReclamation = (data: Reclamation) =>
     message: data.message,
   });
 
-export const getReclamations = () => http.get<Reclamation[]>("/admin/reclamations");
+export const getReclamations = () => http.get<Reclamation[]>("/admin/reclamations", true);
 
-export const traiterReclamation = (reclamationId: number) => http.put<{ succes: boolean }>(`/admin/reclamations/${reclamationId}/traitee`);
+export const traiterReclamation = (reclamationId: number) => http.put<{ succes: boolean }>(`/admin/reclamations/${reclamationId}/traitee`, undefined, true);
 
-export const supprimerReclamation = (reclamationId: number) => http.del<{ succes: boolean }>(`/admin/reclamations/${reclamationId}`);
+export const supprimerReclamation = (reclamationId: number) => http.del<{ succes: boolean }>(`/admin/reclamations/${reclamationId}`, true);

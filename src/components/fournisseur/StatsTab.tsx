@@ -40,8 +40,12 @@ export default function StatsTab({ fournisseurId }: { fournisseurId: number }) {
   }, [commandes, jour]);
 
   const ventilation = useMemo(() => {
-    let livrees = 0, recuperees = 0, nonLivrees = 0, nonRecuperees = 0;
+    let livrees = 0, recuperees = 0, nonLivrees = 0, nonRecuperees = 0, annulees = 0;
     for (const c of commandesFiltrees) {
+      if (c.statut === "annulee") {
+        annulees++;
+        continue;
+      }
       if (c.avec_livraison) {
         if (c.statut === "livre") livrees++;
         else nonLivrees++;
@@ -50,7 +54,7 @@ export default function StatsTab({ fournisseurId }: { fournisseurId: number }) {
         else nonRecuperees++;
       }
     }
-    return { livrees, recuperees, nonLivrees, nonRecuperees };
+    return { livrees, recuperees, nonLivrees, nonRecuperees, annulees };
   }, [commandesFiltrees]);
 
   const cartes = [
@@ -65,6 +69,7 @@ export default function StatsTab({ fournisseurId }: { fournisseurId: number }) {
     { icon: PackageCheck, label: "Commandes récupérées", value: ventilation.recuperees, color: "text-[var(--color-green-600)] bg-[var(--color-green-100)]" },
     { icon: PackageX, label: "Cmd non livrée", value: ventilation.nonLivrees, color: "text-[var(--color-orange-600)] bg-[var(--color-orange-100)]" },
     { icon: PackageX, label: "Cmd non récupérée", value: ventilation.nonRecuperees, color: "text-[var(--color-orange-600)] bg-[var(--color-orange-100)]" },
+    { icon: PackageX, label: "Cmd annulées", value: ventilation.annulees, color: "text-red-600 bg-red-50" },
   ];
 
   return (

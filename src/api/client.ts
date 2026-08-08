@@ -19,7 +19,10 @@ interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "DELETE";
   body?: unknown;
   isFormData?: boolean;
+  auth?: boolean; // ajoute automatiquement le jeton admin en Authorization
 }
+
+const CLE_TOKEN_ADMIN = "orania_admin_token";
 
 // Le backend gratuit (Render) peut mettre jusqu'à 30-60s à se réveiller s'il
 // était inactif. Plutôt que d'afficher une erreur au premier échec, on
@@ -55,13 +58,20 @@ async function fetchAvecReessai(url: string, init: RequestInit): Promise<Respons
 }
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = "GET", body, isFormData = false } = options;
+  const { method = "GET", body, isFormData = false, auth = false } = options;
+
+  const headers: Record<string, string> = {};
+  if (!isFormData) headers["Content-Type"] = "application/json";
+  if (auth) {
+    const token = sessionStorage.getItem(CLE_TOKEN_ADMIN);
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+  }
 
   let response: Response;
   try {
     response = await fetchAvecReessai(`${BASE_URL}${path}`, {
       method,
-      headers: isFormData ? undefined : { "Content-Type": "application/json" },
+      headers,
       body: body ? (isFormData ? (body as FormData) : JSON.stringify(body)) : undefined,
     });
   } catch {
@@ -104,11 +114,11 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 }
 
 export const http = {
-  get: <T>(path: string) => request<T>(path, { method: "GET" }),
-  post: <T>(path: string, body?: unknown) => request<T>(path, { method: "POST", body }),
-  postForm: <T>(path: string, formData: FormData) => request<T>(path, { method: "POST", body: formData, isFormData: true }),
-  put: <T>(path: string, body?: unknown) => request<T>(path, { method: "PUT", body }),
-  del: <T>(path: string) => request<T>(path, { method: "DELETE" }),
+  get: <T>(path: string, auth = false) => request<T>(path, { method: "GET", auth }),
+  post: <T>(path: string, body?: unknown, auth = false) => request<T>(path, { method: "POST", body, auth }),
+  postForm: <T>(path: string, formData: FormData, auth = false) => request<T>(path, { method: "POST", body: formData, isFormData: true, auth }),
+  put: <T>(path: string, body?: unknown, auth = false) => request<T>(path, { method: "PUT", body, auth }),
+  del: <T>(path: string, auth = false) => request<T>(path, { method: "DELETE", auth }),
 };
 
-export { BASE_URL };
+export { BASE_URL, CLE_TOKEN_ADMIN };

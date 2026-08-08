@@ -16,6 +16,14 @@ const ETAPES_RETRAIT: { key: StatutCommande; label: string }[] = [
 ];
 
 export default function OrderStatusTimeline({ statut, avecLivraison }: { statut: StatutCommande; avecLivraison: boolean }) {
+  if (statut === "annulee") {
+    return (
+      <div className="bg-red-50 text-red-700 text-sm font-medium rounded-xl px-4 py-3 text-center">
+        Cette commande a été refusée par le commerce.
+      </div>
+    );
+  }
+
   const etapes = avecLivraison ? ETAPES_LIVRAISON : ETAPES_RETRAIT;
   const effectiveIndex = Math.max(0, etapes.findIndex((e) => e.key === statut));
 

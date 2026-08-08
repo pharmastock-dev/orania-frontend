@@ -28,13 +28,23 @@ const LABELS: Record<StatutCommande, string> = {
   livre: "Livrée",
   non_recupere: "Non récupérée",
   recupere: "Récupérée",
+  annulee: "Annulée",
 };
 
 function estTerminee(c: Commande) {
   return c.statut === "livre" || c.statut === "recupere";
 }
 
+function estAnnulee(c: Commande) {
+  return c.statut === "annulee";
+}
+
+function peutEtreRefusee(c: Commande) {
+  return c.statut === "en_attente" || c.statut === "non_recupere";
+}
+
 function prochainStatut(c: Commande): StatutCommande | null {
+  if (estAnnulee(c)) return null;
   if (!c.avec_livraison) {
     return c.statut === "non_recupere" ? "recupere" : null;
   }
@@ -44,7 +54,7 @@ function prochainStatut(c: Commande): StatutCommande | null {
 }
 
 type FiltreType = "tous" | "avec_livraison" | "a_recuperer";
-type FiltreStatut = "tous" | "non_terminee" | "terminee";
+type FiltreStatut = "tous" | "non_terminee" | "terminee" | "annulee";
 
 export default function CommandesTab({ fournisseurId }: { fournisseurId: number }) {
   const { showToast } = useToast();
@@ -108,6 +118,20 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
       showToast(`Commande #${c.id} → ${LABELS[suivant]}`, "success");
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : "Impossible de mettre à jour le statut.", "error");
+    } finally {
+      setMajEnCours(null);
+    }
+  }
+
+  async function refuser(c: Commande) {
+    if (!window.confirm(`Refuser la commande #${c.id} ? Le client verra qu'elle a été annulée.`)) return;
+    setMajEnCours(c.id);
+    try {
+      await updateCommandeStatut(c.id, "annulee");
+      setCommandes((prev) => prev.map((x) => (x.id === c.id ? { ...x, statut: "annulee" } : x)));
+      showToast(`Commande #${c.id} refusée`, "info");
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : "Impossible de refuser la commande.", "error");
     } finally {
       setMajEnCours(null);
     }
@@ -323,7 +347,8 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
     if (filtreType === "avec_livraison") liste = liste.filter((c) => c.avec_livraison);
     if (filtreType === "a_recuperer") liste = liste.filter((c) => !c.avec_livraison);
     if (filtreStatut === "terminee") liste = liste.filter(estTerminee);
-    if (filtreStatut === "non_terminee") liste = liste.filter((c) => !estTerminee(c));
+    if (filtreStatut === "non_terminee") liste = liste.filter((c) => !estTerminee(c) && !estAnnulee(c));
+    if (filtreStatut === "annulee") liste = liste.filter(estAnnulee);
     if (jour) liste = liste.filter((c) => c.created_at && c.created_at.slice(0, 10) === jour);
     return liste;
   }, [commandes, filtreType, filtreStatut, jour]);
@@ -379,6 +404,7 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
             { key: "tous", label: "Tous statuts" },
             { key: "non_terminee", label: "En cours" },
             { key: "terminee", label: "Terminées" },
+            { key: "annulee", label: "Annulées" },
           ] as const).map((f) => (
             <button key={f.key} onClick={() => setFiltreStatut(f.key)} className={`shrink-0 px-3 py-2 rounded-full text-xs font-semibold border ${filtreStatut === f.key ? "bg-[var(--color-orange-500)] text-white border-[var(--color-orange-500)]" : "bg-white text-[var(--color-ink-700)] border-[var(--color-ink-100)]"}`}>
               {f.label}
@@ -414,7 +440,7 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
               <div key={c.id} className={`bg-white rounded-2xl border p-4 ${afficherCorbeille ? "border-[var(--color-ink-100)] opacity-70" : "border-[var(--color-ink-100)]"}`}>
                 <div className="flex items-center justify-between">
                   <p className="font-bold text-[var(--color-ink-900)]">Commande #{c.id}</p>
-                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${afficherCorbeille ? "bg-red-50 text-red-600" : termine ? "bg-[var(--color-green-100)] text-[var(--color-green-600)]" : "bg-[var(--color-orange-100)] text-[var(--color-orange-600)]"}`}>
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${afficherCorbeille || estAnnulee(c) ? "bg-red-50 text-red-600" : termine ? "bg-[var(--color-green-100)] text-[var(--color-green-600)]" : "bg-[var(--color-orange-100)] text-[var(--color-orange-600)]"}`}>
                     {LABELS[c.statut] || c.statut}
                   </span>
                 </div>
@@ -503,11 +529,18 @@ export default function CommandesTab({ fournisseurId }: { fournisseurId: number 
                       </button>
                     </div>
 
-                    {suivant && (
-                      <Button size="sm" fullWidth className="mt-2" onClick={() => avancer(c)} loading={majEnCours === c.id}>
-                        Marquer « {LABELS[suivant]} »
-                      </Button>
-                    )}
+                    <div className="flex gap-2 mt-2">
+                      {peutEtreRefusee(c) && (
+                        <Button variant="outline" size="sm" onClick={() => refuser(c)} loading={majEnCours === c.id}>
+                          Refuser
+                        </Button>
+                      )}
+                      {suivant && (
+                        <Button size="sm" fullWidth onClick={() => avancer(c)} loading={majEnCours === c.id}>
+                          Marquer « {LABELS[suivant]} »
+                        </Button>
+                      )}
+                    </div>
                   </>
                 )}
               </div>

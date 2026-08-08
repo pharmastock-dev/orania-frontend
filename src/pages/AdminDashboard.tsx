@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { LogOut, AlertTriangle, Store, Bell, Ban, Play, Plus, Flag, Check, KeyRound, Search, Trash2 } from "lucide-react";
 import DashboardHeader from "../components/DashboardHeader";
 import { CardSkeleton } from "../components/Loading";
+import Modal from "../components/Modal";
+import Button from "../components/Button";
 import { useToast } from "../context/ToastContext";
 import {
   getFournisseursAdmin,
@@ -11,6 +13,9 @@ import {
   desactiverFournisseur,
   reactiverFournisseur,
   reinitialiserMotDePasse,
+  supprimerFournisseurAdmin,
+  effacerTokenAdmin,
+  estConnecteAdmin,
   getReclamations,
   traiterReclamation,
   supprimerReclamation,
@@ -27,6 +32,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [erreur, setErreur] = useState<string | null>(null);
   const [actionEnCours, setActionEnCours] = useState<number | null>(null);
+  const [suppressionCommerce, setSuppressionCommerce] = useState<Fournisseur | null>(null);
   const [rechercheCommerce, setRechercheCommerce] = useState("");
 
   function charger() {
@@ -62,7 +68,7 @@ export default function AdminDashboard() {
   }
 
   useEffect(() => {
-    if (sessionStorage.getItem("qreeb_admin_session") !== "1") {
+    if (!estConnecteAdmin()) {
       navigate("/admin");
       return;
     }
@@ -71,7 +77,7 @@ export default function AdminDashboard() {
   }, [navigate]);
 
   function handleLogout() {
-    sessionStorage.removeItem("qreeb_admin_session");
+    effacerTokenAdmin();
     navigate("/");
   }
 
@@ -152,6 +158,21 @@ export default function AdminDashboard() {
       showToast(`Mot de passe de ${f.nom} réinitialisé — communique-le lui : ${nouveau.trim()}`, "success");
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : "Impossible de réinitialiser le mot de passe.", "error");
+    } finally {
+      setActionEnCours(null);
+    }
+  }
+
+  async function handleSupprimer() {
+    if (!suppressionCommerce) return;
+    setActionEnCours(suppressionCommerce.id);
+    try {
+      await supprimerFournisseurAdmin(suppressionCommerce.id);
+      setFournisseurs((prev) => prev.filter((x) => x.id !== suppressionCommerce.id));
+      showToast(`${suppressionCommerce.nom} supprimé définitivement`, "success");
+      setSuppressionCommerce(null);
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : "Impossible de supprimer ce commerce.", "error");
     } finally {
       setActionEnCours(null);
     }
@@ -306,27 +327,34 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 mt-3">
+                  <div className="grid grid-cols-4 gap-2 mt-3">
                     <button
                       onClick={() => handleProlonger(f)}
                       disabled={actionEnCours === f.id}
-                      className="flex items-center justify-center gap-1 text-xs font-semibold px-3 py-2 rounded-lg bg-[var(--color-green-100)] text-[var(--color-green-600)] disabled:opacity-60"
+                      className="flex items-center justify-center gap-1 text-xs font-semibold px-2 py-2 rounded-lg bg-[var(--color-green-100)] text-[var(--color-green-600)] disabled:opacity-60"
                     >
                       <Plus size={13} /> 1 an
                     </button>
                     <button
                       onClick={() => handleToggleActif(f)}
                       disabled={actionEnCours === f.id}
-                      className={`flex items-center justify-center gap-1 text-xs font-semibold px-3 py-2 rounded-lg disabled:opacity-60 ${f.actif === false ? "bg-[var(--color-green-100)] text-[var(--color-green-600)]" : "bg-red-50 text-red-600"}`}
+                      className={`flex items-center justify-center gap-1 text-xs font-semibold px-2 py-2 rounded-lg disabled:opacity-60 ${f.actif === false ? "bg-[var(--color-green-100)] text-[var(--color-green-600)]" : "bg-red-50 text-red-600"}`}
                     >
-                      {f.actif === false ? <><Play size={13} /> Activer</> : <><Ban size={13} /> Désactiver</>}
+                      {f.actif === false ? <><Play size={13} /> Activer</> : <><Ban size={13} /> Stop</>}
                     </button>
                     <button
                       onClick={() => handleReinitialiserMdp(f)}
                       disabled={actionEnCours === f.id}
-                      className="flex items-center justify-center gap-1 text-xs font-semibold px-3 py-2 rounded-lg bg-[var(--color-ink-100)] text-[var(--color-ink-700)] disabled:opacity-60"
+                      className="flex items-center justify-center gap-1 text-xs font-semibold px-2 py-2 rounded-lg bg-[var(--color-ink-100)] text-[var(--color-ink-700)] disabled:opacity-60"
                     >
                       <KeyRound size={13} /> Mdp
+                    </button>
+                    <button
+                      onClick={() => setSuppressionCommerce(f)}
+                      disabled={actionEnCours === f.id}
+                      className="flex items-center justify-center gap-1 text-xs font-semibold px-2 py-2 rounded-lg bg-red-50 text-red-600 disabled:opacity-60"
+                    >
+                      <Trash2 size={13} /> Suppr.
                     </button>
                   </div>
                 </div>
@@ -335,6 +363,20 @@ export default function AdminDashboard() {
           )}
         </div>
       </div>
+
+      <Modal open={!!suppressionCommerce} onClose={() => setSuppressionCommerce(null)} title="Supprimer ce commerce ?">
+        {suppressionCommerce && (
+          <div>
+            <p className="text-sm text-[var(--color-ink-700)] mb-4">
+              <strong>{suppressionCommerce.nom}</strong> et tous ses produits/livreurs seront supprimés définitivement. Les commandes et avis passés restent conservés pour l'historique. Cette action est irréversible.
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" fullWidth onClick={() => setSuppressionCommerce(null)}>Annuler</Button>
+              <Button variant="danger" fullWidth loading={actionEnCours === suppressionCommerce.id} onClick={handleSupprimer}>Supprimer</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
