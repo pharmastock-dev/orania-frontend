@@ -1,3 +1,5 @@
+import { Geolocation } from "@capacitor/geolocation";
+import { Capacitor } from "@capacitor/core";
 import type { Coordonnees } from "../types";
 
 // Formule de Haversine — distance en mètres entre deux points
@@ -13,18 +15,33 @@ export function distanceMetres(a: Coordonnees, b: Coordonnees): number {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-export function getPositionActuelle(): Promise<Coordonnees> {
-  return new Promise((resolve, reject) => {
-    if (!("geolocation" in navigator)) {
-      reject(new Error("La géolocalisation n'est pas disponible sur cet appareil."));
-      return;
+// Utilise le plugin natif Capacitor (pas l'API navigateur brute) — sur
+// Android, ça permet au système de proposer nativement "Activer la
+// localisation ?" si le GPS est éteint, au lieu d'échouer silencieusement
+// en demandant à l'utilisateur d'aller l'activer manuellement dans les
+// réglages. Sur le web, le même plugin retombe automatiquement sur l'API
+// navigateur standard — comportement inchangé de ce côté.
+export async function getPositionActuelle(): Promise<Coordonnees> {
+  try {
+    let permission = await Geolocation.checkPermissions();
+    if (permission.location !== "granted" && permission.coarseLocation !== "granted") {
+      permission = await Geolocation.requestPermissions();
     }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-      () => reject(new Error("Localisation refusée ou indisponible.")),
-      { enableHighAccuracy: true, timeout: 8000 }
-    );
-  });
+    if (permission.location !== "granted" && permission.coarseLocation !== "granted") {
+      throw new Error("Localisation refusée. Autorisez l'accès à la position dans les réglages de l'application.");
+    }
+
+    const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 10000 });
+    return { latitude: position.coords.latitude, longitude: position.coords.longitude };
+  } catch (err) {
+    // Sur Android natif, un GPS éteint remonte souvent une erreur ici même
+    // après que l'utilisateur ait accepté la permission — message adapté
+    // pour guider clairement vers l'activation du GPS, pas juste la permission.
+    if (Capacitor.isNativePlatform()) {
+      throw new Error("Impossible d'obtenir votre position. Vérifiez que le GPS est activé sur votre téléphone, puis réessayez.");
+    }
+    throw new Error(err instanceof Error ? err.message : "Localisation refusée ou indisponible.");
+  }
 }
 
 // Estimation du temps de livraison selon la distance : 1,3 min/km (minimum) à
