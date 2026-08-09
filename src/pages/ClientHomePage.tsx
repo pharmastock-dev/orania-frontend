@@ -3,6 +3,7 @@ import { AlertTriangle, SearchX, Search as SearchIcon, LocateFixed, MapPin } fro
 import ClientHeader from "../components/ClientHeader";
 import FilterBar, { type Tri, type FiltreMulti } from "../components/FilterBar";
 import CategoryBar from "../components/CategoryBar";
+import TypePlatBar from "../components/TypePlatBar";
 import StoreCard from "../components/StoreCard";
 import Button from "../components/Button";
 import { CardSkeleton } from "../components/Loading";
@@ -21,6 +22,7 @@ export default function ClientHomePage() {
   const [erreur, setErreur] = useState<string | null>(null);
   const [recherche, setRecherche] = useState("");
   const [categorie, setCategorie] = useState("tous");
+  const [typePlat, setTypePlat] = useState("tous");
   const [tri, setTri] = useState<Tri>(null);
   const [filtresActifs, setFiltresActifs] = useState<FiltreMulti[]>([]);
   const [procheLoading, setProcheLoading] = useState(false);
@@ -123,6 +125,11 @@ export default function ClientHomePage() {
       );
     }
 
+    if (typePlat !== "tous") {
+      const q = typePlat.toLowerCase();
+      liste = liste.filter((f) => (f.produits_categories || []).some((c) => c.toLowerCase() === q));
+    }
+
     if (recherche.trim()) {
       const q = recherche.trim().toLowerCase();
       liste = liste.filter(
@@ -148,7 +155,7 @@ export default function ClientHomePage() {
     }
 
     return liste;
-  }, [fournisseurs, categorie, recherche, filtresActifs, tri, position]);
+  }, [fournisseurs, categorie, typePlat, recherche, filtresActifs, tri, position]);
 
   // ---- Écran de blocage tant que la position n'est pas activée ----
   if (verificationEnCours) {
@@ -217,6 +224,7 @@ export default function ClientHomePage() {
         </div>
 
         <CategoryBar actif={categorie} onChange={setCategorie} />
+        <TypePlatBar actif={typePlat} onChange={setTypePlat} />
 
         {erreur && (
           <div className="flex items-start gap-2 bg-red-50 text-red-700 text-sm rounded-xl px-3.5 py-3">

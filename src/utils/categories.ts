@@ -56,6 +56,30 @@ export function getEmojiCategorieProduit(categorie: string): string {
   return EMOJI_PRODUIT[categorie.trim().toLowerCase()] || "🍴";
 }
 
+// Filtre PAR TYPE DE PLAT côté client — deuxième rangée de filtre, sous celle
+// des catégories de commerce. Volontairement simple (un seul accent orange,
+// pas de couleur par item) contrairement au filtre catégories au-dessus.
+export interface TypePlatDef {
+  key: string;
+  label: string;
+  emoji: string;
+}
+
+export const TYPES_PLATS_CLIENT: TypePlatDef[] = [
+  { key: "tous", label: "Tous", emoji: "🍽️" },
+  { key: "Burger", label: "Burger", emoji: "🍔" },
+  { key: "Pizza", label: "Pizza", emoji: "🍕" },
+  { key: "Sandwich", label: "Sandwich", emoji: "🥪" },
+  { key: "Sushi", label: "Sushi", emoji: "🍣" },
+  { key: "Crispy", label: "Crispy", emoji: "🍗" },
+  { key: "Grillades", label: "Grillades", emoji: "🍖" },
+  { key: "Tacos", label: "Tacos", emoji: "🌮" },
+  { key: "Kebab", label: "Kebab", emoji: "🥙" },
+  { key: "Plats", label: "Plats", emoji: "🍲" },
+  { key: "Boissons", label: "Boissons", emoji: "🥤" },
+  { key: "Desserts", label: "Desserts", emoji: "🍰" },
+];
+
 // Catégories CÔTÉ CLIENT — reflète exactement les catégories que les commerçants
 // choisissent à l'inscription (pas de types de plats mélangés). Chaque catégorie
 // a sa propre couleur d'accent, pour que le filtre actif se distingue clairement
