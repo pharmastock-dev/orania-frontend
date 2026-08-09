@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, SearchX, Search as SearchIcon, LocateFixed, MapPin, Settings } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
+import { Geolocation } from "@capacitor/geolocation";
 import { NativeSettings, AndroidSettings } from "capacitor-native-settings";
 import ClientHeader from "../components/ClientHeader";
 import ActiverNotifsWeb from "../components/ActiverNotifsWeb";
@@ -42,17 +43,31 @@ export default function ClientHomePage() {
   // (l'utilisateur a pu la désactiver depuis). On revérifie donc à chaque
   // ouverture, sinon une position désactivée après coup resterait utilisée
   // indéfiniment sans jamais redemander l'autorisation.
+  //
+  // IMPORTANT : sur Android natif, navigator.permissions.query("geolocation")
+  // ne reflète PAS toujours fidèlement la vraie permission native accordée
+  // via le plugin Capacitor — ça provoquait un bug où l'écran d'activation
+  // réapparaissait à chaque retour sur cette page (ex: après une commande),
+  // même quand la position était bel et bien déjà autorisée. On utilise donc
+  // la vraie API native du plugin sur Android, et l'API web uniquement sur
+  // navigateur (où c'est fiable, et où le plugin natif n'est de toute façon
+  // pas implémenté).
   useEffect(() => {
     let annule = false;
     async function verifier() {
-      if (position && navigator.permissions?.query) {
+      if (position) {
         try {
-          const statut = await navigator.permissions.query({ name: "geolocation" as PermissionName });
-          if (!annule && statut.state !== "granted") {
-            setPosition(null); // force le retour à l'écran d'activation
+          if (Capacitor.isNativePlatform()) {
+            const statut = await Geolocation.checkPermissions();
+            const accorde = statut.location === "granted" || statut.coarseLocation === "granted";
+            if (!annule && !accorde) setPosition(null);
+          } else if (navigator.permissions?.query) {
+            const statut = await navigator.permissions.query({ name: "geolocation" as PermissionName });
+            if (!annule && statut.state !== "granted") setPosition(null);
           }
         } catch {
-          // API non disponible sur cet appareil/navigateur — on garde la valeur existante.
+          // Échec de la vérification (API indisponible, etc.) — on garde la
+          // valeur existante plutôt que de forcer une réactivation à tort.
         }
       }
       if (!annule) setVerificationEnCours(false);
