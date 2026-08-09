@@ -30,6 +30,34 @@ export default function ClientHomePage() {
   // n'est pas activée, on affiche un écran de blocage au lieu de la liste.
   const [demandePositionEnCours, setDemandePositionEnCours] = useState(false);
   const [erreurPosition, setErreurPosition] = useState<string | null>(null);
+  const [verificationEnCours, setVerificationEnCours] = useState(true);
+
+  // On a peut-être déjà une position enregistrée d'une session précédente —
+  // mais rien ne garantit que la localisation est toujours active côté système
+  // (l'utilisateur a pu la désactiver depuis). On revérifie donc à chaque
+  // ouverture, sinon une position désactivée après coup resterait utilisée
+  // indéfiniment sans jamais redemander l'autorisation.
+  useEffect(() => {
+    let annule = false;
+    async function verifier() {
+      if (position && navigator.permissions?.query) {
+        try {
+          const statut = await navigator.permissions.query({ name: "geolocation" as PermissionName });
+          if (!annule && statut.state !== "granted") {
+            setPosition(null); // force le retour à l'écran d'activation
+          }
+        } catch {
+          // API non disponible sur cet appareil/navigateur — on garde la valeur existante.
+        }
+      }
+      if (!annule) setVerificationEnCours(false);
+    }
+    verifier();
+    return () => {
+      annule = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function demanderPosition() {
     setDemandePositionEnCours(true);
@@ -123,6 +151,9 @@ export default function ClientHomePage() {
   }, [fournisseurs, categorie, recherche, filtresActifs, tri, position]);
 
   // ---- Écran de blocage tant que la position n'est pas activée ----
+  if (verificationEnCours) {
+    return <div className="min-h-screen bg-[var(--color-ink-50)]" />;
+  }
   if (!position) {
     return (
       <div className="min-h-screen bg-[var(--color-ink-50)] flex flex-col">
