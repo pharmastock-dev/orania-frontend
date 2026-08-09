@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Star, Phone, Clock, MapPin, Map as MapIcon, ChevronDown, AlertTriangle, PackageX, Flag } from "lucide-react";
+import { Star, Phone, Clock, MapPin, Map as MapIcon, ChevronDown, AlertTriangle, PackageX, Flag, Coffee } from "lucide-react";
 import { MapContainer, TileLayer, Marker } from "react-leaflet";
 import L from "leaflet";
 import BackButton from "../components/BackButton";
@@ -19,7 +19,7 @@ import { useToast } from "../context/ToastContext";
 import { getFournisseurs, getProduits, getAvisFournisseur, resolveImageUrl } from "../api";
 import { ApiError } from "../api/client";
 import { formatHoraires, estOuvertMaintenant } from "../utils/format";
-import { getCategorieLabel, getEmojiCategorieProduit } from "../utils/categories";
+import { getCategorieLabel } from "../utils/categories";
 import { distanceMetres, estimerTempsLivraison } from "../utils/geo";
 import type { Fournisseur, Produit, Avis } from "../types";
 
@@ -82,6 +82,12 @@ export default function StorePage() {
   }, [id]);
 
   const categoriesProduits = useMemo(() => Array.from(new Set(produits.map((p) => p.categorie))), [produits]);
+
+  // Les cafétérias sont en consultation de menu uniquement — aucune commande
+  // possible (ni livraison, ni retrait), quel que soit ce que le commerce a
+  // par ailleurs configuré. La règle s'applique dès que la catégorie du
+  // commerce est "cafeteria", sans exception.
+  const estCafeteria = fournisseur?.categorie === "cafeteria";
 
   const produitsAffiches = useMemo(() => {
     if (categorieActive === "tous") return produits;
@@ -265,6 +271,12 @@ export default function StorePage() {
           )}
         </div>
 
+        {estCafeteria && (
+          <div className="flex items-center gap-2 bg-[var(--color-ink-100)] text-[var(--color-ink-700)] text-xs font-medium rounded-xl px-3.5 py-2.5">
+            <Coffee size={14} className="shrink-0" /> Ce commerce propose uniquement la consultation du menu — aucune commande possible.
+          </div>
+        )}
+
         <div className="flex gap-2 overflow-x-auto scroll-row pt-1">
           <button
             onClick={() => setCategorieActive("promotions")}
@@ -286,11 +298,11 @@ export default function StorePage() {
             <button
               key={c}
               onClick={() => setCategorieActive(c)}
-              className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold whitespace-nowrap ${
+              className={`shrink-0 px-3.5 py-2 rounded-full text-sm font-semibold whitespace-nowrap ${
                 categorieActive === c ? "bg-[var(--color-orange-500)] text-white" : "bg-white border border-[var(--color-ink-100)] text-[var(--color-ink-700)]"
               }`}
             >
-              <span>{getEmojiCategorieProduit(c)}</span> {c}
+              {c}
             </button>
           ))}
         </div>
@@ -303,7 +315,7 @@ export default function StorePage() {
               <div key={cat} className="flex flex-col gap-2.5">
                 <div className="flex items-center gap-2">
                   <div className="h-px flex-1 bg-[var(--color-ink-100)]" />
-                  <p className="text-xs font-bold text-[var(--color-ink-500)] uppercase tracking-wider whitespace-nowrap">{getEmojiCategorieProduit(cat)} {cat}</p>
+                  <p className="text-xs font-bold text-[var(--color-ink-500)] uppercase tracking-wider whitespace-nowrap">{cat}</p>
                   <div className="h-px flex-1 bg-[var(--color-ink-100)]" />
                 </div>
                 {liste.map((p) => (
@@ -314,6 +326,7 @@ export default function StorePage() {
                     onAdd={handleAdd}
                     onIncrement={handleIncrement}
                     onDecrement={handleDecrement}
+                    lectureSeule={estCafeteria}
                   />
                 ))}
               </div>
@@ -322,7 +335,9 @@ export default function StorePage() {
         )}
 
         {!ouvert && produitsAffiches.length > 0 && (
-          <p className="text-xs text-center text-[var(--color-ink-500)]">Ce commerce est actuellement fermé. La commande sera possible dès sa réouverture.</p>
+          <p className="text-xs text-center text-[var(--color-ink-500)]">
+            {estCafeteria ? "Ce commerce est actuellement fermé." : "Ce commerce est actuellement fermé. La commande sera possible dès sa réouverture."}
+          </p>
         )}
 
         <button
@@ -366,7 +381,7 @@ export default function StorePage() {
         )}
       </div>
 
-      <CartFloatingButton />
+      {!estCafeteria && <CartFloatingButton />}
 
       <Modal open={!!conflit} onClose={() => setConflit(null)} title="Panier différent">
         <p className="text-sm text-[var(--color-ink-700)] mb-4">

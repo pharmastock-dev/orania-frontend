@@ -496,7 +496,7 @@ export default function CommandesTab({ fournisseurId, onGererLivreurs }: { fourn
 
                   {/* Date + Montant */}
                   <div className="flex items-center justify-between mt-4 pt-4 border-t border-[var(--color-ink-100)]">
-                    <span className="text-xs text-[var(--color-ink-500)]">{c.created_at ? new Date(c.created_at).toLocaleString("fr-FR") : ""}</span>
+                    <span className="text-xs text-[var(--color-ink-500)]">{c.created_at ? new Date(c.created_at).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : ""}</span>
                     <span className="font-extrabold text-lg text-[var(--color-ink-900)]">{formatPrix(c.prix_total)}</span>
                   </div>
 

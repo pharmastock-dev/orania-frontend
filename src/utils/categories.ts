@@ -10,6 +10,7 @@ export interface CategorieDef {
 export const CATEGORIES: CategorieDef[] = [
   { key: "tous", label: "Tous", emoji: "🍽️" },
   { key: "restaurant", label: "Resto", emoji: "🍴" },
+  { key: "cafeteria", label: "Cafétéria", emoji: "☕" },
   { key: "epicerie", label: "Épiceries", emoji: "🛒" },
   { key: "parfumerie", label: "Parfumerie", emoji: "🌸" },
   { key: "cosmetiques", label: "Cosmétiques", emoji: "💄" },
@@ -55,33 +56,24 @@ export function getEmojiCategorieProduit(categorie: string): string {
   return EMOJI_PRODUIT[categorie.trim().toLowerCase()] || "🍴";
 }
 
-// Catégories CÔTÉ CLIENT uniquement — plus riche, mélange type de commerce et type de
-// plat, pour permettre de filtrer directement sur "Pizza" ou "Sushi" par exemple.
-// Le filtrage matche soit fournisseur.categorie (type de commerce), soit
-// fournisseur.produits_categories (types de plats réellement vendus par ce commerce).
+// Catégories CÔTÉ CLIENT — reflète exactement les catégories que les commerçants
+// choisissent à l'inscription (pas de types de plats mélangés). Chaque catégorie
+// a sa propre couleur d'accent, pour que le filtre actif se distingue clairement
+// d'une catégorie à l'autre plutôt qu'un seul orange générique partout.
 export interface CategorieClientDef {
   key: string;
   label: string;
   emoji: string;
+  couleur: string; // couleur d'accent (fond clair + texte/bordure une fois actif)
 }
 
 export const CATEGORIES_CLIENT: CategorieClientDef[] = [
-  { key: "tous", label: "Tous", emoji: "🍽️" },
-  { key: "restaurant", label: "Resto", emoji: "🍴" },
-  { key: "Burger", label: "Burger", emoji: "🍔" },
-  { key: "Pizza", label: "Pizza", emoji: "🍕" },
-  { key: "Sandwich", label: "Sandwich", emoji: "🥪" },
-  { key: "Sushi", label: "Sushi", emoji: "🍣" },
-  { key: "Crispy", label: "Crispy", emoji: "🍗" },
-  { key: "Grillades", label: "Grillades", emoji: "🍖" },
-  { key: "Tacos", label: "Tacos", emoji: "🌮" },
-  { key: "Kebab", label: "Kebab", emoji: "🥙" },
-  { key: "Plats", label: "Plats", emoji: "🍲" },
-  { key: "Boissons", label: "Boissons", emoji: "🥤" },
-  { key: "Desserts", label: "Desserts", emoji: "🍰" },
-  { key: "epicerie", label: "Épiceries", emoji: "🛒" },
-  { key: "parfumerie", label: "Parfumerie", emoji: "🌸" },
-  { key: "cosmetiques", label: "Cosmétiques", emoji: "💄" },
-  { key: "viennoiserie", label: "Viennoiserie", emoji: "🥐" },
-  { key: "patisserie", label: "Pâtisserie", emoji: "🧁" },
+  { key: "tous", label: "Tous", emoji: "🍽️", couleur: "#131a2b" },
+  { key: "restaurant", label: "Resto", emoji: "🍴", couleur: "#f5790c" },
+  { key: "cafeteria", label: "Cafétéria", emoji: "☕", couleur: "#92400e" },
+  { key: "epicerie", label: "Épiceries", emoji: "🛒", couleur: "#16a34a" },
+  { key: "parfumerie", label: "Parfumerie", emoji: "🌸", couleur: "#db2777" },
+  { key: "cosmetiques", label: "Cosmétiques", emoji: "💄", couleur: "#9333ea" },
+  { key: "viennoiserie", label: "Viennoiserie", emoji: "🥐", couleur: "#ca8a04" },
+  { key: "patisserie", label: "Pâtisserie", emoji: "🧁", couleur: "#e11d48" },
 ];

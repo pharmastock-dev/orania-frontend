@@ -5,6 +5,15 @@ interface CategoryBarProps {
   onChange: (key: string) => void;
 }
 
+// Convertit une couleur hex en rgba avec transparence, pour un fond clair
+// dérivé automatiquement de la couleur d'accent de chaque catégorie.
+function hexVersRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 export default function CategoryBar({ actif, onChange }: CategoryBarProps) {
   return (
     <div className="flex gap-2.5 overflow-x-auto scroll-row -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -14,12 +23,16 @@ export default function CategoryBar({ actif, onChange }: CategoryBarProps) {
           <button
             key={cat.key}
             onClick={() => onChange(cat.key)}
-            className={`shrink-0 flex flex-col items-center gap-1.5 px-1 w-16 ${isActive ? "text-[var(--color-orange-600)]" : "text-[var(--color-ink-700)]"}`}
+            className="shrink-0 flex flex-col items-center gap-1.5 px-1 w-16"
+            style={{ color: isActive ? cat.couleur : "var(--color-ink-700)" }}
           >
             <span
-              className={`flex items-center justify-center h-12 w-12 rounded-2xl border text-2xl ${
-                isActive ? "bg-[var(--color-orange-100)] border-[var(--color-orange-400)]" : "bg-white border-[var(--color-ink-100)]"
-              }`}
+              className="flex items-center justify-center h-12 w-12 rounded-2xl border text-2xl transition-colors"
+              style={
+                isActive
+                  ? { backgroundColor: hexVersRgba(cat.couleur, 0.13), borderColor: cat.couleur }
+                  : { backgroundColor: "#fff", borderColor: "var(--color-ink-100)" }
+              }
             >
               {cat.emoji}
             </span>
