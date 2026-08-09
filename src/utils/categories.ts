@@ -11,9 +11,8 @@ export const CATEGORIES: CategorieDef[] = [
   { key: "tous", label: "Tous", emoji: "🍽️" },
   { key: "restaurant", label: "Resto", emoji: "🍴" },
   { key: "cafeteria", label: "Cafétéria", emoji: "☕" },
-  { key: "epicerie", label: "Épiceries", emoji: "🛒" },
+  { key: "epicerie", label: "Épiceries", emoji: "🏪" },
   { key: "parfumerie", label: "Parfumerie", emoji: "🌸" },
-  { key: "cosmetiques", label: "Cosmétiques", emoji: "💄" },
   { key: "viennoiserie", label: "Viennoiserie", emoji: "🥐" },
   { key: "patisserie", label: "Pâtisserie", emoji: "🧁" },
 ];
@@ -95,9 +94,8 @@ export const CATEGORIES_CLIENT: CategorieClientDef[] = [
   { key: "tous", label: "Tous", emoji: "🍽️", couleur: "#131a2b" },
   { key: "restaurant", label: "Resto", emoji: "🍴", couleur: "#f5790c" },
   { key: "cafeteria", label: "Cafétéria", emoji: "☕", couleur: "#92400e" },
-  { key: "epicerie", label: "Épiceries", emoji: "🛒", couleur: "#16a34a" },
+  { key: "epicerie", label: "Épiceries", emoji: "🏪", couleur: "#16a34a" },
   { key: "parfumerie", label: "Parfumerie", emoji: "🌸", couleur: "#db2777" },
-  { key: "cosmetiques", label: "Cosmétiques", emoji: "💄", couleur: "#9333ea" },
   { key: "viennoiserie", label: "Viennoiserie", emoji: "🥐", couleur: "#ca8a04" },
   { key: "patisserie", label: "Pâtisserie", emoji: "🧁", couleur: "#e11d48" },
 ];

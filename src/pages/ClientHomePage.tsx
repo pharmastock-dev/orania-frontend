@@ -223,7 +223,13 @@ export default function ClientHomePage() {
           <FilterBar tri={tri} onTriChange={setTri} filtresActifs={filtresActifs} onToggleFiltre={toggleFiltre} />
         </div>
 
-        <CategoryBar actif={categorie} onChange={setCategorie} />
+        <CategoryBar
+          actif={categorie}
+          onChange={(c) => {
+            setCategorie(c);
+            setTypePlat("tous"); // évite une combinaison impossible (ex: "Parfumerie" + "Pizza")
+          }}
+        />
         <TypePlatBar actif={typePlat} onChange={setTypePlat} />
 
         {erreur && (
