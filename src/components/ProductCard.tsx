@@ -9,9 +9,10 @@ interface ProductCardProps {
   onAdd: (produit: Produit) => void;
   onIncrement?: (produit: Produit) => void;
   onDecrement?: (produit: Produit) => void;
+  lectureSeule?: boolean; // masque totalement les contrôles de commande (mode cafétéria)
 }
 
-export default function ProductCard({ produit, quantite = 0, onAdd, onIncrement, onDecrement }: ProductCardProps) {
+export default function ProductCard({ produit, quantite = 0, onAdd, onIncrement, onDecrement, lectureSeule = false }: ProductCardProps) {
   const image = resolveImageUrl(produit.photo);
   const enPromo = produit.prix_promo != null && produit.prix_promo < produit.prix;
 
@@ -50,7 +51,7 @@ export default function ProductCard({ produit, quantite = 0, onAdd, onIncrement,
         {!produit.disponible && <span className="inline-block mt-1 text-[11px] font-semibold text-[var(--color-ink-500)]">Indisponible</span>}
       </div>
 
-      {quantite > 0 ? (
+      {lectureSeule ? null : quantite > 0 ? (
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => onDecrement?.(produit)}
