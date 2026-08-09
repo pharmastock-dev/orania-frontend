@@ -62,6 +62,21 @@ export async function initWebPushNotifications({ onToken, onNotificationRecue }:
     onMessage(messaging, (payload) => {
       const titre = payload.notification?.title || "Orania";
       const corps = payload.notification?.body || "";
+
+      // Sans ça, un message reçu onglet actif ne déclenchait qu'un petit
+      // toast interne — jamais une vraie notification système, donc jamais
+      // de son, peu importe les réglages Windows/Chrome de l'utilisateur.
+      // On déclenche donc ici une vraie Notification navigateur nous-mêmes,
+      // pour un comportement identique que l'onglet soit actif ou non. Le
+      // toast interne ne sert plus alors que de repli si ça échoue.
+      if (Notification.permission === "granted") {
+        try {
+          new Notification(titre, { body: corps, icon: "/logo-orania.png" });
+          return;
+        } catch (err) {
+          console.error("[WEB-PUSH] Échec affichage notification premier plan:", err);
+        }
+      }
       onNotificationRecue?.(titre, corps);
     });
   } catch (err) {
