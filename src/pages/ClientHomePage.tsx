@@ -180,7 +180,7 @@ export default function ClientHomePage() {
             {erreurPosition && (
               <div className="w-full flex items-start gap-2 bg-red-50 text-red-700 text-sm rounded-xl px-3.5 py-3 mt-4 text-left">
                 <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-                <span>{erreurPosition} Vérifiez que la localisation est autorisée pour ce site dans les réglages de votre navigateur ou de votre téléphone, puis réessayez.</span>
+                <span>{erreurPosition}</span>
               </div>
             )}
 

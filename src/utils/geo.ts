@@ -1,5 +1,4 @@
 import { Geolocation } from "@capacitor/geolocation";
-import { Capacitor } from "@capacitor/core";
 import type { Coordonnees } from "../types";
 
 // Formule de Haversine — distance en mètres entre deux points
@@ -22,25 +21,33 @@ export function distanceMetres(a: Coordonnees, b: Coordonnees): number {
 // réglages. Sur le web, le même plugin retombe automatiquement sur l'API
 // navigateur standard — comportement inchangé de ce côté.
 export async function getPositionActuelle(): Promise<Coordonnees> {
+  // 1. Permission — géré séparément pour donner un message clair et distinct
+  // d'un échec de récupération GPS (deux causes très différentes).
   try {
     let permission = await Geolocation.checkPermissions();
+    console.log("[GEO] Permission actuelle:", JSON.stringify(permission));
     if (permission.location !== "granted" && permission.coarseLocation !== "granted") {
       permission = await Geolocation.requestPermissions();
+      console.log("[GEO] Permission après demande:", JSON.stringify(permission));
     }
     if (permission.location !== "granted" && permission.coarseLocation !== "granted") {
-      throw new Error("Localisation refusée. Autorisez l'accès à la position dans les réglages de l'application.");
+      throw new Error("Localisation refusée. Autorisez l'accès à la position dans les réglages de l'application (Paramètres → Applications → QREEB → Autorisations).");
     }
+  } catch (err: any) {
+    console.error("[GEO] Échec permission:", err?.message || err);
+    throw new Error(err?.message || "Impossible de vérifier la permission de localisation.");
+  }
 
+  // 2. Récupération GPS — erreur distincte, avec le code technique réel
+  // affiché temporairement pour diagnostiquer précisément la cause.
+  try {
     const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 10000 });
     return { latitude: position.coords.latitude, longitude: position.coords.longitude };
-  } catch (err) {
-    // Sur Android natif, un GPS éteint remonte souvent une erreur ici même
-    // après que l'utilisateur ait accepté la permission — message adapté
-    // pour guider clairement vers l'activation du GPS, pas juste la permission.
-    if (Capacitor.isNativePlatform()) {
-      throw new Error("Impossible d'obtenir votre position. Vérifiez que le GPS est activé sur votre téléphone, puis réessayez.");
-    }
-    throw new Error(err instanceof Error ? err.message : "Localisation refusée ou indisponible.");
+  } catch (err: any) {
+    const code = err?.code ?? "?";
+    const messageBrut = err?.message || String(err);
+    console.error("[GEO] Échec getCurrentPosition:", code, messageBrut);
+    throw new Error(`Position indisponible (${messageBrut}). Vérifiez que le GPS est activé sur votre téléphone, puis réessayez.`);
   }
 }
 
