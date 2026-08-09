@@ -1,9 +1,11 @@
 import { useEffect, useRef } from "react";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
 import { AppProvider, useApp } from "./context/AppContext";
-import { ToastProvider } from "./context/ToastContext";
+import { ToastProvider, useToast } from "./context/ToastContext";
 import RequireClient from "./components/RequireClient";
 import { initPushNotifications } from "./utils/notifications";
+import { initWebPushNotifications } from "./utils/webPush";
 import { getPositionActuelle } from "./utils/geo";
 import { enregistrerTokenAcheteur, enregistrerTokenFournisseur } from "./api";
 
@@ -44,13 +46,16 @@ function PermissionsAuLancement() {
     if (dejaLance.current) return;
     dejaLance.current = true;
 
-    // IMPORTANT : les deux demandes sont volontairement séquentielles, jamais
-    // simultanées — Android n'affiche qu'une seule popup système de
-    // permission à la fois ; les lancer en parallèle fait "disparaître"
-    // silencieusement la seconde (c'est ce qui empêchait la localisation de
-    // s'afficher alors que les notifications fonctionnaient).
+    // IMPORTANT : les demandes sont volontairement séquentielles, jamais
+    // simultanées — sur mobile, Android n'affiche qu'une seule popup système
+    // de permission à la fois ; les lancer en parallèle fait "disparaître"
+    // silencieusement la seconde.
     async function demanderToutesLesPermissions() {
-      await initPushNotifications({ onToken: () => {} });
+      if (Capacitor.isNativePlatform()) {
+        await initPushNotifications({ onToken: () => {} });
+      } else {
+        await initWebPushNotifications({ onToken: () => {} });
+      }
       try {
         const pos = await getPositionActuelle();
         setPosition(pos);
@@ -67,11 +72,13 @@ function PermissionsAuLancement() {
 
 // Câble les notifications push dès qu'un client ou un commerçant est connecté,
 // et navigue vers le bon écran quand on tape sur une notification reçue.
-// Ne fait rien sur le web (initPushNotifications s'auto-désactive) — actif
-// uniquement dans l'app Android/iOS packagée avec Capacitor.
+// Bascule automatiquement entre le plugin natif Capacitor (app Android/iOS)
+// et Firebase Web direct (navigateur/PC) — les deux enregistrent le token
+// sur les mêmes routes backend, le serveur ne fait aucune distinction.
 function NotificationsPush() {
   const { client, fournisseurConnecte } = useApp();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const clientInitialise = useRef<number | null>(null);
   const fournisseurInitialise = useRef<number | null>(null);
 
@@ -82,17 +89,27 @@ function NotificationsPush() {
     }
     if (clientInitialise.current === client.id) return;
     clientInitialise.current = client.id;
-    initPushNotifications({
-      onToken: (token) => {
-        enregistrerTokenAcheteur(client.id, token).catch(() => {});
-      },
-      onNotificationTap: (data) => {
-        if (data.type === "statut_commande" && data.commande_id) {
-          navigate(`/commande/${data.commande_id}`);
-        }
-      },
-    });
-  }, [client, navigate]);
+
+    const onToken = (token: string) => {
+      enregistrerTokenAcheteur(client.id, token).catch(() => {});
+    };
+
+    if (Capacitor.isNativePlatform()) {
+      initPushNotifications({
+        onToken,
+        onNotificationTap: (data) => {
+          if (data.type === "statut_commande" && data.commande_id) {
+            navigate(`/commande/${data.commande_id}`);
+          }
+        },
+      });
+    } else {
+      initWebPushNotifications({
+        onToken,
+        onNotificationRecue: (titre, corps) => showToast(`${titre} — ${corps}`, "info"),
+      });
+    }
+  }, [client, navigate, showToast]);
 
   useEffect(() => {
     if (!fournisseurConnecte) {
@@ -101,17 +118,27 @@ function NotificationsPush() {
     }
     if (fournisseurInitialise.current === fournisseurConnecte.id) return;
     fournisseurInitialise.current = fournisseurConnecte.id;
-    initPushNotifications({
-      onToken: (token) => {
-        enregistrerTokenFournisseur(fournisseurConnecte.id, token).catch(() => {});
-      },
-      onNotificationTap: (data) => {
-        if (data.type === "nouvelle_commande") {
-          navigate("/commercant/dashboard");
-        }
-      },
-    });
-  }, [fournisseurConnecte, navigate]);
+
+    const onToken = (token: string) => {
+      enregistrerTokenFournisseur(fournisseurConnecte.id, token).catch(() => {});
+    };
+
+    if (Capacitor.isNativePlatform()) {
+      initPushNotifications({
+        onToken,
+        onNotificationTap: (data) => {
+          if (data.type === "nouvelle_commande") {
+            navigate("/commercant/dashboard");
+          }
+        },
+      });
+    } else {
+      initWebPushNotifications({
+        onToken,
+        onNotificationRecue: (titre, corps) => showToast(`${titre} — ${corps}`, "info"),
+      });
+    }
+  }, [fournisseurConnecte, navigate, showToast]);
 
   return null;
 }
