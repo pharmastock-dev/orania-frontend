@@ -230,7 +230,7 @@ export default function ClientHomePage() {
             setTypePlat("tous"); // évite une combinaison impossible (ex: "Parfumerie" + "Pizza")
           }}
         />
-        <TypePlatBar actif={typePlat} onChange={setTypePlat} />
+        {categorie === "restaurant" && <TypePlatBar actif={typePlat} onChange={setTypePlat} />}
 
         {erreur && (
           <div className="flex items-start gap-2 bg-red-50 text-red-700 text-sm rounded-xl px-3.5 py-3">
