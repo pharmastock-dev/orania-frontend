@@ -46,15 +46,11 @@ function PermissionsAuLancement() {
     if (dejaLance.current) return;
     dejaLance.current = true;
 
-    // IMPORTANT : les demandes sont volontairement séquentielles, jamais
-    // simultanées — sur mobile, Android n'affiche qu'une seule popup système
-    // de permission à la fois ; les lancer en parallèle fait "disparaître"
-    // silencieusement la seconde.
+    // IMPORTANT : sur le web, la demande de notification ne peut PAS être
+    // automatique (voir ActiverNotifsWeb) — seule la localisation l'est ici.
     async function demanderToutesLesPermissions() {
       if (Capacitor.isNativePlatform()) {
         await initPushNotifications({ onToken: () => {} });
-      } else {
-        await initWebPushNotifications({ onToken: () => {} });
       }
       try {
         const pos = await getPositionActuelle();

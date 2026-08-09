@@ -3,6 +3,7 @@ import { AlertTriangle, SearchX, Search as SearchIcon, LocateFixed, MapPin, Sett
 import { Capacitor } from "@capacitor/core";
 import { NativeSettings, AndroidSettings } from "capacitor-native-settings";
 import ClientHeader from "../components/ClientHeader";
+import ActiverNotifsWeb from "../components/ActiverNotifsWeb";
 import FilterBar, { type Tri, type FiltreMulti } from "../components/FilterBar";
 import CategoryBar from "../components/CategoryBar";
 import TypePlatBar from "../components/TypePlatBar";
@@ -11,14 +12,14 @@ import Button from "../components/Button";
 import { CardSkeleton } from "../components/Loading";
 import EmptyState from "../components/EmptyState";
 import { useApp } from "../context/AppContext";
-import { getFournisseurs } from "../api";
+import { getFournisseurs, enregistrerTokenAcheteur } from "../api";
 import { ApiError } from "../api/client";
 import { estOuvertMaintenant } from "../utils/format";
 import { getPositionActuelle, distanceMetres } from "../utils/geo";
 import type { Fournisseur } from "../types";
 
 export default function ClientHomePage() {
-  const { position, setPosition } = useApp();
+  const { position, setPosition, client } = useApp();
   const [fournisseurs, setFournisseurs] = useState<Fournisseur[]>([]);
   const [loading, setLoading] = useState(true);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -219,13 +220,15 @@ export default function ClientHomePage() {
         <div className="max-w-2xl w-full mx-auto lg:mx-0 flex flex-col gap-4">
           <ClientHeader showBack />
 
+          {client && <ActiverNotifsWeb onToken={(token) => enregistrerTokenAcheteur(client.id, token).catch(() => {})} />}
+
           <div className="flex items-center gap-2">
             <div className="flex-1 flex items-center gap-2 bg-white border border-[var(--color-ink-100)] rounded-xl px-3.5 py-3">
               <SearchIcon size={18} className="text-[var(--color-ink-500)] shrink-0" />
               <input
                 value={recherche}
                 onChange={(e) => setRecherche(e.target.value)}
-                placeholder="Chercher : tacos, pizza, sushi..."
+                placeholder="Envie de quoi aujourd'hui ?"
                 className="flex-1 min-w-0 bg-transparent outline-none text-[15px] placeholder:text-[var(--color-ink-500)]"
               />
             </div>

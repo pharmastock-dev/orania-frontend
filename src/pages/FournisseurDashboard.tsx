@@ -3,8 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Package, Bike, BarChart3, Store, RefreshCw, LogOut, ClipboardList, Flag, BellOff, X } from "lucide-react";
 import DashboardHeader from "../components/DashboardHeader";
 import ReclamationModal from "../components/ReclamationModal";
+import ActiverNotifsWeb from "../components/ActiverNotifsWeb";
 import { useApp } from "../context/AppContext";
 import { verifierEtatNotifications } from "../utils/notifications";
+import { enregistrerTokenFournisseur } from "../api";
 import ProduitsTab from "../components/fournisseur/ProduitsTab";
 import CommandesTab from "../components/fournisseur/CommandesTab";
 import StatsTab from "../components/fournisseur/StatsTab";
@@ -80,6 +82,10 @@ export default function FournisseurDashboard() {
             </>
           }
         />
+
+        {fournisseurConnecte && (
+          <ActiverNotifsWeb onToken={(token) => enregistrerTokenFournisseur(fournisseurConnecte.id, token).catch(() => {})} />
+        )}
 
         {notifsProblematiques && !avertissementFerme && (
           <div className="mt-4 bg-red-50 border border-red-200 rounded-2xl p-4 relative">
