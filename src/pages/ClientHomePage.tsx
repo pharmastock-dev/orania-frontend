@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, SearchX, Search as SearchIcon, LocateFixed, MapPin } from "lucide-react";
+import { AlertTriangle, SearchX, Search as SearchIcon, LocateFixed, MapPin, Settings } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
+import { NativeSettings, AndroidSettings } from "capacitor-native-settings";
 import ClientHeader from "../components/ClientHeader";
 import FilterBar, { type Tri, type FiltreMulti } from "../components/FilterBar";
 import CategoryBar from "../components/CategoryBar";
@@ -73,6 +75,18 @@ export default function ClientHomePage() {
       setDemandePositionEnCours(false);
     }
   }
+
+  async function ouvrirReglagesLocalisation() {
+    if (Capacitor.getPlatform() === "android") {
+      await NativeSettings.openAndroid({ option: AndroidSettings.Location });
+    }
+  }
+
+  // Le GPS est éteint (pas juste la permission refusée) — Android ne propose
+  // pas de popup native pour ça via ce plugin, on offre donc un raccourci
+  // direct vers l'écran de réglage plutôt que de laisser l'utilisateur
+  // chercher lui-même dans les paramètres.
+  const gpsEteint = erreurPosition?.toLowerCase().includes("gps") || erreurPosition?.toLowerCase().includes("location services");
 
   function toggleFiltre(f: FiltreMulti) {
     setFiltresActifs((prev) => (prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]));
@@ -182,6 +196,12 @@ export default function ClientHomePage() {
                 <AlertTriangle size={16} className="mt-0.5 shrink-0" />
                 <span>{erreurPosition}</span>
               </div>
+            )}
+
+            {gpsEteint && Capacitor.getPlatform() === "android" && (
+              <Button fullWidth variant="outline" className="mt-3" icon={<Settings size={16} />} onClick={ouvrirReglagesLocalisation}>
+                Ouvrir les réglages de localisation
+              </Button>
             )}
 
             <Button fullWidth className="mt-5" icon={<LocateFixed size={16} />} loading={demandePositionEnCours} onClick={demanderPosition}>
