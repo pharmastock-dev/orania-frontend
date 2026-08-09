@@ -44,11 +44,21 @@ function PermissionsAuLancement() {
     if (dejaLance.current) return;
     dejaLance.current = true;
 
-    initPushNotifications({ onToken: () => {} });
-
-    getPositionActuelle()
-      .then((pos) => setPosition(pos))
-      .catch(() => {}); // pas grave si refusé ici — l'écran client redemandera au besoin
+    // IMPORTANT : les deux demandes sont volontairement séquentielles, jamais
+    // simultanées — Android n'affiche qu'une seule popup système de
+    // permission à la fois ; les lancer en parallèle fait "disparaître"
+    // silencieusement la seconde (c'est ce qui empêchait la localisation de
+    // s'afficher alors que les notifications fonctionnaient).
+    async function demanderToutesLesPermissions() {
+      await initPushNotifications({ onToken: () => {} });
+      try {
+        const pos = await getPositionActuelle();
+        setPosition(pos);
+      } catch {
+        // pas grave si refusé ici — l'écran client redemandera au besoin
+      }
+    }
+    demanderToutesLesPermissions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
