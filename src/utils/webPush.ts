@@ -15,22 +15,18 @@ import { initializeApp, type FirebaseApp } from "firebase/app";
 import { getMessaging, getToken, onMessage, type Messaging } from "firebase/messaging";
 
 const FIREBASE_CONFIG = {
-  apiKey: "À_COMPLÉTER",
+  apiKey: "AIzaSyBqP9lSaex8S5N6DPaao3D7Sgp6towFEyk",
   authDomain: "orania-30cd2.firebaseapp.com",
   projectId: "orania-30cd2",
-  storageBucket: "À_COMPLÉTER",
-  messagingSenderId: "À_COMPLÉTER",
-  appId: "À_COMPLÉTER",
+  storageBucket: "orania-30cd2.firebasestorage.app",
+  messagingSenderId: "334946245403",
+  appId: "1:334946245403:web:d67e4abe35bbd12386d1be",
 };
 
-const VAPID_KEY = "À_COMPLÉTER";
+const VAPID_KEY = "BKAcBwdEG1sSjO0bLVEyAJozc1Kgk37TKODaRe5hE3QUDEz210K2JOGVGqDPOVI9bW0MJP_kFNCOVYSbnoryDmA";
 
 let app: FirebaseApp | null = null;
 let messaging: Messaging | null = null;
-
-function estConfigure() {
-  return FIREBASE_CONFIG.apiKey !== "À_COMPLÉTER" && VAPID_KEY !== "À_COMPLÉTER";
-}
 
 interface InitWebPushOptions {
   onToken: (token: string) => void;
@@ -40,15 +36,8 @@ interface InitWebPushOptions {
 /**
  * Demande la permission de notifications navigateur, récupère le token FCM
  * web, et écoute les messages reçus quand l'onglet est actif (premier plan).
- * Ne fait rien si Firebase Web n'est pas encore configuré (valeurs par
- * défaut "À_COMPLÉTER" toujours en place) — évite un plantage silencieux
- * tant que la configuration n'a pas été renseignée.
  */
 export async function initWebPushNotifications({ onToken, onNotificationRecue }: InitWebPushOptions) {
-  if (!estConfigure()) {
-    console.warn("[WEB-PUSH] Firebase Web non configuré — voir src/utils/webPush.ts");
-    return;
-  }
   if (!("Notification" in window) || !("serviceWorker" in navigator)) {
     console.warn("[WEB-PUSH] Notifications non supportées par ce navigateur.");
     return;
@@ -78,8 +67,4 @@ export async function initWebPushNotifications({ onToken, onNotificationRecue }:
   } catch (err) {
     console.error("[WEB-PUSH] Échec initialisation:", err);
   }
-}
-
-export function estWebPushConfigure() {
-  return estConfigure();
 }

@@ -11,12 +11,12 @@ importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js
 importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js");
 
 firebase.initializeApp({
-  apiKey: "À_COMPLÉTER",
+  apiKey: "AIzaSyBqP9lSaex8S5N6DPaao3D7Sgp6towFEyk",
   authDomain: "orania-30cd2.firebaseapp.com",
   projectId: "orania-30cd2",
-  storageBucket: "À_COMPLÉTER",
-  messagingSenderId: "À_COMPLÉTER",
-  appId: "À_COMPLÉTER",
+  storageBucket: "orania-30cd2.firebasestorage.app",
+  messagingSenderId: "334946245403",
+  appId: "1:334946245403:web:d67e4abe35bbd12386d1be",
 });
 
 const messaging = firebase.messaging();
