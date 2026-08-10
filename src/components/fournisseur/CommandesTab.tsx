@@ -53,14 +53,10 @@ function classesStatut(c: Commande, afficherCorbeille: boolean): string {
   return "bg-amber-100 text-amber-700"; // en_attente / non_recupere — en attente, discret
 }
 
-function prochainStatut(c: Commande): StatutCommande | null {
-  if (estAnnulee(c)) return null;
-  if (!c.avec_livraison) {
-    return c.statut === "non_recupere" ? "recupere" : null;
-  }
-  if (c.statut === "en_attente") return "en_route";
-  if (c.statut === "en_route") return "livre";
-  return null;
+// Étapes possibles selon le mode — sert au sélecteur de statut librement
+// cliquable dans les deux sens.
+function etapesPourCommande(c: Commande): StatutCommande[] {
+  return c.avec_livraison ? ["en_attente", "en_route", "livre"] : ["non_recupere", "recupere"];
 }
 
 type FiltreType = "tous" | "avec_livraison" | "a_recuperer";
@@ -118,14 +114,16 @@ export default function CommandesTab({ fournisseurId, onGererLivreurs }: { fourn
     }
   }
 
-  async function avancer(c: Commande) {
-    const suivant = prochainStatut(c);
-    if (!suivant) return;
+  // Change le statut vers N'IMPORTE QUELLE étape directement, y compris
+  // revenir en arrière (ex: repasser "Livrée" → "En route" en cas de clic
+  // par erreur) — pas juste avancer d'un cran comme avant.
+  async function changerStatutDirect(c: Commande, nouveauStatut: StatutCommande) {
+    if (nouveauStatut === c.statut) return;
     setMajEnCours(c.id);
     try {
-      await updateCommandeStatut(c.id, suivant);
-      setCommandes((prev) => prev.map((x) => (x.id === c.id ? { ...x, statut: suivant } : x)));
-      showToast(`Commande #${c.id} → ${LABELS[suivant]}`, "success");
+      await updateCommandeStatut(c.id, nouveauStatut);
+      setCommandes((prev) => prev.map((x) => (x.id === c.id ? { ...x, statut: nouveauStatut } : x)));
+      showToast(`Commande #${c.id} → ${LABELS[nouveauStatut]}`, "success");
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : "Impossible de mettre à jour le statut.", "error");
     } finally {
@@ -443,7 +441,6 @@ export default function CommandesTab({ fournisseurId, onGererLivreurs }: { fourn
       ) : (
         <div className="flex flex-col gap-3">
           {listeAffichee.map((c) => {
-            const suivant = prochainStatut(c);
             const details = detailsOuverts[c.id];
             return (
               <div key={c.id} className={`bg-white rounded-2xl border overflow-hidden ${afficherCorbeille ? "border-[var(--color-ink-100)] opacity-70" : "border-[var(--color-ink-100)]"}`}>
@@ -496,7 +493,10 @@ export default function CommandesTab({ fournisseurId, onGererLivreurs }: { fourn
 
                   {/* Date + Montant */}
                   <div className="flex items-center justify-between mt-4 pt-4 border-t border-[var(--color-ink-100)]">
-                    <span className="text-xs text-[var(--color-ink-500)]">{c.created_at ? new Date(c.created_at).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : ""}</span>
+                    <span className="flex items-center gap-1.5 text-sm font-medium text-[var(--color-ink-700)]">
+                      <Calendar size={14} className="text-[var(--color-ink-500)]" />
+                      {c.created_at ? new Date(c.created_at).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : ""}
+                    </span>
                     <span className="font-extrabold text-lg text-[var(--color-ink-900)]">{formatPrix(c.prix_total)}</span>
                   </div>
 
@@ -583,12 +583,35 @@ export default function CommandesTab({ fournisseurId, onGererLivreurs }: { fourn
                       </button>
                     )}
 
-                    {/* PRIMAIRE : changement de statut — la seule action pleine couleur de la carte */}
-                    {suivant && (
-                      <Button size="sm" fullWidth onClick={() => avancer(c)} loading={majEnCours === c.id}>
-                        Marquer « {LABELS[suivant]} »
-                      </Button>
-                    )}
+                    {/* PRIMAIRE : statut de la commande — chaque étape est cliquable
+                        directement, dans les deux sens (pas seulement "suivant") */}
+                    <div>
+                      <p className="text-xs font-semibold text-[var(--color-ink-500)] mb-1.5">Statut de la commande</p>
+                      <div className="flex items-center gap-1.5">
+                        {etapesPourCommande(c).map((etape) => {
+                          const indexActuel = etapesPourCommande(c).indexOf(c.statut);
+                          const indexEtape = etapesPourCommande(c).indexOf(etape);
+                          const estActuelle = c.statut === etape;
+                          const estPassee = indexEtape < indexActuel;
+                          return (
+                            <button
+                              key={etape}
+                              onClick={() => changerStatutDirect(c, etape)}
+                              disabled={majEnCours === c.id}
+                              className={`flex-1 text-xs font-bold py-2.5 rounded-lg text-center disabled:opacity-50 ${
+                                estActuelle
+                                  ? "bg-[var(--color-orange-500)] text-white"
+                                  : estPassee
+                                  ? "bg-[var(--color-green-100)] text-[var(--color-green-700)]"
+                                  : "bg-[var(--color-ink-100)] text-[var(--color-ink-500)]"
+                              }`}
+                            >
+                              {LABELS[etape]}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
