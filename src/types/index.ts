@@ -64,6 +64,7 @@ export interface LigneCommande {
   nom: string;
   quantite: number;
   prix_unitaire?: number;
+  note?: string | null;
 }
 
 export interface Commande {
@@ -144,6 +145,7 @@ export interface Coordonnees {
 export interface CartItem {
   produit: Produit;
   quantite: number;
+  note?: string;
 }
 
 export interface Cart {

@@ -19,7 +19,7 @@ interface AppContextValue {
 
   // --- Panier ---
   cart: Cart;
-  addToCart: (produit: Produit, fournisseurNom: string) => "ok" | "conflit";
+  addToCart: (produit: Produit, fournisseurNom: string, quantite?: number, note?: string) => "ok" | "conflit";
   updateQuantite: (produitId: number, quantite: number) => void;
   removeFromCart: (produitId: number) => void;
   clearCart: () => void;
@@ -59,15 +59,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     writeStorage(STORAGE_KEYS.cart, cart);
   }, [cart]);
 
-  function addToCart(produit: Produit, fournisseurNom: string): "ok" | "conflit" {
+  function addToCart(produit: Produit, fournisseurNom: string, quantite: number = 1, note?: string): "ok" | "conflit" {
     if (cart.fournisseurId !== null && cart.fournisseurId !== produit.fournisseur_id) {
       return "conflit";
     }
     setCart((prev) => {
       const existing = prev.items.find((i) => i.produit.id === produit.id);
       const items = existing
-        ? prev.items.map((i) => (i.produit.id === produit.id ? { ...i, quantite: i.quantite + 1 } : i))
-        : [...prev.items, { produit, quantite: 1 }];
+        ? prev.items.map((i) =>
+            i.produit.id === produit.id
+              ? { ...i, quantite: i.quantite + quantite, note: note !== undefined ? note : i.note }
+              : i
+          )
+        : [...prev.items, { produit, quantite, note }];
       return { fournisseurId: produit.fournisseur_id, fournisseurNom, items };
     });
     return "ok";

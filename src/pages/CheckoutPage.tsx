@@ -48,7 +48,7 @@ export default function CheckoutPage() {
         avec_livraison: mode === "livraison",
         latitude: mode === "livraison" ? position?.latitude : undefined,
         longitude: mode === "livraison" ? position?.longitude : undefined,
-        produits: cart.items.map((i) => ({ produit_id: i.produit.id, quantite: i.quantite })),
+        produits: cart.items.map((i) => ({ produit_id: i.produit.id, quantite: i.quantite, note: i.note || undefined })),
       });
       if (res.succes === false || !res.id) {
         setErreur(res.message || "Impossible de créer la commande.");

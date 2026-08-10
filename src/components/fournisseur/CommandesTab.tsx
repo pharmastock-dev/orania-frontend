@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ClipboardX, Printer, Calendar, Wallet2, Bike, Trash2, Store as StoreIcon, RotateCcw, ChevronDown, UserPlus, MapPin } from "lucide-react";
+import { AlertTriangle, ClipboardX, Printer, Calendar, Wallet2, Bike, Trash2, Store as StoreIcon, RotateCcw, ChevronDown, UserPlus, MapPin, MessageSquare } from "lucide-react";
 import Button from "../Button";
 import Modal from "../Modal";
 import PositionClientModal from "../PositionClientModal";
@@ -233,6 +233,7 @@ export default function CommandesTab({ fournisseurId, onGererLivreurs }: { fourn
             <span class="item-nom">${p.nom}</span>
             <span class="item-prix">${formatPrix((p.prix_unitaire || 0) * p.quantite)}</span>
           </div>
+          ${p.note ? `<div class="item-note">📝 ${p.note}</div>` : ""}
         </div>`
       )
       .join("");
@@ -377,12 +378,16 @@ export default function CommandesTab({ fournisseurId, onGererLivreurs }: { fourn
 
   const listeAffichee = afficherCorbeille ? corbeille : resultats;
 
-  // 🔧 DEBUG TEMPORAIRE — à retirer une fois le bug identifié.
-  const debugInfo = `commandes=${commandes.length} | avec_livraison=${commandes.filter((c) => c.avec_livraison).length} | sans=${commandes.filter((c) => !c.avec_livraison).length} | filtreType=${filtreType} | filtreStatut=${filtreStatut} | resultats=${resultats.length}`;
+  // Diagnostic silencieux (console uniquement) — garde une trace en cas de
+  // retour du souci "Tous n'affiche pas les commandes à récupérer" sans
+  // polluer l'interface visuellement comme la bannière de debug temporaire.
+  console.log(
+    `[COMMANDES] total=${commandes.length} avec_livraison=${commandes.filter((c) => c.avec_livraison).length} ` +
+    `sans=${commandes.filter((c) => !c.avec_livraison).length} filtreType=${filtreType} filtreStatut=${filtreStatut} resultats=${resultats.length}`
+  );
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="bg-yellow-100 text-yellow-900 text-[10px] font-mono px-2 py-1.5 rounded-lg break-all">{debugInfo}</div>
       <div className="bg-[var(--color-navy-900)] rounded-2xl p-4 flex items-center gap-3">
         <span className="h-10 w-10 rounded-xl bg-white/10 text-[var(--color-orange-400)] flex items-center justify-center shrink-0">
           <Wallet2 size={18} />
@@ -477,7 +482,14 @@ export default function CommandesTab({ fournisseurId, onGererLivreurs }: { fourn
                   </span>
 
                   {/* Client */}
-                  <p className="text-sm text-[var(--color-ink-700)] mt-3.5">{c.acheteur_nom} · {c.acheteur_telephone}</p>
+                  <p className="text-sm text-[var(--color-ink-700)] mt-3.5">
+                    {c.acheteur_nom} ·{" "}
+                    {c.acheteur_telephone ? (
+                      <a href={`tel:${c.acheteur_telephone}`} className="text-blue-600 font-medium" onClick={(e) => e.stopPropagation()}>
+                        {c.acheteur_telephone}
+                      </a>
+                    ) : null}
+                  </p>
 
                   {/* Code de confirmation — mis en valeur, important à la remise */}
                   {c.code_confirmation && (
@@ -499,9 +511,17 @@ export default function CommandesTab({ fournisseurId, onGererLivreurs }: { fourn
                         <p className="text-xs text-[var(--color-ink-500)]">Détail indisponible.</p>
                       ) : (
                         details.map((p, i) => (
-                          <div key={i} className="flex justify-between text-sm text-[var(--color-ink-700)]">
-                            <span>{p.quantite} × {p.nom}</span>
-                            <span className="font-medium">{formatPrix((p.prix_unitaire || 0) * p.quantite)}</span>
+                          <div key={i} className={i > 0 ? "pt-1.5 mt-1.5 border-t border-[var(--color-ink-100)]" : ""}>
+                            <div className="flex justify-between text-sm text-[var(--color-ink-700)]">
+                              <span>{p.quantite} × {p.nom}</span>
+                              <span className="font-medium">{formatPrix((p.prix_unitaire || 0) * p.quantite)}</span>
+                            </div>
+                            {p.note && (
+                              <p className="flex items-start gap-1.5 text-xs text-[var(--color-orange-700,#a35009)] bg-[var(--color-orange-100)] rounded-lg px-2.5 py-1.5 mt-1">
+                                <MessageSquare size={12} className="mt-0.5 shrink-0" />
+                                {p.note}
+                              </p>
+                            )}
                           </div>
                         ))
                       )}

@@ -6,6 +6,7 @@ import L from "leaflet";
 import BackButton from "../components/BackButton";
 import StatusPill from "../components/StatusPill";
 import ProductCard from "../components/ProductCard";
+import ProductDetailSheet from "../components/ProductDetailSheet";
 import { Loading } from "../components/Loading";
 import EmptyState from "../components/EmptyState";
 import CartFloatingButton from "../components/CartFloatingButton";
@@ -116,6 +117,15 @@ export default function StorePage() {
   function handleAdd(produit: Produit) {
     if (!fournisseur) return;
     const res = addToCart(produit, fournisseur.nom);
+    if (res === "conflit") setConflit(produit);
+    else showToast(`${produit.nom} ajouté au panier`, "success");
+  }
+
+  const [produitOuvert, setProduitOuvert] = useState<Produit | null>(null);
+
+  function handleAddDepuisFiche(produit: Produit, quantite: number, note: string) {
+    if (!fournisseur) return;
+    const res = addToCart(produit, fournisseur.nom, quantite, note || undefined);
     if (res === "conflit") setConflit(produit);
     else showToast(`${produit.nom} ajouté au panier`, "success");
   }
@@ -326,6 +336,7 @@ export default function StorePage() {
                     onAdd={handleAdd}
                     onIncrement={handleIncrement}
                     onDecrement={handleDecrement}
+                    onOpenDetail={setProduitOuvert}
                     lectureSeule={estCafeteria}
                   />
                 ))}
@@ -382,6 +393,13 @@ export default function StorePage() {
       </div>
 
       {!estCafeteria && <CartFloatingButton />}
+
+      <ProductDetailSheet
+        produit={produitOuvert}
+        onClose={() => setProduitOuvert(null)}
+        onAdd={handleAddDepuisFiche}
+        lectureSeule={estCafeteria}
+      />
 
       <Modal open={!!conflit} onClose={() => setConflit(null)} title="Panier différent">
         <p className="text-sm text-[var(--color-ink-700)] mb-4">
