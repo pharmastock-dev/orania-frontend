@@ -377,8 +377,12 @@ export default function CommandesTab({ fournisseurId, onGererLivreurs }: { fourn
 
   const listeAffichee = afficherCorbeille ? corbeille : resultats;
 
+  // 🔧 DEBUG TEMPORAIRE — à retirer une fois le bug identifié.
+  const debugInfo = `commandes=${commandes.length} | avec_livraison=${commandes.filter((c) => c.avec_livraison).length} | sans=${commandes.filter((c) => !c.avec_livraison).length} | filtreType=${filtreType} | filtreStatut=${filtreStatut} | resultats=${resultats.length}`;
+
   return (
     <div className="flex flex-col gap-4">
+      <div className="bg-yellow-100 text-yellow-900 text-[10px] font-mono px-2 py-1.5 rounded-lg break-all">{debugInfo}</div>
       <div className="bg-[var(--color-navy-900)] rounded-2xl p-4 flex items-center gap-3">
         <span className="h-10 w-10 rounded-xl bg-white/10 text-[var(--color-orange-400)] flex items-center justify-center shrink-0">
           <Wallet2 size={18} />
