@@ -60,7 +60,7 @@ function etapesPourCommande(c: Commande): StatutCommande[] {
 }
 
 type FiltreType = "tous" | "avec_livraison" | "a_recuperer";
-type FiltreStatut = "tous" | "non_terminee" | "terminee" | "annulee";
+type FiltreStatut = "tous" | StatutCommande;
 
 export default function CommandesTab({ fournisseurId, onGererLivreurs }: { fournisseurId: number; onGererLivreurs?: () => void }) {
   const { showToast } = useToast();
@@ -354,9 +354,7 @@ export default function CommandesTab({ fournisseurId, onGererLivreurs }: { fourn
     let liste = [...commandes];
     if (filtreType === "avec_livraison") liste = liste.filter((c) => c.avec_livraison);
     if (filtreType === "a_recuperer") liste = liste.filter((c) => !c.avec_livraison);
-    if (filtreStatut === "terminee") liste = liste.filter(estTerminee);
-    if (filtreStatut === "non_terminee") liste = liste.filter((c) => !estTerminee(c) && !estAnnulee(c));
-    if (filtreStatut === "annulee") liste = liste.filter(estAnnulee);
+    if (filtreStatut !== "tous") liste = liste.filter((c) => c.statut === filtreStatut);
     if (jour) liste = liste.filter((c) => c.created_at && c.created_at.slice(0, 10) === jour);
     return liste;
   }, [commandes, filtreType, filtreStatut, jour]);
@@ -408,12 +406,27 @@ export default function CommandesTab({ fournisseurId, onGererLivreurs }: { fourn
           ))}
         </div>
         <div className="flex gap-2 overflow-x-auto scroll-row items-center">
-          {([
-            { key: "tous", label: "Tous statuts" },
-            { key: "non_terminee", label: "En cours" },
-            { key: "terminee", label: "Terminées" },
-            { key: "annulee", label: "Annulées" },
-          ] as const).map((f) => (
+          {(
+            filtreType === "avec_livraison"
+              ? ([
+                  { key: "tous", label: "Tout statut" },
+                  { key: "en_attente", label: "Non livré" },
+                  { key: "en_route", label: "En route" },
+                  { key: "livre", label: "Livré" },
+                  { key: "annulee", label: "Annulé" },
+                ] as const)
+              : filtreType === "a_recuperer"
+              ? ([
+                  { key: "tous", label: "Tout statut" },
+                  { key: "non_recupere", label: "Non récupéré" },
+                  { key: "recupere", label: "Récupéré" },
+                  { key: "annulee", label: "Annulé" },
+                ] as const)
+              : ([
+                  { key: "tous", label: "Tout statut" },
+                  { key: "annulee", label: "Annulé" },
+                ] as const)
+          ).map((f) => (
             <button key={f.key} onClick={() => setFiltreStatut(f.key)} className={`shrink-0 px-3 py-2 rounded-full text-xs font-semibold border ${filtreStatut === f.key ? "bg-[var(--color-orange-500)] text-white border-[var(--color-orange-500)]" : "bg-white text-[var(--color-ink-700)] border-[var(--color-ink-100)]"}`}>
               {f.label}
             </button>
