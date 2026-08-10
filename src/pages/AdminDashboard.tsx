@@ -81,7 +81,9 @@ export default function AdminDashboard() {
     navigate("/");
   }
 
-  const demandes = fournisseurs.filter((f) => f.valide === false);
+  const demandes = fournisseurs
+    .filter((f) => f.valide === false)
+    .sort((a, b) => (a.date_creation || "").localeCompare(b.date_creation || ""));
   const commercesValides = fournisseurs
     .filter((f) => f.valide !== false)
     .filter((f) => {
@@ -269,6 +271,11 @@ export default function AdminDashboard() {
                   <div>
                     <p className="font-bold text-[var(--color-ink-900)]">{d.nom}</p>
                     <p className="text-sm text-[var(--color-ink-500)]">{d.telephone} · {d.adresse}</p>
+                    {d.date_creation && (
+                      <p className="text-xs text-[var(--color-ink-500)] mt-0.5">
+                        Reçue le {new Date(d.date_creation).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                    )}
                   </div>
                   <span className="text-xs font-semibold px-2 py-1 rounded-full bg-[var(--color-orange-100)] text-[var(--color-orange-600)]">En attente</span>
                 </div>
