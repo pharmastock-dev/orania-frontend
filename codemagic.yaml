@@ -1,0 +1,40 @@
+workflows:
+  qreeb-ios:
+    name: QREEB - Build iOS
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      groups:
+        - ios_signing  # à créer dans Codemagic : contient les certificats/clés Apple
+      vars:
+        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+        XCODE_SCHEME: "App"
+      node: latest
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Installer les dépendances npm
+        script: npm install
+      - name: Build web (Vite)
+        script: npm run build
+      - name: Sync Capacitor iOS
+        script: npx cap sync ios
+      - name: Installer les pods iOS
+        script: |
+          cd ios/App && pod install
+      - name: Build iOS (archive)
+        script: |
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      # Décommente une fois prêt à envoyer automatiquement vers TestFlight
+      # app_store_connect:
+      #   auth: integration
+      #   submit_to_testflight: true
+      email:
+        recipients:
+          - TON_EMAIL_ICI@exemple.com
