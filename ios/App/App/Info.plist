@@ -47,5 +47,26 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+<!--
+  À AJOUTER dans ios/App/App/Info.plist, juste avant la balise fermante </dict>
+  finale (la toute dernière ligne du fichier avant </plist>).
+
+  Ces clés sont OBLIGATOIRES sur iOS — contrairement à Android, Apple exige
+  une phrase d'explication humaine pour chaque permission, affichée
+  directement dans la popup système. Sans ces clés, l'app plante au moment
+  de demander la permission (pas juste un refus silencieux — un vrai crash).
+-->
+
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>QREEB a besoin de votre position pour vous montrer les commerces disponibles près de chez vous.</string>
+
+<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+<string>QREEB a besoin de votre position pour vous montrer les commerces disponibles près de chez vous.</string>
+
+<key>UIBackgroundModes</key>
+<array>
+  <string>remote-notification</string>
+</array>
+
 </dict>
 </plist>
