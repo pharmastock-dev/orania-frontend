@@ -37,4 +37,4 @@ workflows:
       #   submit_to_testflight: true
       email:
         recipients:
-          - TON_EMAIL_ICI@exemple.com
+          - kichounacer2003@gmail.com
