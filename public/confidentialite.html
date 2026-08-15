@@ -3,129 +3,124 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Politique de confidentialité — Orania</title>
+<title>Politique de confidentialité — QREEB</title>
 <style>
-  :root {
-    --navy: #131a2b;
-    --orange: #f5790c;
-    --ink-500: #6b7280;
-    --ink-100: #e5e7eb;
-    --bg: #f8f9fb;
-  }
-  * { box-sizing: border-box; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: var(--bg);
-    color: var(--navy);
-    margin: 0;
-    line-height: 1.65;
+    font-family: 'Segoe UI', -apple-system, Arial, sans-serif;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+    color: #131a2b;
+    line-height: 1.7;
   }
-  .wrap { max-width: 720px; margin: 0 auto; padding: 40px 20px 80px; }
-  header { text-align: center; margin-bottom: 40px; }
-  header h1 { font-size: 26px; font-weight: 800; margin: 0 0 6px; }
-  header p { color: var(--ink-500); font-size: 14px; margin: 0; }
-  .card { background: white; border-radius: 16px; padding: 28px 24px; margin-bottom: 16px; border: 1px solid var(--ink-100); }
-  h2 { font-size: 17px; font-weight: 700; margin: 0 0 12px; color: var(--navy); }
-  h2 .num { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: var(--orange); color: white; font-size: 13px; margin-right: 8px; }
-  p { font-size: 15px; margin: 0 0 10px; }
-  ul { font-size: 15px; padding-left: 20px; margin: 0 0 10px; }
-  li { margin-bottom: 6px; }
-  strong { color: var(--navy); }
-  a { color: var(--orange); text-decoration: none; font-weight: 600; }
-  a:hover { text-decoration: underline; }
-  .maj { text-align: center; color: var(--ink-500); font-size: 13px; margin-top: 30px; }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 10px 0; }
-  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--ink-100); }
-  th { color: var(--ink-500); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .logo-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .logo-mark {
+    width: 40px; height: 40px; border-radius: 11px;
+    background: #131a2b; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 18px;
+  }
+  .brand { font-weight: 800; font-size: 20px; }
+  h1 { font-size: 26px; margin-top: 30px; margin-bottom: 6px; }
+  .sub { color: #6b7280; font-size: 14px; margin-bottom: 30px; }
+  h2 {
+    font-size: 17px; margin-top: 34px; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .num {
+    width: 26px; height: 26px; border-radius: 8px;
+    background: #f5790c; color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 800; flex-shrink: 0;
+  }
+  p { margin-bottom: 14px; color: #374151; }
+  ul { margin: 14px 0 14px 20px; color: #374151; }
+  li { margin-bottom: 8px; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: #9aa0ad; padding: 8px 10px; border-bottom: 2px solid #eceef2; }
+  td { padding: 10px; border-bottom: 1px solid #f0f1f4; color: #374151; vertical-align: top; }
+  .note {
+    background: #f8f9fb; border: 1px solid #eceef2; border-radius: 12px;
+    padding: 14px 16px; margin: 16px 0; font-size: 13.5px; color: #4b5563;
+  }
+  .contact-box {
+    background: #f8f9fb; border: 1px solid #eceef2; border-radius: 14px;
+    padding: 18px 20px; margin: 16px 0;
+  }
+  a { color: #f5790c; font-weight: 600; }
+  .updated { font-size: 12px; color: #9aa0ad; margin-top: 50px; }
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <h1>Politique de confidentialité</h1>
-      <p>Orania — Application de livraison locale</p>
-    </header>
 
-    <div class="card">
-      <p>Cette politique explique quelles informations Orania collecte, pourquoi, et comment elles sont utilisées et protégées, que vous utilisiez l'application en tant que <strong>client</strong> ou en tant que <strong>commerçant</strong>.</p>
-      <p>En utilisant l'application Orania, vous acceptez les pratiques décrites ici.</p>
-    </div>
-
-    <div class="card">
-      <h2><span class="num">1</span>Quelles données nous collectons</h2>
-      <table>
-        <tr><th>Donnée</th><th>Qui</th><th>Pourquoi</th></tr>
-        <tr><td>Nom</td><td>Client &amp; commerçant</td><td>Vous identifier, personnaliser l'expérience</td></tr>
-        <tr><td>Numéro de téléphone</td><td>Client &amp; commerçant</td><td>Connexion au compte, contact pour la livraison</td></tr>
-        <tr><td>Mot de passe</td><td>Commerçant</td><td>Sécuriser l'accès au tableau de bord (stocké haché, jamais en clair)</td></tr>
-        <tr><td>Adresse</td><td>Commerçant</td><td>Afficher l'emplacement du commerce aux clients</td></tr>
-        <tr><td>Position GPS</td><td>Client (à la commande)</td><td>Indiquer où livrer votre commande</td></tr>
-        <tr><td>Position GPS</td><td>Commerçant (facultatif)</td><td>Afficher la distance et le temps de livraison estimé aux clients</td></tr>
-        <tr><td>Historique de commandes</td><td>Client &amp; commerçant</td><td>Suivi des commandes, statistiques du commerce</td></tr>
-        <tr><td>Avis et notes</td><td>Client</td><td>Aider les autres clients à choisir un commerce</td></tr>
-        <tr><td>Photos de produits/commerce</td><td>Commerçant</td><td>Présenter le commerce et ses produits</td></tr>
-        <tr><td>Réclamations</td><td>Client &amp; commerçant</td><td>Traiter les litiges et problèmes signalés</td></tr>
-      </table>
-      <p>Nous ne collectons <strong>aucune information de paiement</strong> — Orania fonctionne uniquement en paiement à la livraison, convenu directement entre le client et le commerçant.</p>
-    </div>
-
-    <div class="card">
-      <h2><span class="num">2</span>Avec qui vos données sont partagées</h2>
-      <ul>
-        <li>Lorsque vous passez une commande, votre <strong>nom, numéro de téléphone et position de livraison</strong> sont communiqués au commerçant concerné, pour qu'il puisse préparer et livrer votre commande.</li>
-        <li>Le nom et le numéro de téléphone du commerçant sont visibles par les clients qui commandent chez lui.</li>
-        <li>Nous ne vendons, ne louons et ne partageons <strong>jamais</strong> vos données à des tiers à des fins publicitaires.</li>
-        <li>Vos photos et données sont hébergées par des prestataires techniques (hébergement cloud et stockage d'images) qui n'ont pas le droit de les utiliser à d'autres fins que le fonctionnement d'Orania.</li>
-      </ul>
-    </div>
-
-    <div class="card">
-      <h2><span class="num">3</span>Notifications</h2>
-      <p>Si vous autorisez les notifications, nous les utilisons pour vous informer de l'état de vos commandes (nouvelle commande reçue, statut mis à jour, etc.). Vous pouvez désactiver les notifications à tout moment dans les paramètres de votre téléphone.</p>
-    </div>
-
-    <div class="card">
-      <h2><span class="num">4</span>Conservation des données</h2>
-      <p>Vos données sont conservées tant que votre compte est actif. Si un commerce est supprimé de la plateforme, ses commandes et avis passés sont conservés (de façon anonymisée vis-à-vis du commerce) à des fins d'historique et de preuve en cas de litige.</p>
-    </div>
-
-    <div class="card">
-      <h2><span class="num">5</span>Vos droits</h2>
-      <p>Vous pouvez à tout moment :</p>
-      <ul>
-        <li>Demander à consulter les données que nous détenons sur vous</li>
-        <li>Demander la correction d'informations inexactes</li>
-        <li>Demander la suppression de votre compte et de vos données personnelles</li>
-      </ul>
-      <p>Pour exercer ces droits, contactez-nous à l'adresse ci-dessous.</p>
-    </div>
-
-    <div class="card">
-      <h2><span class="num">6</span>Sécurité</h2>
-      <ul>
-        <li>Les mots de passe sont chiffrés (hachés) et jamais stockés en clair</li>
-        <li>Les échanges entre l'application et nos serveurs sont sécurisés (HTTPS)</li>
-        <li>L'accès aux outils d'administration est protégé par mot de passe et limité aux personnes autorisées</li>
-      </ul>
-    </div>
-
-    <div class="card">
-      <h2><span class="num">7</span>Mineurs</h2>
-      <p>Orania n'est pas destinée aux enfants de moins de 16 ans. Nous ne collectons pas sciemment de données concernant des mineurs.</p>
-    </div>
-
-    <div class="card">
-      <h2><span class="num">8</span>Modifications de cette politique</h2>
-      <p>Cette politique peut être mise à jour. En cas de changement important, nous vous en informerons via l'application.</p>
-    </div>
-
-    <div class="card">
-      <h2><span class="num">9</span>Nous contacter</h2>
-      <p>Pour toute question concernant vos données personnelles :</p>
-      <p>📧 <a href="mailto:kichounacer2003@gmail.com">kichounacer2003@gmail.com</a></p>
-    </div>
-
-    <p class="maj">Dernière mise à jour : Août 2026</p>
+  <div class="logo-row">
+    <div class="logo-mark">Q</div>
+    <div class="brand">QREEB</div>
   </div>
+
+  <h1>Politique de confidentialité</h1>
+  <p class="sub">QREEB — Application de commerce et livraison locale</p>
+
+  <p>Cette politique explique quelles informations QREEB collecte, pourquoi, et comment elles sont utilisées et protégées, que vous utilisiez l'application en tant que client ou en tant que commerçant.</p>
+  <p>En utilisant l'application QREEB, vous acceptez les pratiques décrites ici.</p>
+
+  <h2><span class="num">1</span>Quelles données nous collectons</h2>
+  <table>
+    <tr><th>Donnée</th><th>Qui</th><th>Pourquoi</th></tr>
+    <tr><td>Nom</td><td>Client &amp; commerçant</td><td>Vous identifier, personnaliser l'expérience</td></tr>
+    <tr><td>Numéro de téléphone</td><td>Client &amp; commerçant</td><td>Connexion au compte, contact pour la livraison</td></tr>
+    <tr><td>Mot de passe</td><td>Commerçant</td><td>Sécuriser l'accès au tableau de bord (stocké haché, jamais en clair)</td></tr>
+    <tr><td>Adresse</td><td>Commerçant</td><td>Afficher l'emplacement du commerce aux clients</td></tr>
+    <tr><td>Position GPS</td><td>Client (à la commande)</td><td>Indiquer où livrer votre commande</td></tr>
+    <tr><td>Position GPS</td><td>Commerçant (facultatif)</td><td>Afficher la distance et le temps de livraison estimé aux clients</td></tr>
+    <tr><td>Historique de commandes</td><td>Client &amp; commerçant</td><td>Suivi des commandes, statistiques du commerce</td></tr>
+    <tr><td>Avis et notes</td><td>Client</td><td>Aider les autres clients à choisir un commerce</td></tr>
+    <tr><td>Photos de produits/commerce</td><td>Commerçant</td><td>Présenter le commerce et ses produits</td></tr>
+    <tr><td>Réclamations</td><td>Client &amp; commerçant</td><td>Traiter les litiges et problèmes signalés</td></tr>
+  </table>
+  <div class="note">Nous ne collectons aucune information de paiement — QREEB fonctionne uniquement en paiement à la livraison, convenu directement entre le client et le commerçant.</div>
+
+  <h2><span class="num">2</span>Avec qui vos données sont partagées</h2>
+  <p>Lorsque vous passez une commande, votre nom, numéro de téléphone et position de livraison sont communiqués au commerçant concerné, pour qu'il puisse préparer et livrer votre commande.</p>
+  <p>Le nom et le numéro de téléphone du commerçant sont visibles par les clients qui commandent chez lui.</p>
+  <p>Nous ne vendons, ne louons et ne partageons jamais vos données à des tiers à des fins publicitaires.</p>
+  <p>Vos photos et données sont hébergées par des prestataires techniques (hébergement cloud et stockage d'images) qui n'ont pas le droit de les utiliser à d'autres fins que le fonctionnement de QREEB.</p>
+
+  <h2><span class="num">3</span>Notifications</h2>
+  <p>Si vous autorisez les notifications, nous les utilisons pour vous informer de l'état de vos commandes (nouvelle commande reçue, statut mis à jour, etc.). Vous pouvez désactiver les notifications à tout moment dans les paramètres de votre téléphone.</p>
+
+  <h2><span class="num">4</span>Conservation des données</h2>
+  <p>Vos données sont conservées tant que votre compte est actif. Si un commerce est supprimé de la plateforme, ses commandes et avis passés sont conservés (de façon anonymisée vis-à-vis du commerce) à des fins d'historique et de preuve en cas de litige.</p>
+
+  <h2><span class="num">5</span>Vos droits</h2>
+  <p>Vous pouvez à tout moment :</p>
+  <ul>
+    <li>Demander à consulter les données que nous détenons sur vous</li>
+    <li>Demander la correction d'informations inexactes</li>
+    <li>Demander la suppression de votre compte et de vos données personnelles</li>
+  </ul>
+  <p>Pour exercer ces droits, contactez-nous à l'adresse ci-dessous.</p>
+
+  <h2><span class="num">6</span>Sécurité</h2>
+  <ul>
+    <li>Les mots de passe sont chiffrés (hachés) et jamais stockés en clair</li>
+    <li>Les échanges entre l'application et nos serveurs sont sécurisés (HTTPS)</li>
+    <li>L'accès aux outils d'administration est protégé par mot de passe et limité aux personnes autorisées</li>
+  </ul>
+
+  <h2><span class="num">7</span>Mineurs</h2>
+  <p>QREEB n'est pas destinée aux enfants de moins de 13 ans. Nous ne collectons pas sciemment de données concernant des enfants de moins de 13 ans.</p>
+
+  <h2><span class="num">8</span>Modifications de cette politique</h2>
+  <p>Cette politique peut être mise à jour. En cas de changement important, nous vous en informerons via l'application.</p>
+
+  <h2><span class="num">9</span>Nous contacter</h2>
+  <div class="contact-box">
+    <p style="margin-bottom:0;">Pour toute question concernant vos données personnelles :</p>
+    <p style="margin-bottom:0;">📧 <a href="mailto:kichounacer2003@gmail.com">kichounacer2003@gmail.com</a></p>
+  </div>
+
+  <p class="updated">Dernière mise à jour : Août 2026</p>
+
 </body>
 </html>
