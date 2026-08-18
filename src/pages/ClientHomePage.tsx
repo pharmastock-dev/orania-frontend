@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, SearchX, Search as SearchIcon, LocateFixed, MapPin, Settings, Flame, TrendingUp } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
-import { Geolocation } from "@capacitor/geolocation";
 import { NativeSettings, AndroidSettings } from "capacitor-native-settings";
 import ClientHeader from "../components/ClientHeader";
 import ActiverNotifsWeb from "../components/ActiverNotifsWeb";
@@ -76,39 +75,29 @@ export default function ClientHomePage() {
   const [verificationEnCours, setVerificationEnCours] = useState(true);
 
   // On a peut-être déjà une position enregistrée d'une session précédente —
-  // mais rien ne garantit que la localisation est toujours active côté système
-  // (l'utilisateur a pu la désactiver depuis). On revérifie donc à chaque
-  // ouverture ET à chaque retour sur l'app (pas juste au premier montage) —
-  // sinon désactiver la position pendant que l'app est en arrière-plan (ou
-  // sans jamais démonter cet écran) laisse une position obsolète utilisée
-  // indéfiniment sans jamais redemander l'autorisation. Même logique pour
-  // les notifications : un refus après coup doit aussi être détecté au retour.
+  // mais rien ne garantit qu'elle est toujours valide côté système. On
+  // revérifie donc à chaque ouverture ET à chaque retour sur l'app.
   //
-  // IMPORTANT : sur Android natif, navigator.permissions.query("geolocation")
-  // ne reflète PAS toujours fidèlement la vraie permission native accordée
-  // via le plugin Capacitor — ça provoquait un bug où l'écran d'activation
-  // réapparaissait à chaque retour sur cette page (ex: après une commande),
-  // même quand la position était bel et bien déjà autorisée. On utilise donc
-  // la vraie API native du plugin sur Android, et l'API web uniquement sur
-  // navigateur (où c'est fiable, et où le plugin natif n'est de toute façon
-  // pas implémenté).
+  // IMPORTANT — leçon apprise : se contenter de vérifier la PERMISSION
+  // (Geolocation.checkPermissions()) ne suffit PAS. Sur Android, "désactiver
+  // la localisation" via le raccourci rapide des réglages coupe le GPS
+  // lui-même — la permission accordée à l'app, elle, reste "granted" tout du
+  // long. Un simple contrôle de permission ne détecte donc jamais ce cas :
+  // il faut réellement RETENTER une récupération de position (courte, sans
+  // spinner visible) pour savoir si le GPS répond vraiment. Si ça échoue —
+  // permission révoquée OU GPS éteint, peu importe la cause exacte — on
+  // efface la position en mémoire, ce qui fait réapparaître l'écran
+  // d'activation automatiquement.
   useEffect(() => {
     let annule = false;
 
     async function verifier() {
       if (position) {
         try {
-          if (Capacitor.isNativePlatform()) {
-            const statut = await Geolocation.checkPermissions();
-            const accorde = statut.location === "granted" || statut.coarseLocation === "granted";
-            if (!annule && !accorde) setPosition(null);
-          } else if (navigator.permissions?.query) {
-            const statut = await navigator.permissions.query({ name: "geolocation" as PermissionName });
-            if (!annule && statut.state !== "granted") setPosition(null);
-          }
+          const fraiche = await getPositionActuelle();
+          if (!annule) setPosition(fraiche); // garde la position à jour au passage
         } catch {
-          // Échec de la vérification (API indisponible, etc.) — on garde la
-          // valeur existante plutôt que de forcer une réactivation à tort.
+          if (!annule) setPosition(null);
         }
       }
       if (!annule) setVerificationEnCours(false);
@@ -279,6 +268,20 @@ export default function ClientHomePage() {
     [commercesCategorie]
   );
 
+  // La recherche produits interroge tous les commerces côté serveur, sans
+  // connaître les filtres actifs côté client (catégorie, promo, ouvert,
+  // livraison gratuite, tri) — elle pouvait donc remonter un produit vendu
+  // par un commerce qui ne correspond à aucun filtre sélectionné (ex:
+  // "livraison gratuite" actif, mais le produit vient d'un commerce qui ne
+  // la propose pas). On ne garde ici que les produits dont le commerce fait
+  // bien partie de "resultats" (déjà filtré par tout : catégorie, tri,
+  // promo, ouvert, gratuite) — une seule source de vérité, pas de logique
+  // dupliquée.
+  const resultatsProduitsFiltres = useMemo(() => {
+    const idsAutorises = new Set(resultats.map((f) => f.id));
+    return resultatsProduits.filter((p) => idsAutorises.has(p.fournisseur_id));
+  }, [resultatsProduits, resultats]);
+
   // ---- Écran de blocage tant que la position n'est pas activée ----
   if (verificationEnCours) {
     return <div className="min-h-screen bg-[var(--color-ink-50)]" />;
@@ -377,19 +380,23 @@ export default function ClientHomePage() {
               <CardSkeleton />
               <CardSkeleton />
             </div>
-          ) : resultatsProduits.length === 0 ? (
+          ) : resultatsProduitsFiltres.length === 0 ? (
             <EmptyState
               icon={<SearchX size={36} />}
               title="Aucun produit trouvé"
-              description="Essayez un autre mot-clé — un plat, un ingrédient, un produit."
+              description={
+                resultatsProduits.length > 0
+                  ? "Aucun produit ne correspond à ce mot-clé avec les filtres actifs — essayez de les retirer."
+                  : "Essayez un autre mot-clé — un plat, un ingrédient, un produit."
+              }
             />
           ) : (
             <>
               <p className="text-sm text-[var(--color-ink-500)]">
-                {resultatsProduits.length} produit{resultatsProduits.length > 1 ? "s" : ""} trouvé{resultatsProduits.length > 1 ? "s" : ""}
+                {resultatsProduitsFiltres.length} produit{resultatsProduitsFiltres.length > 1 ? "s" : ""} trouvé{resultatsProduitsFiltres.length > 1 ? "s" : ""}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {resultatsProduits.map((p) => (
+                {resultatsProduitsFiltres.map((p) => (
                   <ProductSearchCard key={p.id} produit={p} />
                 ))}
               </div>
