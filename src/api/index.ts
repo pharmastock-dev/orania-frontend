@@ -385,7 +385,10 @@ export const adminListeLivreursMarketplace = () =>
   http.get<LivreurMarketplaceAdmin[]>("/admin/livreurs-marketplace", true);
 
 export const adminValiderLivreurMarketplace = (livreurId: number) =>
-  http.put<{ succes: boolean; message: string }>(`/admin/livreurs-marketplace/${livreurId}/valider`, undefined, true);
+  http.put<{ succes: boolean; message: string; abonnement_fin?: string }>(`/admin/livreurs-marketplace/${livreurId}/valider`, undefined, true);
+
+export const adminProlongerAbonnementLivreur = (livreurId: number) =>
+  http.put<{ succes: boolean; message: string; abonnement_fin?: string }>(`/admin/livreurs-marketplace/${livreurId}/abonnement`, undefined, true);
 
 export const adminSupprimerLivreurMarketplace = (livreurId: number) =>
   http.del<{ succes: boolean; message: string }>(`/admin/livreurs-marketplace/${livreurId}`, true);

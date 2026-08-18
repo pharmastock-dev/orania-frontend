@@ -21,6 +21,7 @@ import {
   supprimerReclamation,
   adminListeLivreursMarketplace,
   adminValiderLivreurMarketplace,
+  adminProlongerAbonnementLivreur,
   adminSupprimerLivreurMarketplace,
 } from "../api";
 import { ApiError } from "../api/client";
@@ -54,11 +55,24 @@ export default function AdminDashboard() {
   async function handleValiderLivreur(l: LivreurMarketplaceAdmin) {
     setActionEnCours(l.id);
     try {
-      await adminValiderLivreurMarketplace(l.id);
-      setLivreursMarketplace((prev) => prev.map((x) => (x.id === l.id ? { ...x, valide: true } : x)));
-      showToast(`${l.nom} validé — peut maintenant se connecter.`, "success");
+      const res = await adminValiderLivreurMarketplace(l.id);
+      setLivreursMarketplace((prev) => prev.map((x) => (x.id === l.id ? { ...x, valide: true, abonnement_fin: res.abonnement_fin ?? x.abonnement_fin } : x)));
+      showToast(`${l.nom} validé — accès actif pour 1 an.`, "success");
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : "Impossible de valider ce livreur.", "error");
+    } finally {
+      setActionEnCours(null);
+    }
+  }
+
+  async function handleProlongerLivreur(l: LivreurMarketplaceAdmin) {
+    setActionEnCours(l.id);
+    try {
+      const res = await adminProlongerAbonnementLivreur(l.id);
+      setLivreursMarketplace((prev) => prev.map((x) => (x.id === l.id ? { ...x, valide: true, abonnement_fin: res.abonnement_fin ?? x.abonnement_fin } : x)));
+      showToast(`Abonnement de ${l.nom} prolongé d'1 an.`, "success");
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : "Impossible de prolonger cet abonnement.", "error");
     } finally {
       setActionEnCours(null);
     }
@@ -438,6 +452,11 @@ export default function AdminDashboard() {
                     )}
                   </div>
                   <p className="text-xs text-[var(--color-ink-500)]">{l.telephone}</p>
+                  {l.abonnement_fin && (
+                    <p className="text-[11px] text-[var(--color-ink-500)] mt-0.5">
+                      Abonnement jusqu'au {new Date(l.abonnement_fin).toLocaleDateString("fr-FR")}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {!l.valide && (
@@ -447,6 +466,16 @@ export default function AdminDashboard() {
                       className="flex items-center gap-1 text-xs font-semibold px-2.5 py-2 rounded-lg bg-green-50 text-green-700 disabled:opacity-60"
                     >
                       <Check size={13} /> Valider
+                    </button>
+                  )}
+                  {l.valide && (
+                    <button
+                      onClick={() => handleProlongerLivreur(l)}
+                      disabled={actionEnCours === l.id}
+                      className="flex items-center gap-1 text-xs font-semibold px-2.5 py-2 rounded-lg bg-blue-50 text-blue-700 disabled:opacity-60"
+                      title="Prolonger l'abonnement d'1 an"
+                    >
+                      <Plus size={13} /> +1 an
                     </button>
                   )}
                   <button

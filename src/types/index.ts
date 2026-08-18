@@ -52,6 +52,7 @@ export interface LivreurMarketplaceAdmin {
   valide: boolean;
   en_ligne: boolean;
   date_creation: string | null;
+  abonnement_fin: string | null;
 }
 
 export interface StatutPublicationCommande {
