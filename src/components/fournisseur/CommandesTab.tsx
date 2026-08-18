@@ -15,10 +15,12 @@ import {
   restaurerCommande,
   getLivreurs,
   assignerLivreur,
+  publierCommande,
+  getStatutPublicationCommande,
 } from "../../api";
 import { ApiError } from "../../api/client";
 import { formatPrix } from "../../utils/format";
-import type { Commande, StatutCommande, Livreur, LigneCommande } from "../../types";
+import type { Commande, StatutCommande, Livreur, LigneCommande, StatutPublicationCommande } from "../../types";
 
 // Libellés alignés sur les VRAIS statuts backend — chacun n'existe que pour
 // un seul mode (livraison OU retrait), pas besoin de double libellé.
@@ -68,6 +70,11 @@ export default function CommandesTab({ fournisseurId, onGererLivreurs }: { fourn
   const [corbeille, setCorbeille] = useState<Commande[]>([]);
   const [afficherCorbeille, setAfficherCorbeille] = useState(false);
   const [livreurs, setLivreurs] = useState<Livreur[]>([]);
+  // Statut de publication au marché ouvert, par commande — chargé à la
+  // demande (bouton "Publier" ou "Vérifier"), pas systématiquement pour
+  // toutes les commandes affichées (évite de matraquer le serveur).
+  const [statutsPublication, setStatutsPublication] = useState<Record<number, StatutPublicationCommande>>({});
+  const [publicationEnCours, setPublicationEnCours] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [erreur, setErreur] = useState<string | null>(null);
   const [majEnCours, setMajEnCours] = useState<number | null>(null);
@@ -183,6 +190,33 @@ export default function CommandesTab({ fournisseurId, onGererLivreurs }: { fourn
       showToast(`${livreur?.nom || "Livreur"} assigné à la commande #${c.id}`, "success");
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : "Impossible d'assigner ce livreur.", "error");
+    }
+  }
+
+  // ---- Marché ouvert de livreurs — indépendant des livreurs privés ci-dessus ----
+  async function publier(c: Commande) {
+    setPublicationEnCours(c.id);
+    try {
+      await publierCommande(c.id);
+      showToast("Commande publiée aux livreurs à proximité.", "success");
+      const statut = await getStatutPublicationCommande(c.id);
+      setStatutsPublication((prev) => ({ ...prev, [c.id]: statut }));
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : "Impossible de publier cette commande.", "error");
+    } finally {
+      setPublicationEnCours(null);
+    }
+  }
+
+  async function verifierStatutPublication(c: Commande) {
+    setPublicationEnCours(c.id);
+    try {
+      const statut = await getStatutPublicationCommande(c.id);
+      setStatutsPublication((prev) => ({ ...prev, [c.id]: statut }));
+    } catch {
+      showToast("Impossible de vérifier le statut pour l'instant.", "error");
+    } finally {
+      setPublicationEnCours(null);
     }
   }
 
@@ -608,6 +642,46 @@ export default function CommandesTab({ fournisseurId, onGererLivreurs }: { fourn
                         <Trash2 size={18} />
                       </button>
                     </div>
+
+                    {/* Marché ouvert de livreurs — indépendant du livreur privé ci-dessus */}
+                    {c.avec_livraison && (() => {
+                      const statut = statutsPublication[c.id];
+                      if (!statut) {
+                        return (
+                          <button
+                            onClick={() => publier(c)}
+                            disabled={publicationEnCours === c.id}
+                            className="w-full flex items-center justify-center gap-1.5 text-xs font-bold text-[var(--color-navy-700)] bg-[var(--color-navy-50,#eef1f8)] border border-[var(--color-ink-100)] rounded-xl px-3 py-2 mt-1"
+                          >
+                            <Bike size={13} /> {publicationEnCours === c.id ? "Publication..." : "Publier aux livreurs à proximité"}
+                          </button>
+                        );
+                      }
+                      if (statut.statut_publication === "acceptee" && statut.livreur) {
+                        return (
+                          <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl px-3 py-2 mt-1">
+                            <div className="text-xs">
+                              <p className="font-bold text-green-700">✓ Acceptée par {statut.livreur.nom}</p>
+                              <a href={`tel:${statut.livreur.telephone}`} className="text-blue-600 font-medium">{statut.livreur.telephone}</a>
+                              {statut.livreur.distance_km != null && (
+                                <span className="text-[var(--color-ink-500)]"> · à {statut.livreur.distance_km} km du commerce</span>
+                              )}
+                            </div>
+                            <button onClick={() => verifierStatutPublication(c)} className="shrink-0 text-green-700">
+                              <RotateCcw size={14} className={publicationEnCours === c.id ? "animate-spin" : ""} />
+                            </button>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mt-1">
+                          <p className="text-xs font-semibold text-amber-700">En attente d'un livreur disponible...</p>
+                          <button onClick={() => verifierStatutPublication(c)} className="shrink-0 text-amber-700">
+                            <RotateCcw size={14} className={publicationEnCours === c.id ? "animate-spin" : ""} />
+                          </button>
+                        </div>
+                      );
+                    })()}
 
                     {/* Refuser — reste secondaire, jamais aussi visible que l'action principale */}
                     {peutEtreRefusee(c) && (

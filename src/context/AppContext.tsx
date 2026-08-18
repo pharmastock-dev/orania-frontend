@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import type { Client, Fournisseur, Cart, Produit, Coordonnees } from "../types";
+import type { Client, Fournisseur, LivreurMarketplace, Cart, Produit, Coordonnees } from "../types";
 import { readStorage, writeStorage, clearStorage, STORAGE_KEYS } from "../utils/storage";
 
 const emptyCart: Cart = { fournisseurId: null, fournisseurNom: null, items: [] };
@@ -12,6 +12,10 @@ interface AppContextValue {
   // --- Fournisseur connecté (espace commerçant) ---
   fournisseurConnecte: Fournisseur | null;
   setFournisseurConnecte: (f: Fournisseur | null) => void;
+
+  // --- Livreur connecté (espace livreur, marché ouvert) ---
+  livreurConnecte: LivreurMarketplace | null;
+  setLivreurConnecte: (l: LivreurMarketplace | null) => void;
 
   // --- Position ---
   position: Coordonnees | null;
@@ -35,6 +39,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [fournisseurConnecte, setFournisseurState] = useState<Fournisseur | null>(() =>
     readStorage<Fournisseur>(STORAGE_KEYS.fournisseur)
   );
+  const [livreurConnecte, setLivreurState] = useState<LivreurMarketplace | null>(() =>
+    readStorage<LivreurMarketplace>(STORAGE_KEYS.livreur)
+  );
   const [position, setPositionState] = useState<Coordonnees | null>(() => readStorage<Coordonnees>(STORAGE_KEYS.position));
   const [cart, setCart] = useState<Cart>(() => readStorage<Cart>(STORAGE_KEYS.cart) || emptyCart);
 
@@ -48,6 +55,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setFournisseurState(f);
     if (f) writeStorage(STORAGE_KEYS.fournisseur, f);
     else clearStorage(STORAGE_KEYS.fournisseur);
+  };
+
+  const setLivreurConnecte = (l: LivreurMarketplace | null) => {
+    setLivreurState(l);
+    if (l) writeStorage(STORAGE_KEYS.livreur, l);
+    else clearStorage(STORAGE_KEYS.livreur);
   };
 
   const setPosition = (pos: Coordonnees | null) => {
@@ -113,6 +126,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setClient,
         fournisseurConnecte,
         setFournisseurConnecte,
+        livreurConnecte,
+        setLivreurConnecte,
         position,
         setPosition,
         cart,

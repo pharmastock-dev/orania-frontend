@@ -27,6 +27,7 @@ export function clearStorage(key: string): void {
 export const STORAGE_KEYS = {
   client: "qreeb_client",
   fournisseur: "qreeb_fournisseur",
+  livreur: "qreeb_livreur_marketplace",
   cart: "qreeb_cart",
   position: "qreeb_position",
 } as const;

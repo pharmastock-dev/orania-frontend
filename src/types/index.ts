@@ -12,6 +12,59 @@ export interface Client {
   telephone: string;
 }
 
+// Livreur du marché ouvert — compte indépendant du système de livreurs
+// privés par commerce (Livreur, plus bas), peut accepter des commandes de
+// n'importe quel commerçant.
+export interface LivreurMarketplace {
+  id: number;
+  nom: string;
+  telephone: string;
+}
+
+export interface CommandeDisponible {
+  id: number;
+  prix_total: number;
+  avec_livraison: boolean;
+  date_commande: string;
+  statut?: StatutCommande;
+  client_nom: string;
+  client_telephone: string;
+  commercant_nom: string;
+  commercant_telephone: string;
+  commercant_adresse: string | null;
+  distance_km: number;
+  distance_commerce_km?: number | null;
+  distance_client_km?: number | null;
+}
+
+export interface HistoriqueLivreurItem {
+  id: number;
+  prix_total: number;
+  date_commande: string;
+  client_nom: string;
+  commercant_nom: string;
+}
+
+export interface LivreurMarketplaceAdmin {
+  id: number;
+  nom: string;
+  telephone: string;
+  valide: boolean;
+  en_ligne: boolean;
+  date_creation: string | null;
+}
+
+export interface StatutPublicationCommande {
+  succes: boolean;
+  statut_publication: string | null;
+  livreur: {
+    id: number;
+    nom: string;
+    telephone: string;
+    distance_km: number | null;
+  } | null;
+}
+
 export interface Fournisseur {
   id: number;
   nom: string;

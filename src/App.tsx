@@ -23,6 +23,9 @@ import AccountPage from "./pages/AccountPage";
 import FournisseurLoginPage from "./pages/FournisseurLoginPage";
 import FournisseurDashboard from "./pages/FournisseurDashboard";
 
+import LivreurLoginPage from "./pages/LivreurLoginPage";
+import LivreurDashboard from "./pages/LivreurDashboard";
+
 import AdminLoginPage from "./pages/AdminLoginPage";
 import AdminDashboard from "./pages/AdminDashboard";
 
@@ -158,6 +161,9 @@ function AppRoutes() {
 
         <Route path="/commercant" element={<FournisseurLoginPage />} />
         <Route path="/commercant/dashboard" element={<FournisseurDashboard />} />
+
+        <Route path="/livreur" element={<LivreurLoginPage />} />
+        <Route path="/livreur/dashboard" element={<LivreurDashboard />} />
 
         <Route path="/admin" element={<AdminLoginPage />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />

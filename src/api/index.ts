@@ -9,7 +9,7 @@
 // ============================================================
 
 import { http, BASE_URL, CLE_TOKEN_ADMIN } from "./client";
-import type { Fournisseur, Produit, ProduitRecherche, Commande, Avis, Livreur, Statistiques, StatutCommande, Reclamation, LigneCommande } from "../types";
+import type { Fournisseur, Produit, ProduitRecherche, Commande, Avis, Livreur, Statistiques, StatutCommande, Reclamation, LigneCommande, CommandeDisponible, StatutPublicationCommande, HistoriqueLivreurItem, LivreurMarketplaceAdmin } from "../types";
 
 // ---------- Santé ----------
 export const checkHealth = () => http.get<{ status: string }>("/health");
@@ -333,3 +333,62 @@ export const enregistrerTokenAcheteur = (acheteurId: number, deviceToken: string
 
 export const enregistrerTokenFournisseur = (fournisseurId: number, deviceToken: string) =>
   http.post<{ succes: boolean }>(`/fournisseurs/${fournisseurId}/device-token`, { device_token: deviceToken });
+
+// ---------- Espace livreur (marché ouvert) ----------
+export const inscriptionLivreurMarketplace = (nom: string, telephone: string, mot_de_passe: string) =>
+  http.post<{ succes: boolean; id?: number; nom?: string; telephone?: string; message?: string }>(
+    "/livreurs-marketplace/inscription",
+    { nom, telephone, mot_de_passe }
+  );
+
+export const connexionLivreurMarketplace = (telephone: string, mot_de_passe: string) =>
+  http.post<{ succes: boolean; id?: number; nom?: string; telephone?: string; message?: string; en_attente?: boolean }>(
+    "/livreurs-marketplace/connexion",
+    { telephone, mot_de_passe }
+  );
+
+export const majPositionLivreur = (livreurId: number, latitude: number, longitude: number) =>
+  http.put<{ succes: boolean }>(`/livreurs-marketplace/${livreurId}/position`, { latitude, longitude });
+
+export const majStatutLivreur = (livreurId: number, en_ligne: boolean) =>
+  http.put<{ succes: boolean }>(`/livreurs-marketplace/${livreurId}/statut`, { en_ligne });
+
+export const enregistrerTokenLivreur = (livreurId: number, device_token: string) =>
+  http.post<{ succes: boolean }>(`/livreurs-marketplace/${livreurId}/token`, { device_token });
+
+export const getCommandesDisponibles = (livreurId: number, latitude: number, longitude: number) =>
+  http.get<CommandeDisponible[]>(`/livreurs-marketplace/${livreurId}/commandes-disponibles?latitude=${latitude}&longitude=${longitude}`);
+
+export const getCommandeActiveLivreur = (livreurId: number) =>
+  http.get<CommandeDisponible | null>(`/livreurs-marketplace/${livreurId}/commande-active`);
+
+export const publierCommande = (commandeId: number) =>
+  http.post<{ succes: boolean; message: string }>(`/commandes/${commandeId}/publier`);
+
+export const accepterCommandeMarketplace = (commandeId: number, livreurId: number) =>
+  http.post<{ succes: boolean; message: string }>(`/commandes/${commandeId}/accepter-marketplace`, { livreur_id: livreurId });
+
+export const refuserCommandeMarketplace = (commandeId: number) =>
+  http.post<{ succes: boolean; message: string }>(`/commandes/${commandeId}/refuser-marketplace`);
+
+export const marquerCommandeLivree = (commandeId: number) =>
+  http.post<{ succes: boolean; message: string }>(`/commandes/${commandeId}/marquer-livree`);
+
+export const marquerCommandeNonLivree = (commandeId: number) =>
+  http.post<{ succes: boolean; message: string }>(`/commandes/${commandeId}/marquer-non-livree`);
+
+export const getHistoriqueLivreur = (livreurId: number) =>
+  http.get<HistoriqueLivreurItem[]>(`/livreurs-marketplace/${livreurId}/historique`);
+
+// ---------- Admin — gestion des livreurs marché ouvert ----------
+export const adminListeLivreursMarketplace = () =>
+  http.get<LivreurMarketplaceAdmin[]>("/admin/livreurs-marketplace", true);
+
+export const adminValiderLivreurMarketplace = (livreurId: number) =>
+  http.put<{ succes: boolean; message: string }>(`/admin/livreurs-marketplace/${livreurId}/valider`, undefined, true);
+
+export const adminSupprimerLivreurMarketplace = (livreurId: number) =>
+  http.del<{ succes: boolean; message: string }>(`/admin/livreurs-marketplace/${livreurId}`, true);
+
+export const getStatutPublicationCommande = (commandeId: number) =>
+  http.get<StatutPublicationCommande>(`/commandes/${commandeId}/statut-publication`);
