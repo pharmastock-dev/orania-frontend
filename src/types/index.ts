@@ -51,6 +51,13 @@ export interface Produit {
   photo?: string | null;
 }
 
+// Résultat de recherche produit (barre de recherche client) — un Produit
+// enrichi du nom du commerce qui le vend, pour affichage + navigation directe.
+export interface ProduitRecherche extends Produit {
+  fournisseur_nom: string;
+  fournisseur_categorie?: string;
+}
+
 export type ModeReception = "livraison" | "retrait";
 
 // Statuts RÉELS acceptés par le vrai backend — pas de "en_cours" générique ni

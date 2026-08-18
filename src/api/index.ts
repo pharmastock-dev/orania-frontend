@@ -9,7 +9,7 @@
 // ============================================================
 
 import { http, BASE_URL, CLE_TOKEN_ADMIN } from "./client";
-import type { Fournisseur, Produit, Commande, Avis, Livreur, Statistiques, StatutCommande, Reclamation, LigneCommande } from "../types";
+import type { Fournisseur, Produit, ProduitRecherche, Commande, Avis, Livreur, Statistiques, StatutCommande, Reclamation, LigneCommande } from "../types";
 
 // ---------- Santé ----------
 export const checkHealth = () => http.get<{ status: string }>("/health");
@@ -92,6 +92,15 @@ export const loginClient = (nom: string, telephone: string) =>
 export const getFournisseurs = async () => {
   const liste = await http.get<any[]>("/fournisseurs");
   return liste.map(normaliserFournisseur);
+};
+
+// Recherche de produits à travers tous les commerces (barre de recherche
+// client) — pour qu'une recherche type "sushi" ou "poisson" remonte
+// directement les produits correspondants, pas seulement les commerces
+// dont le nom correspond.
+export const rechercherProduits = async (q: string): Promise<ProduitRecherche[]> => {
+  const liste = await http.get<any[]>(`/produits/recherche?q=${encodeURIComponent(q)}`);
+  return liste.map((raw) => ({ ...raw, photo: raw.image_url ?? raw.photo ?? null }));
 };
 
 // Profil complet d'un commerce, pour "Mon commerce" (PAS la fiche publique).
