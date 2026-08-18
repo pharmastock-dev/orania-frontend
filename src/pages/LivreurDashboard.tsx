@@ -287,8 +287,8 @@ export default function LivreurDashboard() {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  <PastilleDistance label="Commerce" km={commandeActive.distance_commerce_km} />
-                  <PastilleDistance label="Client" km={commandeActive.distance_client_km} />
+                  <PastilleDistance label="Vous → Commerce" km={commandeActive.distance_commerce_km} />
+                  <PastilleDistance label="Commerce → Client" km={commandeActive.distance_client_km} />
                 </div>
 
                 <div className="flex items-start gap-2 text-sm">
@@ -363,8 +363,8 @@ export default function LivreurDashboard() {
                       <div key={c.id} className="bg-white rounded-2xl border border-[var(--color-ink-100)] p-4 flex flex-col gap-2.5">
                         <div className="flex items-center justify-between">
                           <div className="flex flex-wrap gap-1.5">
-                            <PastilleDistance label="Commerce" km={c.distance_commerce_km ?? c.distance_km} />
-                            <PastilleDistance label="Client" km={c.distance_client_km} />
+                            <PastilleDistance label="Vous → Commerce" km={c.distance_commerce_km ?? c.distance_km} />
+                            <PastilleDistance label="Commerce → Client" km={c.distance_client_km} />
                           </div>
                           <span className="flex items-center gap-1 text-sm font-bold text-[var(--color-ink-900)] shrink-0">
                             <Wallet size={14} /> {formatPrix(c.prix_total)}
