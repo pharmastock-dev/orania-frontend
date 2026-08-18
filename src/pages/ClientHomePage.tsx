@@ -241,25 +241,42 @@ export default function ClientHomePage() {
     return liste;
   }, [fournisseurs, categorie, typePlat, filtresActifs, tri, position]);
 
-  // Sections de découverte — volontairement calculées à partir de la liste
-  // COMPLÈTE (pas "resultats"), donc jamais affectées par la catégorie, le
-  // type de plat ou les filtres actifs. Une mise en avant éditoriale
-  // constante, affichée sous la barre de filtres, "hors filtres".
-  const commercesValides = useMemo(
-    () => fournisseurs.filter((f) => f.valide !== false && f.actif !== false),
-    [fournisseurs]
-  );
+  // Sections de découverte — désormais alignées sur la catégorie sélectionnée
+  // (cliquer "Cafétéria" ne doit montrer que des promos/populaires parmi les
+  // cafétérias, jamais un resto comme "Beef Lover"). Elles ne s'affichent
+  // que dans l'état de navigation "neutre" : dès qu'un tri ou un filtre actif
+  // (proche, mieux noté, promo, ouvert, livraison gratuite) est engagé, on
+  // les masque pour ne laisser que la liste de résultats correspondante.
+  const commercesCategorie = useMemo(() => {
+    let liste = fournisseurs.filter((f) => f.valide !== false && f.actif !== false);
+    if (categorie !== "tous") {
+      const q = categorie.toLowerCase();
+      liste = liste.filter(
+        (f) =>
+          (f.categorie || "").toLowerCase() === q ||
+          (f.produits_categories || []).some((c) => c.toLowerCase() === q)
+      );
+    }
+    if (typePlat !== "tous") {
+      const q = typePlat.toLowerCase();
+      liste = liste.filter((f) => (f.produits_categories || []).some((c) => c.toLowerCase() === q));
+    }
+    return liste;
+  }, [fournisseurs, categorie, typePlat]);
+
+  const decouverteActive = !tri && filtresActifs.length === 0;
+
   const discoveryPromos = useMemo(
-    () => commercesValides.filter((f) => f.a_promo).slice(0, 10),
-    [commercesValides]
+    () => commercesCategorie.filter((f) => f.a_promo).slice(0, 10),
+    [commercesCategorie]
   );
   const discoveryPopulaires = useMemo(
     () =>
-      [...commercesValides]
+      [...commercesCategorie]
         .filter((f) => (f.note_moyenne ?? 0) > 0)
         .sort((a, b) => (b.note_moyenne ?? 0) - (a.note_moyenne ?? 0))
         .slice(0, 10),
-    [commercesValides]
+    [commercesCategorie]
   );
 
   // ---- Écran de blocage tant que la position n'est pas activée ----
@@ -386,9 +403,14 @@ export default function ClientHomePage() {
           </div>
         ) : (
           <>
-            {/* Sections de découverte — toujours visibles, indépendantes des filtres */}
-            <DiscoveryRow titre="Restos et promos" icone={<Flame size={17} className="text-[var(--color-orange-500)]" />} fournisseurs={discoveryPromos} positionClient={position} />
-            <DiscoveryRow titre="Populaire près de vous" icone={<TrendingUp size={17} className="text-[var(--color-orange-500)]" />} fournisseurs={discoveryPopulaires} positionClient={position} />
+            {/* Sections de découverte — uniquement en navigation neutre (aucun
+                tri/filtre actif), et alignées sur la catégorie sélectionnée */}
+            {decouverteActive && (
+              <>
+                <DiscoveryRow titre="Promo" icone={<Flame size={17} className="text-[var(--color-orange-500)]" />} fournisseurs={discoveryPromos} positionClient={position} />
+                <DiscoveryRow titre="Populaire près de vous" icone={<TrendingUp size={17} className="text-[var(--color-orange-500)]" />} fournisseurs={discoveryPopulaires} positionClient={position} />
+              </>
+            )}
 
             {resultats.length === 0 ? (
               <EmptyState
