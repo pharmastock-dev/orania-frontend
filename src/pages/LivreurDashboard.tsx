@@ -20,7 +20,11 @@ import { getPositionActuelle } from "../utils/geo";
 import { formatPrix } from "../utils/format";
 import type { CommandeDisponible, Coordonnees, HistoriqueLivreurItem } from "../types";
 
-const INTERVALLE_MS = 15000;
+// Avec les notifications push désormais en place pour prévenir immédiatement
+// d'une nouvelle commande, ce rafraîchissement sert surtout à garder les
+// distances à jour pendant les déplacements — un vrai temps réel instantané
+// demanderait une connexion permanente (WebSocket), hors scope pour l'instant.
+const INTERVALLE_MS = 10000;
 
 type Onglet = "actif" | "historique";
 

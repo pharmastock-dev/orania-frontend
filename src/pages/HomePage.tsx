@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { ShoppingBag, Store as StoreIcon, Headset, ChevronRight } from "lucide-react";
+import { ShoppingBag, Store as StoreIcon, Headset, ChevronRight, Bike } from "lucide-react";
 import Logo from "../components/Logo";
 
 // L'espace Administration n'est volontairement PAS listé ici — réservé au
@@ -21,11 +21,18 @@ const CHOICES = [
     accent: "bg-[var(--color-navy-900)]",
   },
   {
+    icon: Bike,
+    title: "Je suis un livreur",
+    subtitle: "Accepter des commandes à livrer",
+    to: "/livreur",
+    accent: "bg-[var(--color-green-500)]",
+  },
+  {
     icon: Headset,
     title: "Contact",
     subtitle: "Nous contacter / assistance",
     to: "/contact",
-    accent: "bg-[var(--color-green-500)]",
+    accent: "bg-[var(--color-ink-700,#374151)]",
   },
 ];
 

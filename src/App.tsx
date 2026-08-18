@@ -7,7 +7,7 @@ import RequireClient from "./components/RequireClient";
 import { initPushNotifications } from "./utils/notifications";
 import { initWebPushNotifications } from "./utils/webPush";
 import { getPositionActuelle } from "./utils/geo";
-import { enregistrerTokenAcheteur, enregistrerTokenFournisseur } from "./api";
+import { enregistrerTokenAcheteur, enregistrerTokenFournisseur, enregistrerTokenLivreur } from "./api";
 
 import HomePage from "./pages/HomePage";
 import ContactPage from "./pages/ContactPage";
@@ -75,7 +75,7 @@ function PermissionsAuLancement() {
 // et Firebase Web direct (navigateur/PC) — les deux enregistrent le token
 // sur les mêmes routes backend, le serveur ne fait aucune distinction.
 function NotificationsPush() {
-  const { client, fournisseurConnecte } = useApp();
+  const { client, fournisseurConnecte, livreurConnecte } = useApp();
   const navigate = useNavigate();
   const { showToast } = useToast();
   const clientInitialise = useRef<number | null>(null);
@@ -138,6 +138,37 @@ function NotificationsPush() {
       });
     }
   }, [fournisseurConnecte, navigate, showToast]);
+
+  const livreurInitialise = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!livreurConnecte) {
+      livreurInitialise.current = null;
+      return;
+    }
+    if (livreurInitialise.current === livreurConnecte.id) return;
+    livreurInitialise.current = livreurConnecte.id;
+
+    const onToken = (token: string) => {
+      enregistrerTokenLivreur(livreurConnecte.id, token).catch(() => {});
+    };
+
+    if (Capacitor.isNativePlatform()) {
+      initPushNotifications({
+        onToken,
+        onNotificationTap: (data) => {
+          if (data.type === "commande_disponible") {
+            navigate("/livreur/dashboard");
+          }
+        },
+      });
+    } else {
+      initWebPushNotifications({
+        onToken,
+        onNotificationRecue: (titre, corps) => showToast(`${titre} — ${corps}`, "info"),
+      });
+    }
+  }, [livreurConnecte, navigate, showToast]);
 
   return null;
 }
