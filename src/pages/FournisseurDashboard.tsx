@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
 import { Package, Bike, BarChart3, Store, RefreshCw, LogOut, ClipboardList, Flag, BellOff, X } from "lucide-react";
 import DashboardHeader from "../components/DashboardHeader";
 import ReclamationModal from "../components/ReclamationModal";
@@ -36,11 +37,40 @@ export default function FournisseurDashboard() {
     if (!fournisseurConnecte) navigate("/commercant");
   }, [fournisseurConnecte, navigate]);
 
+  // Revérifié aussi à chaque retour sur l'app (pas juste au premier montage) —
+  // sinon désactiver les notifications pendant que l'app est en arrière-plan
+  // laisse l'avertissement obsolète (absent ou présent à tort) indéfiniment.
+  // Même principe que la vérification de position dans ClientHomePage.tsx.
   useEffect(() => {
-    verifierEtatNotifications().then((etat) => {
-      // "native-absent" = version web, pas concerné par ce contrôle.
-      setNotifsProblematiques(etat === "denied");
-    });
+    let annule = false;
+
+    function verifier() {
+      verifierEtatNotifications().then((etat) => {
+        if (!annule) setNotifsProblematiques(etat === "denied");
+      });
+    }
+
+    verifier();
+
+    let listenerNatif: { remove: () => void } | undefined;
+    if (Capacitor.isNativePlatform()) {
+      import("@capacitor/app").then(({ App }) => {
+        App.addListener("resume", verifier).then((h) => {
+          listenerNatif = h;
+        });
+      });
+    }
+
+    function surVisibilite() {
+      if (document.visibilityState === "visible") verifier();
+    }
+    document.addEventListener("visibilitychange", surVisibilite);
+
+    return () => {
+      annule = true;
+      listenerNatif?.remove();
+      document.removeEventListener("visibilitychange", surVisibilite);
+    };
   }, []);
 
   if (!fournisseurConnecte) return null;

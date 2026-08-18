@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, SearchX, Search as SearchIcon, LocateFixed, MapPin, Settings } from "lucide-react";
+import { AlertTriangle, SearchX, Search as SearchIcon, LocateFixed, MapPin, Settings, Flame, TrendingUp } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { Geolocation } from "@capacitor/geolocation";
 import { NativeSettings, AndroidSettings } from "capacitor-native-settings";
@@ -9,15 +9,17 @@ import FilterBar, { type Tri, type FiltreMulti } from "../components/FilterBar";
 import CategoryBar from "../components/CategoryBar";
 import TypePlatBar from "../components/TypePlatBar";
 import StoreCard from "../components/StoreCard";
+import DiscoveryRow from "../components/DiscoveryRow";
+import ProductSearchCard from "../components/ProductSearchCard";
 import Button from "../components/Button";
 import { CardSkeleton } from "../components/Loading";
 import EmptyState from "../components/EmptyState";
 import { useApp } from "../context/AppContext";
-import { getFournisseurs, enregistrerTokenAcheteur } from "../api";
+import { getFournisseurs, enregistrerTokenAcheteur, rechercherProduits } from "../api";
 import { ApiError } from "../api/client";
 import { estOuvertMaintenant } from "../utils/format";
 import { getPositionActuelle, distanceMetres } from "../utils/geo";
-import type { Fournisseur } from "../types";
+import type { Fournisseur, ProduitRecherche } from "../types";
 
 export default function ClientHomePage() {
   const { position, setPosition, client } = useApp();
@@ -31,6 +33,41 @@ export default function ClientHomePage() {
   const [filtresActifs, setFiltresActifs] = useState<FiltreMulti[]>([]);
   const [procheLoading, setProcheLoading] = useState(false);
 
+  // Recherche produits — quand le client tape "sushi", "poisson", etc., on
+  // veut lui montrer directement les PRODUITS correspondants (avec le
+  // commerce qui les vend), pas juste filtrer la liste des commerces par
+  // leur nom. Anti-rebond (300ms) pour ne pas spammer le serveur à chaque
+  // frappe.
+  const [resultatsProduits, setResultatsProduits] = useState<ProduitRecherche[]>([]);
+  const [chargementProduits, setChargementProduits] = useState(false);
+  const rechercheActive = recherche.trim().length >= 2;
+
+  useEffect(() => {
+    if (!rechercheActive) {
+      setResultatsProduits([]);
+      return;
+    }
+    let annule = false;
+    setChargementProduits(true);
+    const minuteur = setTimeout(() => {
+      rechercherProduits(recherche.trim())
+        .then((data) => {
+          if (!annule) setResultatsProduits(data);
+        })
+        .catch(() => {
+          if (!annule) setResultatsProduits([]);
+        })
+        .finally(() => {
+          if (!annule) setChargementProduits(false);
+        });
+    }, 300);
+    return () => {
+      annule = true;
+      clearTimeout(minuteur);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recherche, rechercheActive]);
+
   // La position est OBLIGATOIRE pour voir les commerces (distance, tri "proches",
   // temps de livraison estimé partout dans l'app en dépendent). Tant qu'elle
   // n'est pas activée, on affiche un écran de blocage au lieu de la liste.
@@ -41,8 +78,11 @@ export default function ClientHomePage() {
   // On a peut-être déjà une position enregistrée d'une session précédente —
   // mais rien ne garantit que la localisation est toujours active côté système
   // (l'utilisateur a pu la désactiver depuis). On revérifie donc à chaque
-  // ouverture, sinon une position désactivée après coup resterait utilisée
-  // indéfiniment sans jamais redemander l'autorisation.
+  // ouverture ET à chaque retour sur l'app (pas juste au premier montage) —
+  // sinon désactiver la position pendant que l'app est en arrière-plan (ou
+  // sans jamais démonter cet écran) laisse une position obsolète utilisée
+  // indéfiniment sans jamais redemander l'autorisation. Même logique pour
+  // les notifications : un refus après coup doit aussi être détecté au retour.
   //
   // IMPORTANT : sur Android natif, navigator.permissions.query("geolocation")
   // ne reflète PAS toujours fidèlement la vraie permission native accordée
@@ -54,6 +94,7 @@ export default function ClientHomePage() {
   // pas implémenté).
   useEffect(() => {
     let annule = false;
+
     async function verifier() {
       if (position) {
         try {
@@ -72,9 +113,30 @@ export default function ClientHomePage() {
       }
       if (!annule) setVerificationEnCours(false);
     }
+
     verifier();
+
+    // Retour sur l'app (native) : l'utilisateur a pu changer un réglage
+    // système (position, notifications) pendant que l'app était en arrière-plan.
+    let listenerNatif: { remove: () => void } | undefined;
+    if (Capacitor.isNativePlatform()) {
+      import("@capacitor/app").then(({ App }) => {
+        App.addListener("resume", verifier).then((h) => {
+          listenerNatif = h;
+        });
+      });
+    }
+
+    // Équivalent web : l'onglet redevient visible après avoir été en arrière-plan.
+    function surVisibilite() {
+      if (document.visibilityState === "visible") verifier();
+    }
+    document.addEventListener("visibilitychange", surVisibilite);
+
     return () => {
       annule = true;
+      listenerNatif?.remove();
+      document.removeEventListener("visibilitychange", surVisibilite);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -160,16 +222,8 @@ export default function ClientHomePage() {
       liste = liste.filter((f) => (f.produits_categories || []).some((c) => c.toLowerCase() === q));
     }
 
-    if (recherche.trim()) {
-      const q = recherche.trim().toLowerCase();
-      liste = liste.filter(
-        (f) =>
-          f.nom.toLowerCase().includes(q) ||
-          (f.categorie || "").toLowerCase().includes(q) ||
-          (f.produits_categories || []).some((c) => c.toLowerCase().includes(q)) ||
-          (f.produits_noms || []).some((n) => n.toLowerCase().includes(q))
-      );
-    }
+    // La recherche texte redirige désormais vers une recherche produits
+    // (voir resultatsProduits) — plus de filtrage par nom de commerce ici.
 
     if (filtresActifs.includes("promos")) liste = liste.filter((f) => f.a_promo);
     if (filtresActifs.includes("ouverts")) liste = liste.filter((f) => estOuvertMaintenant(f.heure_ouverture, f.heure_fermeture));
@@ -185,7 +239,28 @@ export default function ClientHomePage() {
     }
 
     return liste;
-  }, [fournisseurs, categorie, typePlat, recherche, filtresActifs, tri, position]);
+  }, [fournisseurs, categorie, typePlat, filtresActifs, tri, position]);
+
+  // Sections de découverte — volontairement calculées à partir de la liste
+  // COMPLÈTE (pas "resultats"), donc jamais affectées par la catégorie, le
+  // type de plat ou les filtres actifs. Une mise en avant éditoriale
+  // constante, affichée sous la barre de filtres, "hors filtres".
+  const commercesValides = useMemo(
+    () => fournisseurs.filter((f) => f.valide !== false && f.actif !== false),
+    [fournisseurs]
+  );
+  const discoveryPromos = useMemo(
+    () => commercesValides.filter((f) => f.a_promo).slice(0, 10),
+    [commercesValides]
+  );
+  const discoveryPopulaires = useMemo(
+    () =>
+      [...commercesValides]
+        .filter((f) => (f.note_moyenne ?? 0) > 0)
+        .sort((a, b) => (b.note_moyenne ?? 0) - (a.note_moyenne ?? 0))
+        .slice(0, 10),
+    [commercesValides]
+  );
 
   // ---- Écran de blocage tant que la position n'est pas activée ----
   if (verificationEnCours) {
@@ -277,26 +352,60 @@ export default function ClientHomePage() {
           </div>
         )}
 
-        {loading ? (
+        {rechercheActive ? (
+          // ---- Mode recherche : on affiche des PRODUITS, pas des commerces ----
+          chargementProduits ? (
+            <div className="flex flex-col gap-3">
+              <CardSkeleton />
+              <CardSkeleton />
+              <CardSkeleton />
+            </div>
+          ) : resultatsProduits.length === 0 ? (
+            <EmptyState
+              icon={<SearchX size={36} />}
+              title="Aucun produit trouvé"
+              description="Essayez un autre mot-clé — un plat, un ingrédient, un produit."
+            />
+          ) : (
+            <>
+              <p className="text-sm text-[var(--color-ink-500)]">
+                {resultatsProduits.length} produit{resultatsProduits.length > 1 ? "s" : ""} trouvé{resultatsProduits.length > 1 ? "s" : ""}
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {resultatsProduits.map((p) => (
+                  <ProductSearchCard key={p.id} produit={p} />
+                ))}
+              </div>
+            </>
+          )
+        ) : loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <CardSkeleton />
             <CardSkeleton />
             <CardSkeleton />
           </div>
-        ) : resultats.length === 0 ? (
-          <EmptyState
-            icon={<SearchX size={36} />}
-            title="Aucun commerce trouvé"
-            description="Essayez une autre recherche, catégorie ou filtre."
-          />
         ) : (
           <>
-            <p className="text-sm text-[var(--color-ink-500)]">{resultats.length} résultat{resultats.length > 1 ? "s" : ""}</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {resultats.map((f) => (
-                <StoreCard key={f.id} fournisseur={f} positionClient={position} />
-              ))}
-            </div>
+            {/* Sections de découverte — toujours visibles, indépendantes des filtres */}
+            <DiscoveryRow titre="Restos et promos" icone={<Flame size={17} className="text-[var(--color-orange-500)]" />} fournisseurs={discoveryPromos} positionClient={position} />
+            <DiscoveryRow titre="Populaire près de vous" icone={<TrendingUp size={17} className="text-[var(--color-orange-500)]" />} fournisseurs={discoveryPopulaires} positionClient={position} />
+
+            {resultats.length === 0 ? (
+              <EmptyState
+                icon={<SearchX size={36} />}
+                title="Aucun commerce trouvé"
+                description="Essayez une autre catégorie ou filtre."
+              />
+            ) : (
+              <>
+                <p className="text-sm text-[var(--color-ink-500)]">{resultats.length} résultat{resultats.length > 1 ? "s" : ""}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {resultats.map((f) => (
+                    <StoreCard key={f.id} fournisseur={f} positionClient={position} />
+                  ))}
+                </div>
+              </>
+            )}
           </>
         )}
       </div>
