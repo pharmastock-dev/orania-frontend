@@ -78,18 +78,24 @@ export default function ClientHomePage() {
   // mais rien ne garantit qu'elle est toujours valide côté système. On
   // revérifie donc à chaque ouverture ET à chaque retour sur l'app.
   //
-  // IMPORTANT — leçon apprise : se contenter de vérifier la PERMISSION
+  // IMPORTANT — leçon apprise n°1 : se contenter de vérifier la PERMISSION
   // (Geolocation.checkPermissions()) ne suffit PAS. Sur Android, "désactiver
   // la localisation" via le raccourci rapide des réglages coupe le GPS
   // lui-même — la permission accordée à l'app, elle, reste "granted" tout du
-  // long. Un simple contrôle de permission ne détecte donc jamais ce cas :
-  // il faut réellement RETENTER une récupération de position (courte, sans
-  // spinner visible) pour savoir si le GPS répond vraiment. Si ça échoue —
-  // permission révoquée OU GPS éteint, peu importe la cause exacte — on
-  // efface la position en mémoire, ce qui fait réapparaître l'écran
-  // d'activation automatiquement.
+  // long. Il faut réellement RETENTER une récupération de position pour
+  // savoir si le GPS répond vraiment.
+  //
+  // IMPORTANT — leçon apprise n°2 : cette vraie récupération GPS peut
+  // prendre plusieurs secondes (signal précis, enableHighAccuracy). La faire
+  // AVANT d'afficher quoi que ce soit (verificationEnCours bloquant) rendait
+  // l'app inutilisable plusieurs secondes à chaque ouverture — un écran
+  // blanc gênant, pour un cas qui reste rare (GPS coupé entre deux sessions).
+  // On affiche donc IMMÉDIATEMENT l'app avec la position déjà en mémoire, et
+  // on vérifie en arrière-plan, silencieusement — seul un vrai échec fait
+  // réapparaître l'écran d'activation, après coup plutôt qu'en bloquant tout.
   useEffect(() => {
     let annule = false;
+    setVerificationEnCours(false); // jamais bloquant — la position en cache s'affiche tout de suite
 
     async function verifier() {
       if (position) {
@@ -100,7 +106,6 @@ export default function ClientHomePage() {
           if (!annule) setPosition(null);
         }
       }
-      if (!annule) setVerificationEnCours(false);
     }
 
     verifier();
