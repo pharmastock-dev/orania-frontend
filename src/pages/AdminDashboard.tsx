@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, AlertTriangle, Store, Bell, Ban, Play, Plus, Flag, Check, KeyRound, Search, Trash2 } from "lucide-react";
+import { LogOut, AlertTriangle, Store, Bell, Ban, Play, Plus, Flag, Check, KeyRound, Search, Trash2, Bike } from "lucide-react";
 import DashboardHeader from "../components/DashboardHeader";
 import { CardSkeleton } from "../components/Loading";
 import Modal from "../components/Modal";
@@ -19,31 +19,66 @@ import {
   getReclamations,
   traiterReclamation,
   supprimerReclamation,
+  adminListeLivreursMarketplace,
+  adminValiderLivreurMarketplace,
+  adminSupprimerLivreurMarketplace,
 } from "../api";
 import { ApiError } from "../api/client";
 import { getCategorieLabel } from "../utils/categories";
-import type { Fournisseur, Reclamation } from "../types";
+import type { Fournisseur, Reclamation, LivreurMarketplaceAdmin } from "../types";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [fournisseurs, setFournisseurs] = useState<Fournisseur[]>([]);
   const [reclamations, setReclamations] = useState<Reclamation[]>([]);
+  const [livreursMarketplace, setLivreursMarketplace] = useState<LivreurMarketplaceAdmin[]>([]);
   const [loading, setLoading] = useState(true);
   const [erreur, setErreur] = useState<string | null>(null);
   const [actionEnCours, setActionEnCours] = useState<number | null>(null);
   const [suppressionCommerce, setSuppressionCommerce] = useState<Fournisseur | null>(null);
+  const [suppressionLivreur, setSuppressionLivreur] = useState<LivreurMarketplaceAdmin | null>(null);
   const [rechercheCommerce, setRechercheCommerce] = useState("");
 
   function charger() {
     setLoading(true);
-    Promise.allSettled([getFournisseursAdmin(), getReclamations()]).then(([f, r]) => {
+    Promise.allSettled([getFournisseursAdmin(), getReclamations(), adminListeLivreursMarketplace()]).then(([f, r, l]) => {
       if (f.status === "fulfilled") setFournisseurs(f.value);
       else setErreur(f.reason instanceof ApiError ? f.reason.message : "Impossible de charger les commerces.");
       if (r.status === "fulfilled") setReclamations(r.value);
+      if (l.status === "fulfilled") setLivreursMarketplace(l.value);
       setLoading(false);
     });
   }
+
+  async function handleValiderLivreur(l: LivreurMarketplaceAdmin) {
+    setActionEnCours(l.id);
+    try {
+      await adminValiderLivreurMarketplace(l.id);
+      setLivreursMarketplace((prev) => prev.map((x) => (x.id === l.id ? { ...x, valide: true } : x)));
+      showToast(`${l.nom} validé — peut maintenant se connecter.`, "success");
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : "Impossible de valider ce livreur.", "error");
+    } finally {
+      setActionEnCours(null);
+    }
+  }
+
+  async function handleSupprimerLivreur() {
+    if (!suppressionLivreur) return;
+    setActionEnCours(suppressionLivreur.id);
+    try {
+      await adminSupprimerLivreurMarketplace(suppressionLivreur.id);
+      setLivreursMarketplace((prev) => prev.filter((x) => x.id !== suppressionLivreur.id));
+      showToast("Livreur supprimé.", "success");
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : "Impossible de supprimer ce livreur.", "error");
+    } finally {
+      setActionEnCours(null);
+      setSuppressionLivreur(null);
+    }
+  }
+
 
   async function handleTraiter(r: Reclamation) {
     if (!r.id) return;
@@ -371,6 +406,63 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* Livreurs marché ouvert — validation et suppression */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <Bike size={18} className="text-[var(--color-navy-900)]" />
+          <p className="font-display font-bold text-[15px] text-[var(--color-ink-900)]">Livreurs (marché ouvert)</p>
+          {livreursMarketplace.filter((l) => !l.valide).length > 0 && (
+            <span className="text-xs font-bold bg-[var(--color-orange-100)] text-[var(--color-orange-600)] px-2 py-0.5 rounded-full">
+              {livreursMarketplace.filter((l) => !l.valide).length} en attente
+            </span>
+          )}
+        </div>
+
+        {livreursMarketplace.length === 0 ? (
+          <p className="text-sm text-[var(--color-ink-500)]">Aucun livreur inscrit pour l'instant.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {livreursMarketplace.map((l) => (
+              <div key={l.id} className="bg-white rounded-xl border border-[var(--color-ink-100)] p-3.5 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-sm text-[var(--color-ink-900)] truncate">{l.nom}</p>
+                    {l.valide ? (
+                      l.en_ligne ? (
+                        <span className="text-[10px] font-bold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full">En ligne</span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-[var(--color-ink-500)] bg-[var(--color-ink-100)] px-1.5 py-0.5 rounded-full">Hors ligne</span>
+                      )
+                    ) : (
+                      <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full">En attente</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-[var(--color-ink-500)]">{l.telephone}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {!l.valide && (
+                    <button
+                      onClick={() => handleValiderLivreur(l)}
+                      disabled={actionEnCours === l.id}
+                      className="flex items-center gap-1 text-xs font-semibold px-2.5 py-2 rounded-lg bg-green-50 text-green-700 disabled:opacity-60"
+                    >
+                      <Check size={13} /> Valider
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setSuppressionLivreur(l)}
+                    disabled={actionEnCours === l.id}
+                    className="flex items-center gap-1 text-xs font-semibold px-2.5 py-2 rounded-lg bg-red-50 text-red-600 disabled:opacity-60"
+                  >
+                    <Trash2 size={13} /> Suppr.
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <Modal open={!!suppressionCommerce} onClose={() => setSuppressionCommerce(null)} title="Supprimer ce commerce ?">
         {suppressionCommerce && (
           <div>
@@ -380,6 +472,20 @@ export default function AdminDashboard() {
             <div className="flex gap-2">
               <Button variant="outline" fullWidth onClick={() => setSuppressionCommerce(null)}>Annuler</Button>
               <Button variant="danger" fullWidth loading={actionEnCours === suppressionCommerce.id} onClick={handleSupprimer}>Supprimer</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal open={!!suppressionLivreur} onClose={() => setSuppressionLivreur(null)} title="Supprimer ce livreur ?">
+        {suppressionLivreur && (
+          <div>
+            <p className="text-sm text-[var(--color-ink-700)] mb-4">
+              <strong>{suppressionLivreur.nom}</strong> ne pourra plus se connecter ni accepter de commandes. Son historique de livraisons déjà effectuées reste conservé. Cette action est irréversible.
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" fullWidth onClick={() => setSuppressionLivreur(null)}>Annuler</Button>
+              <Button variant="danger" fullWidth loading={actionEnCours === suppressionLivreur.id} onClick={handleSupprimerLivreur}>Supprimer</Button>
             </div>
           </div>
         )}
