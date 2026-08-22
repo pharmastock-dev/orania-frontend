@@ -8,24 +8,26 @@ import { ApiError } from "../api/client";
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
-  const [code, setCode] = useState("");
+  const [motDePasse, setMotDePasse] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!code.trim()) {
-      setErreur("Merci de renseigner le mot de passe.");
+    if (!motDePasse.trim()) {
+      setErreur("Merci de saisir le mot de passe administrateur.");
       return;
     }
     setLoading(true);
     setErreur(null);
     try {
-      const res = await adminLogin(code.trim());
+      const res = await adminLogin(motDePasse);
       if (!res.succes || !res.token) {
         setErreur(res.message || "Mot de passe incorrect.");
         return;
       }
+      // Le vrai jeton signé HMAC, émis par le backend (admin_auth.py) —
+      // plus jamais de vérification locale devinable côté client.
       stockerTokenAdmin(res.token);
       navigate("/admin/dashboard");
     } catch (err) {
@@ -46,17 +48,18 @@ export default function AdminLoginPage() {
           <h1 className="font-display text-2xl font-bold text-white mt-4">Administration</h1>
           <p className="text-white/60 mt-1">Gestion des commerces et abonnements</p>
         </div>
-
         <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-3">
           <input
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
+            value={motDePasse}
+            onChange={(e) => setMotDePasse(e.target.value)}
             type="password"
             placeholder="Mot de passe administrateur"
             className="w-full bg-white rounded-xl px-4 py-3 outline-none"
           />
           {erreur && <p className="text-sm text-red-200 bg-red-500/20 rounded-xl px-3 py-2">{erreur}</p>}
-          <Button type="submit" loading={loading} fullWidth className="mt-2">Accéder au tableau de bord</Button>
+          <Button type="submit" fullWidth loading={loading} className="mt-2">
+            Accéder au tableau de bord
+          </Button>
         </form>
       </div>
     </div>
