@@ -203,12 +203,12 @@ function normaliserCommandeFournisseur(raw: any): Commande {
 // actives (corbeille=false, par défaut) vs supprimées (corbeille=true).
 // On récupère les actives et on filtre nous-mêmes par statut si besoin.
 export const getCommandesFournisseur = async (fournisseurId: number) => {
-  const liste = await http.get<any[]>(`/fournisseurs/${fournisseurId}/commandes?corbeille=false`);
+  const liste = await http.get<any[]>(`/fournisseurs/${fournisseurId}/commandes?corbeille=false`, "fournisseur");
   return liste.map(normaliserCommandeFournisseur);
 };
 
 export const getCommandesFournisseurCorbeille = async (fournisseurId: number) => {
-  const liste = await http.get<any[]>(`/fournisseurs/${fournisseurId}/commandes?corbeille=true`);
+  const liste = await http.get<any[]>(`/fournisseurs/${fournisseurId}/commandes?corbeille=true`, "fournisseur");
   return liste.map(normaliserCommandeFournisseur);
 };
 
@@ -218,7 +218,7 @@ export const getProduitsCommande = (commandeId: number) => http.get<LigneCommand
 
 // Côté acheteur, les produits SONT déjà embarqués dans la réponse.
 export const getCommandesAcheteur = async (acheteurId: number) => {
-  const liste = await http.get<any[]>(`/acheteurs/${acheteurId}/commandes`);
+  const liste = await http.get<any[]>(`/acheteurs/${acheteurId}/commandes`, "client");
   return liste.map((raw) => ({
     id: raw.id,
     acheteur_id: acheteurId,
