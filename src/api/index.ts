@@ -264,7 +264,7 @@ export const getLivreurs = (fournisseurId: number) => http.get<Livreur[]>(`/four
 export const creerLivreur = (fournisseurId: number, data: { nom: string; telephone?: string }) =>
   http.post<Livreur>("/livreurs", { fournisseur_id: fournisseurId, ...data });
 
-export const supprimerLivreur = (livreurId: number) => http.del<{ succes: boolean; message?: string }>(`/livreurs/${livreurId}`);
+export const supprimerLivreur = (livreurId: number) => http.del<{ succes: boolean; message?: string }>(`/livreurs/${livreurId}`, "fournisseur");
 
 // ---------- Admin ----------
 // Le vrai backend exige maintenant un jeton (POST /admin/login), plus de
