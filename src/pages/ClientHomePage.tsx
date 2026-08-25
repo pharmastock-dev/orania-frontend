@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, SearchX, Search as SearchIcon, LocateFixed, MapPin, Settings, Flame, TrendingUp } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { AlertTriangle, SearchX, Search as SearchIcon, LocateFixed, MapPin, Settings, Flame, TrendingUp, Sparkles, ChevronRight } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { NativeSettings, AndroidSettings } from "capacitor-native-settings";
 import ClientHeader from "../components/ClientHeader";
@@ -21,6 +22,7 @@ import { getPositionActuelle, distanceMetres } from "../utils/geo";
 import type { Fournisseur, ProduitRecherche } from "../types";
 
 export default function ClientHomePage() {
+  const navigate = useNavigate();
   const { position, setPosition, client } = useApp();
   const [fournisseurs, setFournisseurs] = useState<Fournisseur[]>([]);
   const [loading, setLoading] = useState(true);
@@ -360,6 +362,23 @@ export default function ClientHomePage() {
 
           <FilterBar tri={tri} onTriChange={setTri} filtresActifs={filtresActifs} onToggleFiltre={toggleFiltre} />
         </div>
+
+        {/* QREEB Assistant — bannière d'accès, juste sous les filtres pour
+            capter l'attention avant que le client ne commence à parcourir
+            manuellement. */}
+        <button
+          onClick={() => navigate("/client/assistant")}
+          className="flex items-center gap-3 bg-gradient-to-r from-[var(--color-navy-900)] to-[#1e2740] rounded-2xl px-4 py-3.5 text-left"
+        >
+          <span className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+            <Sparkles size={18} className="text-[var(--color-orange-400)]" />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-white font-bold text-[15px]">Pas d'idée ? Laissez-moi choisir pour vous</p>
+            <p className="text-white/60 text-xs">Budget, envie, distance — 5 questions, 3 suggestions</p>
+          </div>
+          <ChevronRight size={18} className="text-white/60 shrink-0" />
+        </button>
 
         <CategoryBar
           actif={categorie}
