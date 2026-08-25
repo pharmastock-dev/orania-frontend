@@ -214,3 +214,34 @@ export interface Cart {
   fournisseurNom: string | null;
   items: CartItem[];
 }
+
+// Résultat renvoyé par QREEB Assistant (/assistant/recherche) — un produit
+// avec son score de mérite et sa phrase d'explication générée par gabarit
+// (pas par IA — voir main.py pour le détail du calcul).
+export interface AssistantResultat {
+  id: number;
+  fournisseur_id: number;
+  nom: string;
+  prix: number;
+  prix_promo?: number | null;
+  image_url?: string | null;
+  categorie?: string;
+  ingredients?: string | null;
+  fournisseur_nom: string;
+  fournisseur_categorie?: string;
+  fournisseur_adresse?: string | null;
+  prix_groupe: number;
+  distance_km?: number | null;
+  note_moyenne?: number | null;
+  score: number;
+  phrase: string;
+}
+
+export interface CriteresAssistant {
+  envie: string;
+  budget_max?: number | null;
+  personnes: number;
+  latitude?: number | null;
+  longitude?: number | null;
+  mode: "livraison" | "retrait";
+}

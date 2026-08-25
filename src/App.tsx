@@ -24,6 +24,7 @@ import FournisseurLoginPage from "./pages/FournisseurLoginPage";
 import FournisseurDashboard from "./pages/FournisseurDashboard";
 
 import LivreurLoginPage from "./pages/LivreurLoginPage";
+import AssistantPage from "./pages/AssistantPage";
 import LivreurDashboard from "./pages/LivreurDashboard";
 
 import AdminLoginPage from "./pages/AdminLoginPage";
@@ -193,6 +194,7 @@ function AppRoutes() {
         <Route path="/commercant" element={<FournisseurLoginPage />} />
         <Route path="/commercant/dashboard" element={<FournisseurDashboard />} />
 
+        <Route path="/client/assistant" element={<AssistantPage />} />
         <Route path="/livreur" element={<LivreurLoginPage />} />
         <Route path="/livreur/dashboard" element={<LivreurDashboard />} />
 

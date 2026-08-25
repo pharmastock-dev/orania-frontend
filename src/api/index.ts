@@ -9,7 +9,7 @@
 // ============================================================
 
 import { http, BASE_URL, CLE_TOKEN_ADMIN } from "./client";
-import type { Fournisseur, Produit, ProduitRecherche, Commande, Avis, Livreur, Statistiques, StatutCommande, Reclamation, LigneCommande, CommandeDisponible, StatutPublicationCommande, HistoriqueLivreurItem, LivreurMarketplaceAdmin } from "../types";
+import type { Fournisseur, Produit, ProduitRecherche, Commande, Avis, Livreur, Statistiques, StatutCommande, Reclamation, LigneCommande, CommandeDisponible, StatutPublicationCommande, HistoriqueLivreurItem, LivreurMarketplaceAdmin, AssistantResultat, CriteresAssistant } from "../types";
 
 // ---------- Santé ----------
 export const checkHealth = () => http.get<{ status: string }>("/health");
@@ -98,6 +98,9 @@ export const getFournisseurs = async () => {
 // client) — pour qu'une recherche type "sushi" ou "poisson" remonte
 // directement les produits correspondants, pas seulement les commerces
 // dont le nom correspond.
+export const rechercherAssistant = (criteres: CriteresAssistant) =>
+  http.post<AssistantResultat[]>("/assistant/recherche", criteres);
+
 export const rechercherProduits = async (q: string): Promise<ProduitRecherche[]> => {
   const liste = await http.get<any[]>(`/produits/recherche?q=${encodeURIComponent(q)}`);
   return liste.map((raw) => ({ ...raw, photo: raw.image_url ?? raw.photo ?? null }));
