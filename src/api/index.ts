@@ -237,7 +237,7 @@ export const getCommandesAcheteur = async (acheteurId: number) => {
 // GET .../mon-avis renvoie { existe, id?, note?, commentaire? } — on ramène
 // ça à { note, commentaire } avec note=0 par défaut, comme le reste de l'app l'attend.
 export const getMonAvis = async (fournisseurId: number, acheteurId: number) => {
-  const r = await http.get<{ existe: boolean; id?: number; note?: number; commentaire?: string }>(`/fournisseurs/${fournisseurId}/mon-avis/${acheteurId}`);
+  const r = await http.get<{ existe: boolean; id?: number; note?: number; commentaire?: string }>(`/fournisseurs/${fournisseurId}/mon-avis/${acheteurId}`, "client");
   return { note: r.existe ? r.note ?? 0 : 0, commentaire: r.existe ? r.commentaire ?? "" : "" };
 };
 
@@ -247,7 +247,7 @@ export const getAvisFournisseur = (fournisseurId: number) => http.get<Avis[]>(`/
 
 // Le vrai backend appelle ça "évaluations", pas "avis", pour la liste d'un client.
 export const getAvisAcheteur = async (acheteurId: number) => {
-  const liste = await http.get<any[]>(`/acheteurs/${acheteurId}/evaluations`);
+  const liste = await http.get<any[]>(`/acheteurs/${acheteurId}/evaluations`, "client");
   return liste.map((r) => ({ id: r.id, note: r.note, commentaire: r.commentaire, fournisseur_id: r.fournisseur_id, fournisseur_nom: r.commerce_nom, acheteur_id: acheteurId })) as Avis[];
 };
 
@@ -329,7 +329,7 @@ export const supprimerReclamation = (reclamationId: number) => http.del<{ succes
 
 // ---------- Notifications push ----------
 export const enregistrerTokenAcheteur = (acheteurId: number, deviceToken: string) =>
-  http.post<{ succes: boolean }>(`/acheteurs/${acheteurId}/device-token`, { device_token: deviceToken });
+  http.post<{ succes: boolean }>(`/acheteurs/${acheteurId}/device-token`, { device_token: deviceToken }, "client");
 
 export const enregistrerTokenFournisseur = (fournisseurId: number, deviceToken: string) =>
   http.post<{ succes: boolean }>(`/fournisseurs/${fournisseurId}/device-token`, { device_token: deviceToken }, "fournisseur");
