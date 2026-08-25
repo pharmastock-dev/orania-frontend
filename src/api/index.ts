@@ -78,13 +78,13 @@ export const loginFournisseur = async (telephone: string, mot_de_passe: string) 
     frais_max: r.frais_max,
     abonnement_fin: r.abonnement_fin,
   };
-  return { succes: true as const, session };
+  return { succes: true as const, session, token: r.token as string | undefined };
 };
 
 // ---------- Authentification client ----------
 // "Trouver ou créer" par téléphone, aucun mot de passe côté client.
 export const loginClient = (nom: string, telephone: string) =>
-  http.post<{ succes: boolean; id: number; nom: string; telephone: string }>("/client/login", { nom, telephone });
+  http.post<{ succes: boolean; id: number; nom: string; telephone: string; token?: string }>("/client/login", { nom, telephone });
 
 // ---------- Fournisseurs (commerces) ----------
 // GET /fournisseurs ne renvoie QUE les commerces validés + abonnement actif
@@ -342,7 +342,7 @@ export const inscriptionLivreurMarketplace = (nom: string, telephone: string, mo
   );
 
 export const connexionLivreurMarketplace = (telephone: string, mot_de_passe: string) =>
-  http.post<{ succes: boolean; id?: number; nom?: string; telephone?: string; message?: string; en_attente?: boolean }>(
+  http.post<{ succes: boolean; id?: number; nom?: string; telephone?: string; message?: string; en_attente?: boolean; token?: string }>(
     "/livreurs-marketplace/connexion",
     { telephone, mot_de_passe }
   );

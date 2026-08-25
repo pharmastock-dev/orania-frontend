@@ -4,6 +4,7 @@ import { Store, ArrowRight, Clock } from "lucide-react";
 import Button from "../components/Button";
 import { loginFournisseur, registerFournisseur } from "../api";
 import { ApiError } from "../api/client";
+import { stockerToken } from "../api/client";
 import { useApp } from "../context/AppContext";
 import { nettoyerTelephone } from "../utils/format";
 import { CATEGORIES } from "../utils/categories";
@@ -57,6 +58,7 @@ export default function FournisseurLoginPage() {
         }
         return;
       }
+      if (res.token) stockerToken("fournisseur", res.token);
       setFournisseurConnecte({ ...res.session, telephone: res.session.telephone || telephone.trim() });
       navigate("/commercant/dashboard");
     } catch (err) {

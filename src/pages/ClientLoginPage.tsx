@@ -5,6 +5,7 @@ import BackButton from "../components/BackButton";
 import Button from "../components/Button";
 import { loginClient } from "../api";
 import { ApiError } from "../api/client";
+import { stockerToken } from "../api/client";
 import { useApp } from "../context/AppContext";
 import { nettoyerTelephone } from "../utils/format";
 
@@ -33,6 +34,7 @@ export default function ClientLoginPage() {
     setErreur(null);
     try {
       const res = await loginClient(nom.trim(), telephone.trim());
+      if (res.token) stockerToken("client", res.token);
       setClient({ id: res.id, nom: res.nom, telephone: res.telephone });
       navigate("/client/accueil");
     } catch (err) {

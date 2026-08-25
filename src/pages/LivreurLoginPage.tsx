@@ -4,6 +4,7 @@ import { Bike, ArrowRight, Clock } from "lucide-react";
 import Button from "../components/Button";
 import { connexionLivreurMarketplace, inscriptionLivreurMarketplace } from "../api";
 import { ApiError } from "../api/client";
+import { stockerToken } from "../api/client";
 import { useApp } from "../context/AppContext";
 import { nettoyerTelephone } from "../utils/format";
 
@@ -51,6 +52,7 @@ export default function LivreurLoginPage() {
         }
         return;
       }
+      if (res.token) stockerToken("livreur", res.token);
       setLivreurConnecte({ id: res.id, nom: res.nom!, telephone: res.telephone! });
       navigate("/livreur/dashboard");
     } catch (err) {
