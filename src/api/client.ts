@@ -15,14 +15,41 @@ export class ApiError extends Error {
   }
 }
 
+// auth accepte :
+//   - false / undefined  → aucun jeton envoyé
+//   - true                → jeton ADMIN (comportement historique, inchangé,
+//                            aucun appel existant à modifier)
+//   - "fournisseur" / "client" / "livreur" → jeton du type correspondant
+type TypeAuth = boolean | "fournisseur" | "client" | "livreur";
+
 interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "DELETE";
   body?: unknown;
   isFormData?: boolean;
-  auth?: boolean; // ajoute automatiquement le jeton admin en Authorization
+  auth?: TypeAuth;
 }
 
 const CLE_TOKEN_ADMIN = "orania_admin_token";
+const CLE_TOKEN_FOURNISSEUR = "qreeb_token_fournisseur";
+const CLE_TOKEN_CLIENT = "qreeb_token_client";
+const CLE_TOKEN_LIVREUR = "qreeb_token_livreur";
+
+function cleTokenPour(auth: TypeAuth): string | null {
+  if (auth === true) return CLE_TOKEN_ADMIN;
+  if (auth === "fournisseur") return CLE_TOKEN_FOURNISSEUR;
+  if (auth === "client") return CLE_TOKEN_CLIENT;
+  if (auth === "livreur") return CLE_TOKEN_LIVREUR;
+  return null;
+}
+
+// L'admin utilise une session courte (12h, sessionStorage — effacée à la
+// fermeture de l'onglet/app). Client/fournisseur/livreur doivent au
+// contraire rester connectés durablement d'une ouverture d'app à l'autre
+// (30 jours, comme configuré côté backend) — d'où localStorage pour ces
+// trois-là, jamais sessionStorage qui les déconnecterait à chaque relance.
+function stockagePour(auth: TypeAuth): Storage {
+  return auth === true ? sessionStorage : localStorage;
+}
 
 // Le backend gratuit (Render) peut mettre jusqu'à 30-60s à se réveiller s'il
 // était inactif. Plutôt que d'afficher une erreur au premier échec, on
@@ -63,7 +90,8 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   const headers: Record<string, string> = {};
   if (!isFormData) headers["Content-Type"] = "application/json";
   if (auth) {
-    const token = sessionStorage.getItem(CLE_TOKEN_ADMIN);
+    const cle = cleTokenPour(auth);
+    const token = cle ? stockagePour(auth).getItem(cle) : null;
     if (token) headers["Authorization"] = `Bearer ${token}`;
   }
 
@@ -114,11 +142,25 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 }
 
 export const http = {
-  get: <T>(path: string, auth = false) => request<T>(path, { method: "GET", auth }),
-  post: <T>(path: string, body?: unknown, auth = false) => request<T>(path, { method: "POST", body, auth }),
-  postForm: <T>(path: string, formData: FormData, auth = false) => request<T>(path, { method: "POST", body: formData, isFormData: true, auth }),
-  put: <T>(path: string, body?: unknown, auth = false) => request<T>(path, { method: "PUT", body, auth }),
-  del: <T>(path: string, auth = false) => request<T>(path, { method: "DELETE", auth }),
+  get: <T>(path: string, auth: TypeAuth = false) => request<T>(path, { method: "GET", auth }),
+  post: <T>(path: string, body?: unknown, auth: TypeAuth = false) => request<T>(path, { method: "POST", body, auth }),
+  postForm: <T>(path: string, formData: FormData, auth: TypeAuth = false) => request<T>(path, { method: "POST", body: formData, isFormData: true, auth }),
+  put: <T>(path: string, body?: unknown, auth: TypeAuth = false) => request<T>(path, { method: "PUT", body, auth }),
+  del: <T>(path: string, auth: TypeAuth = false) => request<T>(path, { method: "DELETE", auth }),
 };
 
-export { BASE_URL, CLE_TOKEN_ADMIN };
+// Petites aides pour stocker/effacer le jeton de chaque type de compte —
+// utilisées dans les pages de connexion et de déconnexion respectives.
+// localStorage (pas sessionStorage) pour rester connecté d'une ouverture
+// d'app à l'autre, cohérent avec le reste de l'app (Client/Fournisseur/
+// LivreurMarketplace déjà persistés en localStorage via AppContext).
+export function stockerToken(type: "fournisseur" | "client" | "livreur", token: string) {
+  const cle = type === "fournisseur" ? CLE_TOKEN_FOURNISSEUR : type === "client" ? CLE_TOKEN_CLIENT : CLE_TOKEN_LIVREUR;
+  localStorage.setItem(cle, token);
+}
+export function effacerToken(type: "fournisseur" | "client" | "livreur") {
+  const cle = type === "fournisseur" ? CLE_TOKEN_FOURNISSEUR : type === "client" ? CLE_TOKEN_CLIENT : CLE_TOKEN_LIVREUR;
+  localStorage.removeItem(cle);
+}
+
+export { BASE_URL, CLE_TOKEN_ADMIN, CLE_TOKEN_FOURNISSEUR, CLE_TOKEN_CLIENT, CLE_TOKEN_LIVREUR };
