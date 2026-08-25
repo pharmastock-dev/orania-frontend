@@ -348,19 +348,19 @@ export const connexionLivreurMarketplace = (telephone: string, mot_de_passe: str
   );
 
 export const majPositionLivreur = (livreurId: number, latitude: number, longitude: number) =>
-  http.put<{ succes: boolean }>(`/livreurs-marketplace/${livreurId}/position`, { latitude, longitude });
+  http.put<{ succes: boolean }>(`/livreurs-marketplace/${livreurId}/position`, { latitude, longitude }, "livreur");
 
 export const majStatutLivreur = (livreurId: number, en_ligne: boolean) =>
-  http.put<{ succes: boolean }>(`/livreurs-marketplace/${livreurId}/statut`, { en_ligne });
+  http.put<{ succes: boolean }>(`/livreurs-marketplace/${livreurId}/statut`, { en_ligne }, "livreur");
 
 export const enregistrerTokenLivreur = (livreurId: number, device_token: string) =>
-  http.post<{ succes: boolean }>(`/livreurs-marketplace/${livreurId}/token`, { device_token });
+  http.post<{ succes: boolean }>(`/livreurs-marketplace/${livreurId}/token`, { device_token }, "livreur");
 
 export const getCommandesDisponibles = (livreurId: number, latitude: number, longitude: number) =>
-  http.get<CommandeDisponible[]>(`/livreurs-marketplace/${livreurId}/commandes-disponibles?latitude=${latitude}&longitude=${longitude}`);
+  http.get<CommandeDisponible[]>(`/livreurs-marketplace/${livreurId}/commandes-disponibles?latitude=${latitude}&longitude=${longitude}`, "livreur");
 
 export const getCommandeActiveLivreur = (livreurId: number) =>
-  http.get<CommandeDisponible | null>(`/livreurs-marketplace/${livreurId}/commande-active`);
+  http.get<CommandeDisponible | null>(`/livreurs-marketplace/${livreurId}/commande-active`, "livreur");
 
 export const publierCommande = (commandeId: number) =>
   http.post<{ succes: boolean; message: string }>(`/commandes/${commandeId}/publier`);
@@ -378,7 +378,7 @@ export const marquerCommandeNonLivree = (commandeId: number) =>
   http.post<{ succes: boolean; message: string }>(`/commandes/${commandeId}/marquer-non-livree`);
 
 export const getHistoriqueLivreur = (livreurId: number) =>
-  http.get<HistoriqueLivreurItem[]>(`/livreurs-marketplace/${livreurId}/historique`);
+  http.get<HistoriqueLivreurItem[]>(`/livreurs-marketplace/${livreurId}/historique`, "livreur");
 
 // ---------- Admin — gestion des livreurs marché ouvert ----------
 export const adminListeLivreursMarketplace = () =>
