@@ -117,7 +117,7 @@ export const updateFournisseur = (fournisseurId: number, data: Partial<Fournisse
     delete payload.description;
   }
   delete payload.photo; // la photo passe uniquement par /fournisseurs/{id}/image
-  return http.put<{ succes: boolean; message?: string }>(`/fournisseurs/${fournisseurId}/infos`, payload);
+  return http.put<{ succes: boolean; message?: string }>(`/fournisseurs/${fournisseurId}/infos`, payload, "fournisseur");
 };
 
 // ---------- Produits ----------
@@ -146,7 +146,7 @@ export const uploadProduitImage = (produitId: number, file: File) => {
 export const uploadFournisseurImage = (fournisseurId: number, file: File) => {
   const formData = new FormData();
   formData.append("file", file);
-  return http.postForm<{ succes: boolean; image_url?: string; message?: string }>(`/fournisseurs/${fournisseurId}/image`, formData);
+  return http.postForm<{ succes: boolean; image_url?: string; message?: string }>(`/fournisseurs/${fournisseurId}/image`, formData, "fournisseur");
 };
 
 export const resolveImageUrl = (photo?: string | null) => {
@@ -255,7 +255,7 @@ export const supprimerAvis = (avisId: number) => http.del<{ succes: boolean; mes
 
 // ---------- Statistiques ----------
 export const getStatistiques = (fournisseurId: number, periode: "jour" | "semaine" | "mois" | "tout" = "tout") =>
-  http.get<Statistiques>(`/fournisseurs/${fournisseurId}/statistiques?periode=${periode}`);
+  http.get<Statistiques>(`/fournisseurs/${fournisseurId}/statistiques?periode=${periode}`, "fournisseur");
 
 // ---------- Livreurs ----------
 export const getLivreurs = (fournisseurId: number) => http.get<Livreur[]>(`/fournisseurs/${fournisseurId}/livreurs`);
@@ -332,7 +332,7 @@ export const enregistrerTokenAcheteur = (acheteurId: number, deviceToken: string
   http.post<{ succes: boolean }>(`/acheteurs/${acheteurId}/device-token`, { device_token: deviceToken });
 
 export const enregistrerTokenFournisseur = (fournisseurId: number, deviceToken: string) =>
-  http.post<{ succes: boolean }>(`/fournisseurs/${fournisseurId}/device-token`, { device_token: deviceToken });
+  http.post<{ succes: boolean }>(`/fournisseurs/${fournisseurId}/device-token`, { device_token: deviceToken }, "fournisseur");
 
 // ---------- Espace livreur (marché ouvert) ----------
 export const inscriptionLivreurMarketplace = (nom: string, telephone: string, mot_de_passe: string) =>
