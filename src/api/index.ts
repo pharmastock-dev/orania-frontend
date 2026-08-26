@@ -98,6 +98,9 @@ export const getFournisseurs = async () => {
 // client) — pour qu'une recherche type "sushi" ou "poisson" remonte
 // directement les produits correspondants, pas seulement les commerces
 // dont le nom correspond.
+export const getAnalyseHebdomadaire = (fournisseurId: number) =>
+  http.get<any>(`/fournisseurs/${fournisseurId}/analyse-hebdomadaire`, "fournisseur");
+
 export const rechercherAssistant = (criteres: CriteresAssistant) =>
   http.post<AssistantResultat[]>("/assistant/recherche", criteres);
 

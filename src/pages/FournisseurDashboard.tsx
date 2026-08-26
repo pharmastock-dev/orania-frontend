@@ -10,14 +10,16 @@ import { verifierEtatNotifications } from "../utils/notifications";
 import { enregistrerTokenFournisseur } from "../api";
 import ProduitsTab from "../components/fournisseur/ProduitsTab";
 import CommandesTab from "../components/fournisseur/CommandesTab";
+import AnalyseTab from "../components/fournisseur/AnalyseTab";
 import StatsTab from "../components/fournisseur/StatsTab";
 import MonCommerceTab from "../components/fournisseur/MonCommerceTab";
 import LivreursTab from "../components/fournisseur/LivreursTab";
 
-type Onglet = "produits" | "commandes" | "livreurs" | "stats" | "commerce";
+type Onglet = "produits" | "commandes" | "livreurs" | "stats" | "commerce" | "analyse";
 
 const TABS: { key: Onglet; label: string; icon: typeof Package; couleur: string; fond: string }[] = [
   { key: "produits", label: "Produits", icon: Package, couleur: "text-[var(--color-orange-600)]", fond: "bg-[var(--color-orange-100)]" },
+  { key: "analyse", label: "Mon analyse", icon: Package, couleur: "text-[var(--color-navy-700)]", fond: "bg-[var(--color-ink-100)]" },
   { key: "commandes", label: "Commandes", icon: ClipboardList, couleur: "text-[var(--color-green-600)]", fond: "bg-[var(--color-green-100)]" },
   { key: "livreurs", label: "Livreurs", icon: Bike, couleur: "text-[var(--color-pink-600)]", fond: "bg-[var(--color-pink-100)]" },
   { key: "stats", label: "Stats", icon: BarChart3, couleur: "text-[var(--color-navy-700)]", fond: "bg-[var(--color-ink-100)]" },
@@ -170,6 +172,7 @@ export default function FournisseurDashboard() {
           {onglet === "livreurs" && <LivreursTab key={`l-${refreshKey}`} fournisseurId={fournisseurConnecte.id} />}
           {onglet === "stats" && <StatsTab key={`s-${refreshKey}`} fournisseurId={fournisseurConnecte.id} />}
           {onglet === "commerce" && <MonCommerceTab key={`m-${refreshKey}`} />}
+          {onglet === "analyse" && <AnalyseTab key={`a-${refreshKey}`} fournisseurId={fournisseurConnecte.id} />}
         </div>
       </div>
 
