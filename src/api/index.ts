@@ -171,10 +171,10 @@ export const createCommande = (data: {
   latitude?: number;
   longitude?: number;
   produits: { produit_id: number; quantite: number; note?: string }[];
-}) => http.post<{ id?: number; commande_id?: number; code_confirmation: string; statut?: string; prix_total?: number; succes?: boolean; message?: string }>("/commandes", data);
+}) => http.post<{ id?: number; commande_id?: number; code_confirmation: string; statut?: string; prix_total?: number; succes?: boolean; message?: string }>("/commandes", data, "client");
 
 export const updateCommandeStatut = (commandeId: number, statut: StatutCommande) =>
-  http.put<{ succes: boolean }>(`/commandes/${commandeId}/statut`, { statut });
+  http.put<{ succes: boolean }>(`/commandes/${commandeId}/statut`, { statut }, "fournisseur");
 
 export const assignerLivreur = (commandeId: number, livreurId: number) =>
   http.put<{ succes: boolean; message?: string; statut?: string }>(`/commandes/${commandeId}/assigner`, { livreur_id: livreurId });
@@ -372,7 +372,7 @@ export const publierCommande = (commandeId: number) =>
   http.post<{ succes: boolean; message: string }>(`/commandes/${commandeId}/publier`);
 
 export const accepterCommandeMarketplace = (commandeId: number, livreurId: number) =>
-  http.post<{ succes: boolean; message: string }>(`/commandes/${commandeId}/accepter-marketplace`, { livreur_id: livreurId });
+  http.post<{ succes: boolean; message: string }>(`/commandes/${commandeId}/accepter-marketplace`, { livreur_id: livreurId }, "livreur");
 
 export const refuserCommandeMarketplace = (commandeId: number) =>
   http.post<{ succes: boolean; message: string }>(`/commandes/${commandeId}/refuser-marketplace`);
