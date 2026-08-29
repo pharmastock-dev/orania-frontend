@@ -28,6 +28,17 @@
   --color-ink-100: #eef0f4;
   --color-ink-50: #f6f7fa;
 
+  /* Theme sombre -- espace client uniquement. Prefixe "dark-" pour ne
+     jamais entrer en collision avec les tokens "ink-*" existants, utilises
+     dans le reste de l'app (commercant/livreur/admin) qui restent en
+     theme clair, inchanges par cet ajout. */
+  --color-dark-bg: #0b1220;
+  --color-dark-surface: #131c30;
+  --color-dark-card: #16203a;
+  --color-dark-border: #253150;
+  --color-dark-text: #f5f7fb;
+  --color-dark-text-muted: #8b95ad;
+
   --font-display: "Sora", "Inter", system-ui, sans-serif;
   --font-body: "Inter", system-ui, sans-serif;
 }

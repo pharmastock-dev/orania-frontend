@@ -14,6 +14,7 @@ import ContactPage from "./pages/ContactPage";
 
 import ClientLoginPage from "./pages/ClientLoginPage";
 import ClientHomePage from "./pages/ClientHomePage";
+import SearchPage from "./pages/SearchPage";
 import StorePage from "./pages/StorePage";
 import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
@@ -185,6 +186,7 @@ function AppRoutes() {
 
         <Route path="/client" element={<ClientLoginPage />} />
         <Route path="/client/accueil" element={<RequireClient><ClientHomePage /></RequireClient>} />
+        <Route path="/client/recherche" element={<RequireClient><SearchPage /></RequireClient>} />
         <Route path="/commerce/:id" element={<StorePage />} />
         <Route path="/panier" element={<RequireClient><CartPage /></RequireClient>} />
         <Route path="/commander" element={<RequireClient><CheckoutPage /></RequireClient>} />
