@@ -11,6 +11,7 @@ import TypePlatBar from "../components/TypePlatBar";
 import StoreCard from "../components/StoreCard";
 import DiscoveryRow from "../components/DiscoveryRow";
 import ProductSearchCard from "../components/ProductSearchCard";
+import BottomNav from "../components/BottomNav";
 import Button from "../components/Button";
 import { CardSkeleton } from "../components/Loading";
 import EmptyState from "../components/EmptyState";
@@ -34,11 +35,6 @@ export default function ClientHomePage() {
   const [filtresActifs, setFiltresActifs] = useState<FiltreMulti[]>([]);
   const [procheLoading, setProcheLoading] = useState(false);
 
-  // Recherche produits — quand le client tape "sushi", "poisson", etc., on
-  // veut lui montrer directement les PRODUITS correspondants (avec le
-  // commerce qui les vend), pas juste filtrer la liste des commerces par
-  // leur nom. Anti-rebond (300ms) pour ne pas spammer le serveur à chaque
-  // frappe.
   const [resultatsProduits, setResultatsProduits] = useState<ProduitRecherche[]>([]);
   const [chargementProduits, setChargementProduits] = useState(false);
   const rechercheActive = recherche.trim().length >= 2;
@@ -69,41 +65,19 @@ export default function ClientHomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recherche, rechercheActive]);
 
-  // La position est OBLIGATOIRE pour voir les commerces (distance, tri "proches",
-  // temps de livraison estimé partout dans l'app en dépendent). Tant qu'elle
-  // n'est pas activée, on affiche un écran de blocage au lieu de la liste.
   const [demandePositionEnCours, setDemandePositionEnCours] = useState(false);
   const [erreurPosition, setErreurPosition] = useState<string | null>(null);
   const [verificationEnCours, setVerificationEnCours] = useState(true);
 
-  // On a peut-être déjà une position enregistrée d'une session précédente —
-  // mais rien ne garantit qu'elle est toujours valide côté système. On
-  // revérifie donc à chaque ouverture ET à chaque retour sur l'app.
-  //
-  // IMPORTANT — leçon apprise n°1 : se contenter de vérifier la PERMISSION
-  // (Geolocation.checkPermissions()) ne suffit PAS. Sur Android, "désactiver
-  // la localisation" via le raccourci rapide des réglages coupe le GPS
-  // lui-même — la permission accordée à l'app, elle, reste "granted" tout du
-  // long. Il faut réellement RETENTER une récupération de position pour
-  // savoir si le GPS répond vraiment.
-  //
-  // IMPORTANT — leçon apprise n°2 : cette vraie récupération GPS peut
-  // prendre plusieurs secondes (signal précis, enableHighAccuracy). La faire
-  // AVANT d'afficher quoi que ce soit (verificationEnCours bloquant) rendait
-  // l'app inutilisable plusieurs secondes à chaque ouverture — un écran
-  // blanc gênant, pour un cas qui reste rare (GPS coupé entre deux sessions).
-  // On affiche donc IMMÉDIATEMENT l'app avec la position déjà en mémoire, et
-  // on vérifie en arrière-plan, silencieusement — seul un vrai échec fait
-  // réapparaître l'écran d'activation, après coup plutôt qu'en bloquant tout.
   useEffect(() => {
     let annule = false;
-    setVerificationEnCours(false); // jamais bloquant — la position en cache s'affiche tout de suite
+    setVerificationEnCours(false);
 
     async function verifier() {
       if (position) {
         try {
           const fraiche = await getPositionActuelle();
-          if (!annule) setPosition(fraiche); // garde la position à jour au passage
+          if (!annule) setPosition(fraiche);
         } catch {
           if (!annule) setPosition(null);
         }
@@ -112,8 +86,6 @@ export default function ClientHomePage() {
 
     verifier();
 
-    // Retour sur l'app (native) : l'utilisateur a pu changer un réglage
-    // système (position, notifications) pendant que l'app était en arrière-plan.
     let listenerNatif: { remove: () => void } | undefined;
     if (Capacitor.isNativePlatform()) {
       import("@capacitor/app").then(({ App }) => {
@@ -123,7 +95,6 @@ export default function ClientHomePage() {
       });
     }
 
-    // Équivalent web : l'onglet redevient visible après avoir été en arrière-plan.
     function surVisibilite() {
       if (document.visibilityState === "visible") verifier();
     }
@@ -156,10 +127,6 @@ export default function ClientHomePage() {
     }
   }
 
-  // Le GPS est éteint (pas juste la permission refusée) — Android ne propose
-  // pas de popup native pour ça via ce plugin, on offre donc un raccourci
-  // direct vers l'écran de réglage plutôt que de laisser l'utilisateur
-  // chercher lui-même dans les paramètres.
   const gpsEteint = erreurPosition?.toLowerCase().includes("gps") || erreurPosition?.toLowerCase().includes("location services");
 
   function toggleFiltre(f: FiltreMulti) {
@@ -180,7 +147,7 @@ export default function ClientHomePage() {
   }
 
   useEffect(() => {
-    if (!position) return; // pas la peine de charger les commerces avant d'avoir la position
+    if (!position) return;
     let annule = false;
     setLoading(true);
     setErreur(null);
@@ -200,8 +167,6 @@ export default function ClientHomePage() {
   }, [position]);
 
   const resultats = useMemo(() => {
-    // Un commerce pas encore validé par l'admin (ou suspendu) ne doit jamais
-    // apparaître côté client, même si le backend le renvoie dans la liste brute.
     let liste = fournisseurs.filter((f) => f.valide !== false && f.actif !== false);
 
     if (categorie !== "tous") {
@@ -217,9 +182,6 @@ export default function ClientHomePage() {
       const q = typePlat.toLowerCase();
       liste = liste.filter((f) => (f.produits_categories || []).some((c) => c.toLowerCase() === q));
     }
-
-    // La recherche texte redirige désormais vers une recherche produits
-    // (voir resultatsProduits) — plus de filtrage par nom de commerce ici.
 
     if (filtresActifs.includes("promos")) liste = liste.filter((f) => f.a_promo);
     if (filtresActifs.includes("ouverts")) liste = liste.filter((f) => estOuvertMaintenant(f.heure_ouverture, f.heure_fermeture));
@@ -237,12 +199,6 @@ export default function ClientHomePage() {
     return liste;
   }, [fournisseurs, categorie, typePlat, filtresActifs, tri, position]);
 
-  // Sections de découverte — désormais alignées sur la catégorie sélectionnée
-  // (cliquer "Cafétéria" ne doit montrer que des promos/populaires parmi les
-  // cafétérias, jamais un resto comme "Beef Lover"). Elles ne s'affichent
-  // que dans l'état de navigation "neutre" : dès qu'un tri ou un filtre actif
-  // (proche, mieux noté, promo, ouvert, livraison gratuite) est engagé, on
-  // les masque pour ne laisser que la liste de résultats correspondante.
   const commercesCategorie = useMemo(() => {
     let liste = fournisseurs.filter((f) => f.valide !== false && f.actif !== false);
     if (categorie !== "tous") {
@@ -275,42 +231,32 @@ export default function ClientHomePage() {
     [commercesCategorie]
   );
 
-  // La recherche produits interroge tous les commerces côté serveur, sans
-  // connaître les filtres actifs côté client (catégorie, promo, ouvert,
-  // livraison gratuite, tri) — elle pouvait donc remonter un produit vendu
-  // par un commerce qui ne correspond à aucun filtre sélectionné (ex:
-  // "livraison gratuite" actif, mais le produit vient d'un commerce qui ne
-  // la propose pas). On ne garde ici que les produits dont le commerce fait
-  // bien partie de "resultats" (déjà filtré par tout : catégorie, tri,
-  // promo, ouvert, gratuite) — une seule source de vérité, pas de logique
-  // dupliquée.
   const resultatsProduitsFiltres = useMemo(() => {
     const idsAutorises = new Set(resultats.map((f) => f.id));
     return resultatsProduits.filter((p) => idsAutorises.has(p.fournisseur_id));
   }, [resultatsProduits, resultats]);
 
-  // ---- Écran de blocage tant que la position n'est pas activée ----
   if (verificationEnCours) {
-    return <div className="min-h-screen bg-[var(--color-ink-50)]" />;
+    return <div className="min-h-screen bg-[var(--color-dark-bg)]" />;
   }
   if (!position) {
     return (
-      <div className="min-h-screen bg-[var(--color-ink-50)] flex flex-col">
+      <div className="min-h-screen bg-[var(--color-dark-bg)] flex flex-col">
         <div className="max-w-2xl w-full mx-auto px-4 pt-5">
           <ClientHeader showBack />
         </div>
         <div className="flex-1 flex items-center justify-center px-6">
           <div className="max-w-sm w-full text-center flex flex-col items-center">
-            <span className="h-16 w-16 rounded-2xl bg-[var(--color-orange-100)] text-[var(--color-orange-600)] flex items-center justify-center">
+            <span className="h-16 w-16 rounded-2xl bg-[var(--color-orange-500)]/15 text-[var(--color-orange-400)] flex items-center justify-center">
               <MapPin size={28} />
             </span>
-            <h1 className="font-display font-bold text-lg text-[var(--color-ink-900)] mt-4">Activez votre position</h1>
-            <p className="text-[var(--color-ink-500)] mt-2">
+            <h1 className="font-display font-bold text-lg text-[var(--color-dark-text)] mt-4">Activez votre position</h1>
+            <p className="text-[var(--color-dark-text-muted)] mt-2">
               QREEB a besoin de votre position pour vous montrer les commerces proches de chez vous, avec la distance et le temps de livraison estimé.
             </p>
 
             {erreurPosition && (
-              <div className="w-full flex items-start gap-2 bg-red-50 text-red-700 text-sm rounded-xl px-3.5 py-3 mt-4 text-left">
+              <div className="w-full flex items-start gap-2 bg-red-500/10 text-red-300 text-sm rounded-xl px-3.5 py-3 mt-4 text-left">
                 <AlertTriangle size={16} className="mt-0.5 shrink-0" />
                 <span>{erreurPosition}</span>
               </div>
@@ -332,7 +278,7 @@ export default function ClientHomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-ink-50)] pb-6">
+    <div className="min-h-screen bg-[var(--color-dark-bg)] pb-24">
       <div className="max-w-6xl mx-auto px-4 pt-5 flex flex-col gap-4">
         <div className="max-w-2xl w-full mx-auto lg:mx-0 flex flex-col gap-4">
           <ClientHeader showBack />
@@ -340,19 +286,21 @@ export default function ClientHomePage() {
           {client && <ActiverNotifsWeb onToken={(token) => enregistrerTokenAcheteur(client.id, token).catch(() => {})} />}
 
           <div className="flex items-center gap-2">
-            <div className="flex-1 flex items-center gap-2 bg-white border border-[var(--color-ink-100)] rounded-xl px-3.5 py-3">
-              <SearchIcon size={18} className="text-[var(--color-ink-500)] shrink-0" />
+            <div className="flex-1 flex items-center gap-2 bg-[var(--color-dark-card)] border border-[var(--color-dark-border)] rounded-xl px-3.5 py-3">
+              <SearchIcon size={18} className="text-[var(--color-dark-text-muted)] shrink-0" />
               <input
                 value={recherche}
                 onChange={(e) => setRecherche(e.target.value)}
                 placeholder="Envie de quoi aujourd'hui ?"
-                className="flex-1 min-w-0 bg-transparent outline-none text-[15px] placeholder:text-[var(--color-ink-500)]"
+                className="flex-1 min-w-0 bg-transparent outline-none text-[15px] text-[var(--color-dark-text)] placeholder:text-[var(--color-dark-text-muted)]"
               />
             </div>
             <button
               onClick={handleProche}
-              className={`shrink-0 flex items-center gap-1.5 px-3.5 py-3 rounded-xl border font-semibold text-sm ${
-                tri === "proches" ? "bg-[var(--color-navy-900)] text-white border-[var(--color-navy-900)]" : "bg-white text-[var(--color-navy-900)] border-[var(--color-ink-100)]"
+              className={`shrink-0 flex items-center gap-1.5 px-3.5 py-3 rounded-xl border font-semibold text-sm transition-colors ${
+                tri === "proches"
+                  ? "bg-[var(--color-orange-500)] text-white border-[var(--color-orange-500)]"
+                  : "bg-[var(--color-dark-card)] text-[var(--color-dark-text)] border-[var(--color-dark-border)]"
               }`}
             >
               <LocateFixed size={16} className={procheLoading ? "animate-spin" : ""} />
@@ -363,9 +311,6 @@ export default function ClientHomePage() {
           <FilterBar tri={tri} onTriChange={setTri} filtresActifs={filtresActifs} onToggleFiltre={toggleFiltre} />
         </div>
 
-        {/* QREEB Assistant — bannière d'accès, juste sous les filtres pour
-            capter l'attention avant que le client ne commence à parcourir
-            manuellement. */}
         <button
           onClick={() => navigate("/client/assistant")}
           className="flex items-center gap-3 bg-gradient-to-r from-[var(--color-navy-900)] to-[#1e2740] rounded-2xl px-4 py-3.5 text-left"
@@ -384,20 +329,19 @@ export default function ClientHomePage() {
           actif={categorie}
           onChange={(c) => {
             setCategorie(c);
-            setTypePlat("tous"); // évite une combinaison impossible (ex: "Parfumerie" + "Pizza")
+            setTypePlat("tous");
           }}
         />
         {categorie === "restaurant" && <TypePlatBar actif={typePlat} onChange={setTypePlat} />}
 
         {erreur && (
-          <div className="flex items-start gap-2 bg-red-50 text-red-700 text-sm rounded-xl px-3.5 py-3">
+          <div className="flex items-start gap-2 bg-red-500/10 text-red-300 text-sm rounded-xl px-3.5 py-3">
             <AlertTriangle size={16} className="mt-0.5 shrink-0" />
             <span>{erreur}</span>
           </div>
         )}
 
         {rechercheActive ? (
-          // ---- Mode recherche : on affiche des PRODUITS, pas des commerces ----
           chargementProduits ? (
             <div className="flex flex-col gap-3">
               <CardSkeleton />
@@ -416,7 +360,7 @@ export default function ClientHomePage() {
             />
           ) : (
             <>
-              <p className="text-sm text-[var(--color-ink-500)]">
+              <p className="text-sm text-[var(--color-dark-text-muted)]">
                 {resultatsProduitsFiltres.length} produit{resultatsProduitsFiltres.length > 1 ? "s" : ""} trouvé{resultatsProduitsFiltres.length > 1 ? "s" : ""}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -434,8 +378,6 @@ export default function ClientHomePage() {
           </div>
         ) : (
           <>
-            {/* Sections de découverte — uniquement en navigation neutre (aucun
-                tri/filtre actif), et alignées sur la catégorie sélectionnée */}
             {decouverteActive && (
               <>
                 <DiscoveryRow titre="Promo" icone={<Flame size={17} className="text-[var(--color-orange-500)]" />} fournisseurs={discoveryPromos} positionClient={position} />
@@ -451,7 +393,7 @@ export default function ClientHomePage() {
               />
             ) : (
               <>
-                <p className="text-sm text-[var(--color-ink-500)]">{resultats.length} résultat{resultats.length > 1 ? "s" : ""}</p>
+                <p className="text-sm text-[var(--color-dark-text-muted)]">{resultats.length} résultat{resultats.length > 1 ? "s" : ""}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {resultats.map((f) => (
                     <StoreCard key={f.id} fournisseur={f} positionClient={position} />
@@ -462,6 +404,8 @@ export default function ClientHomePage() {
           </>
         )}
       </div>
+
+      <BottomNav />
     </div>
   );
 }
