@@ -7,12 +7,12 @@ import ClientHeader from "../components/ClientHeader";
 import ActiverNotifsWeb from "../components/ActiverNotifsWeb";
 import FilterBar, { type Tri, type FiltreMulti } from "../components/FilterBar";
 import CategoryBar from "../components/CategoryBar";
-import HeroBanner from "../components/HeroBanner";
 import TypePlatBar from "../components/TypePlatBar";
 import StoreCard from "../components/StoreCard";
 import DiscoveryRow from "../components/DiscoveryRow";
 import ProductSearchCard from "../components/ProductSearchCard";
 import BottomNav from "../components/BottomNav";
+import HeroBanner from "../components/HeroBanner";
 import CartFloatingButton from "../components/CartFloatingButton";
 import Button from "../components/Button";
 import { CardSkeleton } from "../components/Loading";
@@ -239,26 +239,26 @@ export default function ClientHomePage() {
   }, [resultatsProduits, resultats]);
 
   if (verificationEnCours) {
-    return <div className="min-h-screen bg-[var(--color-dark-bg)]" />;
+    return <div className="min-h-screen bg-[var(--color-ink-50)]" />;
   }
   if (!position) {
     return (
-      <div className="min-h-screen bg-[var(--color-dark-bg)] flex flex-col">
+      <div className="min-h-screen bg-[var(--color-ink-50)] flex flex-col">
         <div className="max-w-2xl w-full mx-auto px-4 pt-5">
           <ClientHeader showBack />
         </div>
         <div className="flex-1 flex items-center justify-center px-6">
           <div className="max-w-sm w-full text-center flex flex-col items-center">
-            <span className="h-16 w-16 rounded-2xl bg-[var(--color-orange-500)]/15 text-[var(--color-orange-400)] flex items-center justify-center">
+            <span className="h-16 w-16 rounded-2xl bg-[var(--color-orange-100)] text-[var(--color-orange-600)] flex items-center justify-center">
               <MapPin size={28} />
             </span>
-            <h1 className="font-display font-bold text-lg text-[var(--color-dark-text)] mt-4">Activez votre position</h1>
-            <p className="text-[var(--color-dark-text-muted)] mt-2">
+            <h1 className="font-display font-bold text-lg text-[var(--color-ink-900)] mt-4">Activez votre position</h1>
+            <p className="text-[var(--color-ink-500)] mt-2">
               QREEB a besoin de votre position pour vous montrer les commerces proches de chez vous, avec la distance et le temps de livraison estimé.
             </p>
 
             {erreurPosition && (
-              <div className="w-full flex items-start gap-2 bg-red-500/10 text-red-300 text-sm rounded-xl px-3.5 py-3 mt-4 text-left">
+              <div className="w-full flex items-start gap-2 bg-red-50 text-red-700 text-sm rounded-xl px-3.5 py-3 mt-4 text-left">
                 <AlertTriangle size={16} className="mt-0.5 shrink-0" />
                 <span>{erreurPosition}</span>
               </div>
@@ -280,7 +280,7 @@ export default function ClientHomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-dark-bg)] pb-24">
+    <div className="min-h-screen bg-[var(--color-ink-50)] pb-24">
       <div className="max-w-6xl mx-auto px-4 pt-5 flex flex-col gap-4">
         <div className="max-w-2xl w-full mx-auto lg:mx-0 flex flex-col gap-4">
           <ClientHeader showBack />
@@ -288,21 +288,19 @@ export default function ClientHomePage() {
           {client && <ActiverNotifsWeb onToken={(token) => enregistrerTokenAcheteur(client.id, token).catch(() => {})} />}
 
           <div className="flex items-center gap-2">
-            <div className="flex-1 flex items-center gap-2 bg-[var(--color-dark-card)] border border-[var(--color-dark-border)] rounded-xl px-3.5 py-3">
-              <SearchIcon size={18} className="text-[var(--color-dark-text-muted)] shrink-0" />
+            <div className="flex-1 flex items-center gap-2 bg-white border border-[var(--color-ink-100)] rounded-xl px-3.5 py-3">
+              <SearchIcon size={18} className="text-[var(--color-ink-500)] shrink-0" />
               <input
                 value={recherche}
                 onChange={(e) => setRecherche(e.target.value)}
                 placeholder="Envie de quoi aujourd'hui ?"
-                className="flex-1 min-w-0 bg-transparent outline-none text-[15px] text-[var(--color-dark-text)] placeholder:text-[var(--color-dark-text-muted)]"
+                className="flex-1 min-w-0 bg-transparent outline-none text-[15px] placeholder:text-[var(--color-ink-500)]"
               />
             </div>
             <button
               onClick={handleProche}
               className={`shrink-0 flex items-center gap-1.5 px-3.5 py-3 rounded-xl border font-semibold text-sm transition-colors ${
-                tri === "proches"
-                  ? "bg-[var(--color-orange-500)] text-white border-[var(--color-orange-500)]"
-                  : "bg-[var(--color-dark-card)] text-[var(--color-dark-text)] border-[var(--color-dark-border)]"
+                tri === "proches" ? "bg-[var(--color-navy-900)] text-white border-[var(--color-navy-900)]" : "bg-white text-[var(--color-navy-900)] border-[var(--color-ink-100)]"
               }`}
             >
               <LocateFixed size={16} className={procheLoading ? "animate-spin" : ""} />
@@ -312,6 +310,8 @@ export default function ClientHomePage() {
 
           <FilterBar tri={tri} onTriChange={setTri} filtresActifs={filtresActifs} onToggleFiltre={toggleFiltre} />
         </div>
+
+        <HeroBanner onDecouvrir={() => document.getElementById("resultats-section")?.scrollIntoView({ behavior: "smooth" })} />
 
         <button
           onClick={() => navigate("/client/assistant")}
@@ -327,8 +327,6 @@ export default function ClientHomePage() {
           <ChevronRight size={18} className="text-white/60 shrink-0" />
         </button>
 
-        <HeroBanner onDecouvrir={() => document.getElementById("resultats-section")?.scrollIntoView({ behavior: "smooth" })} />
-
         <CategoryBar
           actif={categorie}
           onChange={(c) => {
@@ -339,7 +337,7 @@ export default function ClientHomePage() {
         {categorie === "restaurant" && <TypePlatBar actif={typePlat} onChange={setTypePlat} />}
 
         {erreur && (
-          <div className="flex items-start gap-2 bg-red-500/10 text-red-300 text-sm rounded-xl px-3.5 py-3">
+          <div className="flex items-start gap-2 bg-red-50 text-red-700 text-sm rounded-xl px-3.5 py-3">
             <AlertTriangle size={16} className="mt-0.5 shrink-0" />
             <span>{erreur}</span>
           </div>
@@ -364,7 +362,7 @@ export default function ClientHomePage() {
             />
           ) : (
             <>
-              <p className="text-sm text-[var(--color-dark-text-muted)]">
+              <p className="text-sm text-[var(--color-ink-500)]">
                 {resultatsProduitsFiltres.length} produit{resultatsProduitsFiltres.length > 1 ? "s" : ""} trouvé{resultatsProduitsFiltres.length > 1 ? "s" : ""}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -389,22 +387,24 @@ export default function ClientHomePage() {
               </>
             )}
 
-            {resultats.length === 0 ? (
-              <EmptyState
-                icon={<SearchX size={36} />}
-                title="Aucun commerce trouvé"
-                description="Essayez une autre catégorie ou filtre."
-              />
-            ) : (
-              <>
-                <p className="text-sm text-[var(--color-dark-text-muted)]">{resultats.length} résultat{resultats.length > 1 ? "s" : ""}</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {resultats.map((f) => (
-                    <StoreCard key={f.id} fournisseur={f} positionClient={position} />
-                  ))}
-                </div>
-              </>
-            )}
+            <div id="resultats-section">
+              {resultats.length === 0 ? (
+                <EmptyState
+                  icon={<SearchX size={36} />}
+                  title="Aucun commerce trouvé"
+                  description="Essayez une autre catégorie ou filtre."
+                />
+              ) : (
+                <>
+                  <p className="text-sm text-[var(--color-ink-500)]">{resultats.length} résultat{resultats.length > 1 ? "s" : ""}</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {resultats.map((f) => (
+                      <StoreCard key={f.id} fournisseur={f} positionClient={position} />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </>
         )}
       </div>

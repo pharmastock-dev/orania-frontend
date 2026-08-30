@@ -5,8 +5,6 @@ interface CategoryBarProps {
   onChange: (key: string) => void;
 }
 
-// Convertit une couleur hex en rgba avec transparence, pour un fond clair
-// dérivé automatiquement de la couleur d'accent de chaque catégorie.
 function hexVersRgba(hex: string, alpha: number): string {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
@@ -24,21 +22,20 @@ export default function CategoryBar({ actif, onChange }: CategoryBarProps) {
             key={cat.key}
             onClick={() => onChange(cat.key)}
             className="shrink-0 flex flex-col items-center gap-1.5 px-1 w-16"
-            style={{ color: isActive ? cat.couleur : "var(--color-dark-text-muted)" }}
+            // Texte bien foncé (ink-900), pas gris délavé, même à l'état inactif.
+            style={{ color: isActive ? cat.couleur : "var(--color-ink-900)" }}
           >
             <span
               className="flex items-center justify-center h-12 w-12 rounded-2xl border text-2xl transition-colors"
               style={
                 isActive
-                  ? { backgroundColor: hexVersRgba(cat.couleur, 0.18), borderColor: cat.couleur }
-                  : { backgroundColor: "var(--color-dark-card)", borderColor: "var(--color-dark-border)" }
+                  ? { backgroundColor: hexVersRgba(cat.couleur, 0.13), borderColor: cat.couleur }
+                  : { backgroundColor: "#fff", borderColor: "var(--color-ink-100)" }
               }
             >
               {cat.emoji}
             </span>
-            <span className="text-[11px] font-medium text-center leading-tight" style={{ color: isActive ? cat.couleur : "var(--color-dark-text-muted)" }}>
-              {cat.label}
-            </span>
+            <span className="text-[11px] font-bold text-center leading-tight">{cat.label}</span>
           </button>
         );
       })}

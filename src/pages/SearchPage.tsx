@@ -7,10 +7,6 @@ import EmptyState from "../components/EmptyState";
 import { rechercherProduits } from "../api";
 import type { ProduitRecherche } from "../types";
 
-// Page dédiée à la recherche, séparée de l'accueil — reflète l'onglet
-// "Recherche" de la barre de navigation en bas. Réutilise exactement la
-// même logique de recherche (anti-rebond, résultats produits) que
-// ClientHomePage avait déjà en ligne, juste sur son propre écran.
 export default function SearchPage() {
   const [recherche, setRecherche] = useState("");
   const [resultats, setResultats] = useState<ProduitRecherche[]>([]);
@@ -43,26 +39,26 @@ export default function SearchPage() {
   }, [recherche, rechercheActive]);
 
   return (
-    <div className="min-h-screen bg-[var(--color-dark-bg)] pb-24">
+    <div className="min-h-screen bg-[var(--color-ink-50)] pb-24">
       <div className="max-w-md mx-auto px-4 pt-5 flex flex-col gap-4">
         <div className="flex items-center gap-3">
           <BackButton to="/client/accueil" />
-          <h1 className="font-display font-bold text-lg text-[var(--color-dark-text)]">Recherche</h1>
+          <h1 className="font-display font-bold text-lg text-[var(--color-ink-900)]">Recherche</h1>
         </div>
 
-        <div className="flex items-center gap-2 bg-[var(--color-dark-card)] border border-[var(--color-dark-border)] rounded-xl px-3.5 py-3">
-          <SearchIcon size={18} className="text-[var(--color-dark-text-muted)] shrink-0" />
+        <div className="flex items-center gap-2 bg-white border border-[var(--color-ink-100)] rounded-xl px-3.5 py-3">
+          <SearchIcon size={18} className="text-[var(--color-ink-500)] shrink-0" />
           <input
             autoFocus
             value={recherche}
             onChange={(e) => setRecherche(e.target.value)}
             placeholder="Rechercher un restaurant, un plat..."
-            className="flex-1 min-w-0 bg-transparent outline-none text-[15px] text-[var(--color-dark-text)] placeholder:text-[var(--color-dark-text-muted)]"
+            className="flex-1 min-w-0 bg-transparent outline-none text-[15px] placeholder:text-[var(--color-ink-500)]"
           />
         </div>
 
         {!rechercheActive ? (
-          <p className="text-sm text-[var(--color-dark-text-muted)] text-center py-10">
+          <p className="text-sm text-[var(--color-ink-500)] text-center py-10">
             Tapez au moins 2 lettres pour lancer la recherche.
           </p>
         ) : chargement ? (

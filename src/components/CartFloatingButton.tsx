@@ -5,10 +5,6 @@ import { useApp } from "../context/AppContext";
 import { formatPrix } from "../utils/format";
 
 interface CartFloatingButtonProps {
-  // true sur les pages qui affichent BottomNav (ex: ClientHomePage) — decale
-  // le bouton vers le haut pour ne pas etre cache derriere la barre du bas.
-  // false (par defaut) sur les pages sans BottomNav (ex: StorePage), ou le
-  // bouton reste colle en bas comme avant.
   avecBarreNavigation?: boolean;
 }
 

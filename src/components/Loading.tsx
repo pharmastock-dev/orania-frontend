@@ -7,17 +7,14 @@ export function Loading({ label = "Chargement..." }: { label?: string }) {
   );
 }
 
-// Spécifique aux grilles de l'espace client (fond sombre) — Loading
-// ci-dessus reste volontairement inchangé, réutilisé aussi par des pages
-// encore en thème clair (StorePage, commerçant, livreur, admin).
 export function CardSkeleton() {
   return (
-    <div className="bg-[var(--color-dark-card)] rounded-2xl overflow-hidden border border-[var(--color-dark-border)] animate-pulse">
-      <div className="h-36 bg-[var(--color-dark-surface)]" />
+    <div className="bg-white rounded-2xl overflow-hidden border border-[var(--color-ink-100)] animate-pulse">
+      <div className="h-36 bg-[var(--color-ink-100)]" />
       <div className="p-3 space-y-2">
-        <div className="h-3 w-2/3 bg-[var(--color-dark-surface)] rounded" />
-        <div className="h-3 w-1/3 bg-[var(--color-dark-surface)] rounded" />
-        <div className="h-3 w-1/2 bg-[var(--color-dark-surface)] rounded" />
+        <div className="h-3 w-2/3 bg-[var(--color-ink-100)] rounded" />
+        <div className="h-3 w-1/3 bg-[var(--color-ink-100)] rounded" />
+        <div className="h-3 w-1/2 bg-[var(--color-ink-100)] rounded" />
       </div>
     </div>
   );

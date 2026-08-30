@@ -14,10 +14,8 @@ export default function TypePlatBar({ actif, onChange }: TypePlatBarProps) {
           <button
             key={t.key}
             onClick={() => onChange(t.key)}
-            className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-colors ${
-              isActive
-                ? "bg-[var(--color-orange-500)] text-white"
-                : "bg-[var(--color-dark-card)] border border-[var(--color-dark-border)] text-[var(--color-dark-text-muted)]"
+            className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold whitespace-nowrap ${
+              isActive ? "bg-[var(--color-orange-500)] text-white" : "bg-white border border-[var(--color-ink-100)] text-[var(--color-ink-900)]"
             }`}
           >
             <span>{t.emoji}</span> {t.label}

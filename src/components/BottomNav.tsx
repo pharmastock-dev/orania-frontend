@@ -2,10 +2,6 @@ import { NavLink } from "react-router-dom";
 import { Home, Search, ShoppingCart, ClipboardList, User } from "lucide-react";
 import { useApp } from "../context/AppContext";
 
-// Barre de navigation fixe en bas, façon app native — nouvel élément
-// structurel côté client, absent avant cette refonte. N'affiche jamais de
-// badge/compte sur "Panier" ici : CartFloatingButton s'en charge déjà avec
-// plus de détail (montant, nombre d'articles) quand un panier est actif.
 const ONGLETS = [
   { to: "/client/accueil", label: "Accueil", icon: Home, exact: true },
   { to: "/client/recherche", label: "Recherche", icon: Search },
@@ -18,7 +14,7 @@ export default function BottomNav() {
   const { cartCount } = useApp();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 bg-[var(--color-dark-surface)] border-t border-[var(--color-dark-border)] safe-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-[var(--color-ink-100)] safe-bottom">
       <div className="max-w-md mx-auto grid grid-cols-5">
         {ONGLETS.map((o) => (
           <NavLink
@@ -27,7 +23,7 @@ export default function BottomNav() {
             end={o.exact}
             className={({ isActive }) =>
               `relative flex flex-col items-center gap-1 py-2.5 text-[11px] font-semibold transition-colors ${
-                isActive ? "text-[var(--color-orange-400)]" : "text-[var(--color-dark-text-muted)]"
+                isActive ? "text-[var(--color-orange-500)]" : "text-[var(--color-ink-500)]"
               }`
             }
           >

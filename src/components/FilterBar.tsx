@@ -1,7 +1,3 @@
-// Deux groupes de filtres combinables : un tri à choix unique (Plus proche / Mieux
-// noté) + des filtres à choix multiples (Promo / Ouvert / Livraison gratuite).
-// Le client peut par exemple choisir "Plus proche" + "Promo" + "Ouvert" en même temps.
-
 export type Tri = "proches" | "notes" | null;
 export type FiltreMulti = "promos" | "ouverts" | "gratuite";
 
@@ -10,11 +6,16 @@ const TRI_OPTIONS: { key: Exclude<Tri, null>; label: string; emoji: string }[] =
   { key: "notes", label: "Mieux notés", emoji: "⭐" },
 ];
 
-const FILTRE_OPTIONS: { key: FiltreMulti; label: string; emoji: string; activeClass: string }[] = [
-  { key: "promos", label: "Promos", emoji: "🔥", activeClass: "bg-[var(--color-pink-500)] border-[var(--color-pink-500)]" },
-  { key: "ouverts", label: "Ouverts", emoji: "🟢", activeClass: "bg-[var(--color-green-500)] border-[var(--color-green-500)]" },
-  { key: "gratuite", label: "Livraison gratuite", emoji: "🚲", activeClass: "bg-[var(--color-navy-900)] border-[var(--color-navy-900)]" },
+const FILTRE_OPTIONS: { key: FiltreMulti; label: string; emoji: string }[] = [
+  { key: "promos", label: "Promos", emoji: "🔥" },
+  { key: "ouverts", label: "Ouverts", emoji: "🟢" },
+  { key: "gratuite", label: "Livraison gratuite", emoji: "🚲" },
 ];
+
+// Style "doré brillant" demandé pour tous les filtres actifs — un dégradé
+// or avec un léger éclat, plutôt qu'une couleur plate par filtre.
+const CLASSE_ACTIVE =
+  "bg-gradient-to-r from-[#f2c94c] to-[#f5a623] text-[var(--color-navy-900)] border-[#f2c94c] shadow-[0_2px_10px_-2px_rgba(242,201,76,0.6)]";
 
 interface FilterBarProps {
   tri: Tri;
@@ -25,7 +26,7 @@ interface FilterBarProps {
 
 export default function FilterBar({ tri, onTriChange, filtresActifs, onToggleFiltre }: FilterBarProps) {
   return (
-    <div className="flex flex-col gap-2.5 bg-[var(--color-dark-card)] border border-[var(--color-dark-border)] rounded-2xl p-3">
+    <div className="flex flex-col gap-2.5 bg-white border border-[var(--color-ink-100)] rounded-2xl p-3">
       <div className="flex gap-2 overflow-x-auto scroll-row">
         {TRI_OPTIONS.map((t) => {
           const isActive = tri === t.key;
@@ -33,10 +34,8 @@ export default function FilterBar({ tri, onTriChange, filtresActifs, onToggleFil
             <button
               key={t.key}
               onClick={() => onTriChange(isActive ? null : t.key)}
-              className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2.5 rounded-full text-sm font-semibold border whitespace-nowrap transition-colors ${
-                isActive
-                  ? "bg-[var(--color-orange-500)] text-white border-[var(--color-orange-500)]"
-                  : "bg-[var(--color-dark-surface)] text-[var(--color-dark-text-muted)] border-[var(--color-dark-border)]"
+              className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2.5 rounded-full text-sm font-bold border whitespace-nowrap transition-all ${
+                isActive ? CLASSE_ACTIVE : "bg-white text-[var(--color-ink-700)] border-[var(--color-ink-100)]"
               }`}
             >
               <span>{t.emoji}</span>
@@ -53,8 +52,8 @@ export default function FilterBar({ tri, onTriChange, filtresActifs, onToggleFil
             <button
               key={f.key}
               onClick={() => onToggleFiltre(f.key)}
-              className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2.5 rounded-full text-sm font-semibold border whitespace-nowrap transition-colors ${
-                isActive ? `${f.activeClass} text-white` : "bg-[var(--color-dark-surface)] text-[var(--color-dark-text-muted)] border-[var(--color-dark-border)]"
+              className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2.5 rounded-full text-sm font-bold border whitespace-nowrap transition-all ${
+                isActive ? CLASSE_ACTIVE : "bg-white text-[var(--color-ink-700)] border-[var(--color-ink-100)]"
               }`}
             >
               <span>{f.emoji}</span>
