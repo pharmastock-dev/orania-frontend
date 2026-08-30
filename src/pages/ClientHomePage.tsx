@@ -13,6 +13,7 @@ import StoreCard from "../components/StoreCard";
 import DiscoveryRow from "../components/DiscoveryRow";
 import ProductSearchCard from "../components/ProductSearchCard";
 import BottomNav from "../components/BottomNav";
+import CartFloatingButton from "../components/CartFloatingButton";
 import Button from "../components/Button";
 import { CardSkeleton } from "../components/Loading";
 import EmptyState from "../components/EmptyState";
@@ -408,6 +409,7 @@ export default function ClientHomePage() {
         )}
       </div>
 
+      <CartFloatingButton avecBarreNavigation />
       <BottomNav />
     </div>
   );
