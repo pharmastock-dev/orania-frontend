@@ -7,6 +7,7 @@ import ClientHeader from "../components/ClientHeader";
 import ActiverNotifsWeb from "../components/ActiverNotifsWeb";
 import FilterBar, { type Tri, type FiltreMulti } from "../components/FilterBar";
 import CategoryBar from "../components/CategoryBar";
+import HeroBanner from "../components/HeroBanner";
 import TypePlatBar from "../components/TypePlatBar";
 import StoreCard from "../components/StoreCard";
 import DiscoveryRow from "../components/DiscoveryRow";
@@ -324,6 +325,8 @@ export default function ClientHomePage() {
           </div>
           <ChevronRight size={18} className="text-white/60 shrink-0" />
         </button>
+
+        <HeroBanner onDecouvrir={() => document.getElementById("resultats-section")?.scrollIntoView({ behavior: "smooth" })} />
 
         <CategoryBar
           actif={categorie}
