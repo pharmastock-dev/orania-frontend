@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, SearchX, Search as SearchIcon, LocateFixed, MapPin, Settings, Flame, TrendingUp, Sparkles, ChevronRight } from "lucide-react";
+import { AlertTriangle, SearchX, Search as SearchIcon, LocateFixed, MapPin, Settings, Sparkles, ChevronRight } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { NativeSettings, AndroidSettings } from "capacitor-native-settings";
 import ClientHeader from "../components/ClientHeader";
@@ -10,6 +10,7 @@ import CategoryBar from "../components/CategoryBar";
 import TypePlatBar from "../components/TypePlatBar";
 import StoreCard from "../components/StoreCard";
 import DiscoveryRow from "../components/DiscoveryRow";
+import DiscoveryRowCompact from "../components/DiscoveryRowCompact";
 import ProductSearchCard from "../components/ProductSearchCard";
 import BottomNav from "../components/BottomNav";
 import HeroBanner from "../components/HeroBanner";
@@ -224,12 +225,19 @@ export default function ClientHomePage() {
     () => commercesCategorie.filter((f) => f.a_promo).slice(0, 10),
     [commercesCategorie]
   );
-  const discoveryPopulaires = useMemo(
-    () =>
-      [...commercesCategorie]
-        .filter((f) => (f.note_moyenne ?? 0) > 0)
-        .sort((a, b) => (b.note_moyenne ?? 0) - (a.note_moyenne ?? 0))
-        .slice(0, 10),
+  const discoveryProximite = useMemo(() => {
+    if (!position) return [];
+    return [...commercesCategorie]
+      .filter((f) => f.latitude != null && f.longitude != null)
+      .sort((a, b) => {
+        const da = distanceMetres(position, { latitude: a.latitude!, longitude: a.longitude! });
+        const db = distanceMetres(position, { latitude: b.latitude!, longitude: b.longitude! });
+        return da - db;
+      })
+      .slice(0, 10);
+  }, [commercesCategorie, position]);
+  const discoveryTousPartenaires = useMemo(
+    () => [...commercesCategorie].sort((a, b) => (b.note_moyenne ?? 0) - (a.note_moyenne ?? 0)).slice(0, 10),
     [commercesCategorie]
   );
 
@@ -380,31 +388,32 @@ export default function ClientHomePage() {
           </div>
         ) : (
           <>
-            {decouverteActive && (
+            {decouverteActive ? (
               <>
-                <DiscoveryRow titre="Promo" icone={<Flame size={17} className="text-[var(--color-orange-500)]" />} fournisseurs={discoveryPromos} positionClient={position} />
-                <DiscoveryRow titre="Populaire près de vous" icone={<TrendingUp size={17} className="text-[var(--color-orange-500)]" />} fournisseurs={discoveryPopulaires} positionClient={position} />
+                <DiscoveryRowCompact titre="Promos" fournisseurs={discoveryPromos} positionClient={position} onVoirTout={() => toggleFiltre("promos")} />
+                <DiscoveryRowCompact titre="À proximité" fournisseurs={discoveryProximite} positionClient={position} onVoirTout={handleProche} />
+                <DiscoveryRowCompact titre="Tous nos partenaires" fournisseurs={discoveryTousPartenaires} positionClient={position} onVoirTout={() => setTri("notes")} />
               </>
+            ) : (
+              <div id="resultats-section">
+                {resultats.length === 0 ? (
+                  <EmptyState
+                    icon={<SearchX size={36} />}
+                    title="Aucun commerce trouvé"
+                    description="Essayez une autre catégorie ou filtre."
+                  />
+                ) : (
+                  <>
+                    <p className="text-sm text-[var(--color-ink-500)]">{resultats.length} résultat{resultats.length > 1 ? "s" : ""}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {resultats.map((f) => (
+                        <StoreCard key={f.id} fournisseur={f} positionClient={position} />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
             )}
-
-            <div id="resultats-section">
-              {resultats.length === 0 ? (
-                <EmptyState
-                  icon={<SearchX size={36} />}
-                  title="Aucun commerce trouvé"
-                  description="Essayez une autre catégorie ou filtre."
-                />
-              ) : (
-                <>
-                  <p className="text-sm text-[var(--color-ink-500)]">{resultats.length} résultat{resultats.length > 1 ? "s" : ""}</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {resultats.map((f) => (
-                      <StoreCard key={f.id} fournisseur={f} positionClient={position} />
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
           </>
         )}
       </div>
