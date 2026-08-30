@@ -18,7 +18,7 @@ export default function DiscoveryRow({ titre, icone, fournisseurs, positionClien
 
   return (
     <div className="flex flex-col gap-2.5">
-      <h2 className="flex items-center gap-2 font-display font-bold text-[15px] text-[var(--color-ink-900)] px-1">
+      <h2 className="flex items-center gap-2 font-display font-bold text-[15px] text-[var(--color-dark-text)] px-1">
         {icone} {titre}
       </h2>
       <div className="flex gap-3 overflow-x-auto scroll-row pb-1 -mx-1 px-1">

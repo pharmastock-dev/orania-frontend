@@ -28,13 +28,13 @@ export default function StoreCard({ fournisseur, positionClient }: { fournisseur
   return (
     <button
       onClick={() => navigate(`/commerce/${fournisseur.id}`)}
-      className="text-left bg-white rounded-2xl overflow-hidden border border-[var(--color-ink-100)] hover:border-[var(--color-orange-400)] transition-colors w-full"
+      className="text-left bg-[var(--color-dark-card)] rounded-2xl overflow-hidden border border-[var(--color-dark-border)] hover:border-[var(--color-orange-400)] transition-colors w-full"
     >
-      <div className="relative h-36 bg-[var(--color-ink-100)]">
+      <div className="relative h-36 bg-[var(--color-dark-surface)]">
         {image ? (
           <img src={image} alt={fournisseur.nom} className="h-full w-full object-cover" loading="lazy" />
         ) : (
-          <div className="h-full w-full flex items-center justify-center text-[var(--color-ink-300)] text-xs">{fournisseur.nom}</div>
+          <div className="h-full w-full flex items-center justify-center text-[var(--color-dark-text-muted)] text-xs">{fournisseur.nom}</div>
         )}
         <div className="absolute top-2 left-2 flex gap-1.5">
           {fournisseur.a_promo && (
@@ -45,29 +45,29 @@ export default function StoreCard({ fournisseur, positionClient }: { fournisseur
           <StatusPill ouvert={ouvert} />
         </div>
         {fournisseur.categorie && (
-          <span className="absolute bottom-2 left-2 bg-[var(--color-orange-100)] text-[var(--color-orange-700,#a35009)] text-xs font-semibold px-2.5 py-1 rounded-full">
+          <span className="absolute bottom-2 left-2 bg-[var(--color-orange-500)]/20 backdrop-blur-sm text-[var(--color-orange-400)] text-xs font-semibold px-2.5 py-1 rounded-full">
             {getCategorieLabel(fournisseur.categorie)}
           </span>
         )}
       </div>
 
       <div className="p-3">
-        <h3 className="font-bold text-[var(--color-ink-900)] leading-tight">{fournisseur.nom}</h3>
+        <h3 className="font-bold text-[var(--color-dark-text)] leading-tight">{fournisseur.nom}</h3>
 
         <div className="flex items-center gap-1.5 mt-1 text-sm">
           <Star size={14} className="fill-[var(--color-orange-500)] text-[var(--color-orange-500)]" />
-          <span className="font-semibold">{(fournisseur.note_moyenne ?? 0).toFixed(1)}</span>
-          <span className="text-[var(--color-ink-500)]">· {fournisseur.avis_count ?? 0} avis</span>
+          <span className="font-semibold text-[var(--color-dark-text)]">{(fournisseur.note_moyenne ?? 0).toFixed(1)}</span>
+          <span className="text-[var(--color-dark-text-muted)]">· {fournisseur.avis_count ?? 0} avis</span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-[var(--color-ink-500)]">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-[var(--color-dark-text-muted)]">
           {fournisseur.heure_ouverture && (
             <span className="flex items-center gap-1">
               <Clock size={12} /> {formatHoraires(fournisseur.heure_ouverture, fournisseur.heure_fermeture)}
             </span>
           )}
           {distanceLabel && (
-            <span className="flex items-center gap-1 text-[var(--color-orange-600)] font-medium">
+            <span className="flex items-center gap-1 text-[var(--color-orange-400)] font-medium">
               <MapPin size={12} /> {distanceLabel}
             </span>
           )}
@@ -75,14 +75,14 @@ export default function StoreCard({ fournisseur, positionClient }: { fournisseur
 
         <div className="flex items-center gap-2 mt-2">
           {temps && (
-            <span className="flex items-center gap-1 text-xs bg-[var(--color-ink-100)] text-[var(--color-ink-700)] px-2 py-1 rounded-full font-medium">
+            <span className="flex items-center gap-1 text-xs bg-[var(--color-dark-surface)] text-[var(--color-dark-text-muted)] px-2 py-1 rounded-full font-medium">
               <Bike size={12} /> {temps.min}–{temps.max} min
             </span>
           )}
         </div>
 
         {fraisLabel && (
-          <div className="flex items-center gap-1 mt-2 text-xs font-medium text-[var(--color-navy-700)]">
+          <div className="flex items-center gap-1 mt-2 text-xs font-medium text-[var(--color-dark-text-muted)]">
             <Wallet size={12} /> {fraisLabel}
           </div>
         )}
