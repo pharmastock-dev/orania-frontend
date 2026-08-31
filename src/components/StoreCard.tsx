@@ -19,12 +19,6 @@ export default function StoreCard({ fournisseur, positionClient }: { fournisseur
   const temps = distanceM != null ? estimerTempsLivraison(distanceM) : null;
   const distanceLabel = distanceM != null ? (distanceM < 1000 ? `${Math.round(distanceM)} m` : `${(distanceM / 1000).toFixed(1)} km`) : null;
 
-  const fraisLabel = fournisseur.livraison_gratuite
-    ? "Livraison gratuite"
-    : fournisseur.frais_min != null
-    ? `Livraison ${fournisseur.frais_min}–${fournisseur.frais_max ?? fournisseur.frais_min} DA`
-    : null;
-
   return (
     <button
       onClick={() => navigate(`/commerce/${fournisseur.id}`)}
@@ -32,10 +26,25 @@ export default function StoreCard({ fournisseur, positionClient }: { fournisseur
     >
       <div className="relative h-36 bg-[var(--color-ink-100)]">
         {image ? (
-          <img src={image} alt={fournisseur.nom} className="h-full w-full object-cover" loading="lazy" />
+          <img
+            src={image}
+            alt={fournisseur.nom}
+            className={`h-full w-full object-cover ${!ouvert ? "grayscale-[60%] opacity-60" : ""}`}
+            loading="lazy"
+          />
         ) : (
           <div className="h-full w-full flex items-center justify-center text-[var(--color-ink-300)] text-xs">{fournisseur.nom}</div>
         )}
+
+        {/* Superposition "Fermé", centrée sur la photo, uniquement si le commerce est ferme */}
+        {!ouvert && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="bg-black/70 text-white text-sm font-bold px-4 py-1.5 rounded-xl border border-white/20">
+              Fermé
+            </span>
+          </div>
+        )}
+
         <div className="absolute top-2 left-2 flex gap-1.5">
           {fournisseur.a_promo && (
             <span className="bg-[var(--color-pink-500)] text-white text-xs font-semibold px-2 py-1 rounded-full">Promo</span>
@@ -54,7 +63,6 @@ export default function StoreCard({ fournisseur, positionClient }: { fournisseur
       <div className="p-3">
         <h3 className="font-bold text-[var(--color-ink-900)] leading-tight">{fournisseur.nom}</h3>
 
-        {/* Adresse renseignée par le commerçant à l'inscription */}
         {fournisseur.adresse && (
           <p className="flex items-start gap-1 mt-1 text-xs text-[var(--color-ink-500)] leading-snug line-clamp-1">
             <MapPin size={11} className="mt-0.5 shrink-0" /> {fournisseur.adresse}
@@ -88,11 +96,16 @@ export default function StoreCard({ fournisseur, positionClient }: { fournisseur
           )}
         </div>
 
-        {fraisLabel && (
-          <div className="flex items-center gap-1 mt-2 text-xs font-medium text-[var(--color-navy-700)]">
-            <Wallet size={12} /> {fraisLabel}
+        {/* Livraison gratuite, mise en avant en bas de carte */}
+        {fournisseur.livraison_gratuite ? (
+          <div className="flex items-center gap-1 mt-2 text-xs font-bold text-[var(--color-green-600,#16a34a)]">
+            <Wallet size={12} /> Livraison gratuite
           </div>
-        )}
+        ) : fournisseur.frais_min != null ? (
+          <div className="flex items-center gap-1 mt-2 text-xs font-medium text-[var(--color-navy-700)]">
+            <Wallet size={12} /> Livraison {fournisseur.frais_min}–{fournisseur.frais_max ?? fournisseur.frais_min} DA
+          </div>
+        ) : null}
       </div>
     </button>
   );

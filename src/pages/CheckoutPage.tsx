@@ -1,19 +1,19 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Truck, PersonStanding, CheckCircle2, AlertTriangle, Wallet } from "lucide-react";
+import { Truck, PersonStanding, CheckCircle2, AlertTriangle, Wallet, MessageSquare } from "lucide-react";
 import BackButton from "../components/BackButton";
 import Button from "../components/Button";
 import DeliveryMap from "../components/DeliveryMap";
+import ProduitPanierModal from "../components/ProduitPanierModal";
 import { useApp } from "../context/AppContext";
 import { useToast } from "../context/ToastContext";
 import { createCommande, getFournisseurInfos } from "../api";
 import { ApiError } from "../api/client";
 import { formatPrix } from "../utils/format";
-import type { ModeReception, Coordonnees } from "../types";
-
+import type { ModeReception, Coordonnees, Produit } from "../types";
 export default function CheckoutPage() {
   const navigate = useNavigate();
-  const { client, cart, cartTotal, clearCart, position, setPosition } = useApp();
+  const { client, cart, cartTotal, clearCart, position, setPosition, addToCart } = useApp();
   const { showToast } = useToast();
 
   const [mode, setMode] = useState<ModeReception>("livraison");
@@ -21,9 +21,9 @@ export default function CheckoutPage() {
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<{ commande_id: number; code_confirmation: string } | null>(null);
+  const [produitOuvert, setProduitOuvert] = useState<Produit | null>(null);
 
-  useEffect(() => {
-    if (!cart.fournisseurId) return;
+  useEffect(() => {if (!cart.fournisseurId) return;
     getFournisseurInfos(cart.fournisseurId)
       .then((f) => setTelephoneCommerce(f.telephone))
       .catch(() => {});
@@ -31,6 +31,14 @@ export default function CheckoutPage() {
 
   function handleMapChange(pos: Coordonnees) {
     setPosition(pos);
+  }
+
+  function handleEnregistrerNote(note: string) {
+    if (!produitOuvert || !cart.fournisseurNom) return;
+    // Rappelle addToCart avec quantite: 0 -- ne change pas la quantite deja
+    // presente, met seulement la note a jour (logique deja geree ainsi
+    // dans AppContext).
+    addToCart(produitOuvert, cart.fournisseurNom, 0, note);
   }
 
   async function handleCommander() {
@@ -92,8 +100,7 @@ export default function CheckoutPage() {
     return null;
   }
 
-  return (
-    <div className="min-h-screen bg-[var(--color-ink-50)] pb-32">
+  return (   <div className="min-h-screen bg-[var(--color-ink-50)] pb-32">
       <div className="max-w-md mx-auto px-4 pt-5">
         <div className="flex items-center gap-3">
           <BackButton />
@@ -102,15 +109,20 @@ export default function CheckoutPage() {
 
         <div className="mt-5 bg-white rounded-2xl border border-[var(--color-ink-100)] p-4">
           {cart.items.map((i) => (
-            <div key={i.produit.id} className="flex justify-between text-sm py-1 text-[var(--color-ink-700)]">
-              <span className="flex items-center gap-2">
-                <span className="h-5 w-5 rounded-full bg-[var(--color-orange-100)] text-[var(--color-orange-600)] text-xs font-bold flex items-center justify-center">
+            <button
+              key={i.produit.id}
+              onClick={() => setProduitOuvert(i.produit)}
+              className="w-full flex justify-between items-center text-sm py-2 text-[var(--color-ink-700)] text-left"
+            >
+              <span className="flex items-center gap-2 min-w-0">
+                <span className="h-5 w-5 rounded-full bg-[var(--color-orange-100)] text-[var(--color-orange-600)] text-xs font-bold flex items-center justify-center shrink-0">
                   {i.quantite}
                 </span>
-                {i.produit.nom}
+                <span className="truncate">{i.produit.nom}</span>
+                {i.note && <MessageSquare size={13} className="text-[var(--color-orange-500)] shrink-0" />}
               </span>
-              <span>{formatPrix((i.produit.prix_promo ?? i.produit.prix) * i.quantite)}</span>
-            </div>
+              <span className="shrink-0 ml-2">{formatPrix((i.produit.prix_promo ?? i.produit.prix) * i.quantite)}</span>
+            </button>
           ))}
           <div className="flex justify-between font-bold text-[var(--color-ink-900)] border-t border-[var(--color-ink-100)] mt-2 pt-2">
             <span>Total produits</span>
@@ -125,8 +137,7 @@ export default function CheckoutPage() {
             className={`flex flex-col items-center gap-2 rounded-2xl border p-4 ${
               mode === "livraison" ? "border-[var(--color-orange-500)] bg-[var(--color-orange-100)]" : "border-[var(--color-ink-100)] bg-white"
             }`}
-          >
-            <Truck size={22} className={mode === "livraison" ? "text-[var(--color-orange-600)]" : "text-[var(--color-ink-500)]"} />
+          ><Truck size={22} className={mode === "livraison" ? "text-[var(--color-orange-600)]" : "text-[var(--color-ink-500)]"} />
             <span className="font-semibold text-sm">Avec livraison</span>
           </button>
           <button
@@ -169,6 +180,16 @@ export default function CheckoutPage() {
           </div>
         )}
       </div>
+
+      {produitOuvert && (
+        <ProduitPanierModal
+          produit={produitOuvert}
+          quantite={cart.items.find((i) => i.produit.id === produitOuvert.id)?.quantite || 1}
+          noteActuelle={cart.items.find((i) => i.produit.id === produitOuvert.id)?.note}
+          onClose={() => setProduitOuvert(null)}
+          onEnregistrer={handleEnregistrerNote}
+        />
+      )}
 
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[var(--color-ink-100)] p-4 safe-bottom">
         <div className="max-w-md mx-auto">

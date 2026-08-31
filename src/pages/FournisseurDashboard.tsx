@@ -18,10 +18,10 @@ import LivreursTab from "../components/fournisseur/LivreursTab";
 type Onglet = "produits" | "commandes" | "livreurs" | "stats" | "commerce" | "analyse";
 
 const TABS: { key: Onglet; label: string; icon: typeof Package; couleur: string; fond: string }[] = [
-  { key: "produits", label: "Produits", icon: Package, couleur: "text-[var(--color-orange-600)]", fond: "bg-[var(--color-orange-100)]" },
-  { key: "analyse", label: "Mon analyse", icon: Package, couleur: "text-[var(--color-navy-700)]", fond: "bg-[var(--color-ink-100)]" },
   { key: "commandes", label: "Commandes", icon: ClipboardList, couleur: "text-[var(--color-green-600)]", fond: "bg-[var(--color-green-100)]" },
+  { key: "produits", label: "Produits", icon: Package, couleur: "text-[var(--color-orange-600)]", fond: "bg-[var(--color-orange-100)]" },
   { key: "livreurs", label: "Livreurs", icon: Bike, couleur: "text-[var(--color-pink-600)]", fond: "bg-[var(--color-pink-100)]" },
+  { key: "analyse", label: "Mon analyse", icon: Package, couleur: "text-[var(--color-navy-700)]", fond: "bg-[var(--color-ink-100)]" },
   { key: "stats", label: "Stats", icon: BarChart3, couleur: "text-[var(--color-navy-700)]", fond: "bg-[var(--color-ink-100)]" },
   { key: "commerce", label: "Mon commerce", icon: Store, couleur: "text-[var(--color-orange-600)]", fond: "bg-[var(--color-orange-100)]" },
 ];
