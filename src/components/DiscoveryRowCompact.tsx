@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
 import type { Fournisseur, Coordonnees } from "../types";
-import StoreCardCompact from "./StoreCardCompact";
+import StoreCard from "./StoreCard";
 
 interface DiscoveryRowCompactProps {
   titre: string;
@@ -11,11 +11,10 @@ interface DiscoveryRowCompactProps {
   onVoirTout?: () => void;
 }
 
-// Rangée horizontale de cartes compactes, avec "Voir tout" — cliquer dessus
-// applique le tri/filtre correspondant (géré par ClientHomePage) plutôt que
-// de construire une page séparée : réutilise exactement la même liste
-// filtrée déjà existante, juste affichée en grille complète à la place des
-// rangées de découverte.
+// Meme structure qu'avant (titre + "Voir tout" + defilement horizontal),
+// mais utilise desormais la carte COMPLETE (StoreCard), pas la version
+// compacte -- retour a "l'ancienne version" en taille et niveau de detail,
+// tout en gardant les 3 sections nommees et le glissement horizontal.
 export default function DiscoveryRowCompact({ titre, icone, fournisseurs, positionClient, onVoirTout }: DiscoveryRowCompactProps) {
   if (fournisseurs.length === 0) return null;
 
@@ -33,7 +32,9 @@ export default function DiscoveryRowCompact({ titre, icone, fournisseurs, positi
       </div>
       <div className="flex gap-3 overflow-x-auto scroll-row pb-1 -mx-1 px-1">
         {fournisseurs.map((f) => (
-          <StoreCardCompact key={f.id} fournisseur={f} positionClient={positionClient} />
+          <div key={f.id} className="w-64 shrink-0">
+            <StoreCard fournisseur={f} positionClient={positionClient} />
+          </div>
         ))}
       </div>
     </div>
