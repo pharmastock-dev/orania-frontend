@@ -24,19 +24,23 @@ export default function StoreCard({ fournisseur, positionClient }: { fournisseur
       onClick={() => navigate(`/commerce/${fournisseur.id}`)}
       className="text-left bg-white rounded-2xl overflow-hidden border border-[var(--color-ink-100)] hover:border-[var(--color-orange-400)] transition-colors w-full"
     >
-      <div className="relative h-36 bg-[var(--color-ink-100)]">
+      {/* Hauteur augmentee (144px -> 176px) + object-contain (au lieu de
+          object-cover) -- garantit que la photo ENTIERE est toujours visible,
+          quel que soit son format d'origine. Le fond gris comble les bandes
+          vides ("letterboxing") si le format ne correspond pas exactement,
+          plutot que de rogner l'image comme avant. */}
+      <div className="relative h-44 bg-[var(--color-ink-100)] flex items-center justify-center">
         {image ? (
           <img
             src={image}
             alt={fournisseur.nom}
-            className={`h-full w-full object-cover ${!ouvert ? "grayscale-[60%] opacity-60" : ""}`}
+            className={`h-full w-full object-contain ${!ouvert ? "grayscale-[60%] opacity-60" : ""}`}
             loading="lazy"
           />
         ) : (
           <div className="h-full w-full flex items-center justify-center text-[var(--color-ink-300)] text-xs">{fournisseur.nom}</div>
         )}
 
-        {/* Superposition "Fermé", centrée sur la photo, uniquement si le commerce est ferme */}
         {!ouvert && (
           <div className="absolute inset-0 flex items-center justify-center">
             <span className="bg-black/70 text-white text-sm font-bold px-4 py-1.5 rounded-xl border border-white/20">
@@ -96,7 +100,6 @@ export default function StoreCard({ fournisseur, positionClient }: { fournisseur
           )}
         </div>
 
-        {/* Livraison gratuite, mise en avant en bas de carte */}
         {fournisseur.livraison_gratuite ? (
           <div className="flex items-center gap-1 mt-2 text-xs font-bold text-[var(--color-green-600,#16a34a)]">
             <Wallet size={12} /> Livraison gratuite

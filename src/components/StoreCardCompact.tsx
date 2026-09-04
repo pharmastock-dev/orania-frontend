@@ -4,11 +4,6 @@ import type { Fournisseur, Coordonnees } from "../types";
 import { resolveImageUrl } from "../api";
 import { distanceMetres } from "../utils/geo";
 
-// Carte compacte pour les rangees de decouverte (Promos, A proximite, Tous
-// nos partenaires) -- tout le contenu (photo + nom + note + distance) est
-// desormais a l'interieur d'UN SEUL cadre, avec un fond gris plus fonce que
-// le fond de la page (ink-50), pour que ca ressemble vraiment a une carte
-// complete plutot qu'une photo avec du texte flottant a cote.
 interface StoreCardCompactProps {
   fournisseur: Fournisseur;
   positionClient?: Coordonnees | null;
@@ -29,14 +24,16 @@ export default function StoreCardCompact({ fournisseur, positionClient }: StoreC
       onClick={() => navigate(`/commerce/${fournisseur.id}`)}
       className="w-[156px] shrink-0 text-left bg-[#e4e7ee] rounded-2xl p-2 border border-[var(--color-ink-100)]"
     >
-      <div className="relative h-28 w-full rounded-xl overflow-hidden bg-[var(--color-ink-100)]">
+      {/* object-contain (au lieu de object-cover) -- photo entiere toujours
+          visible, jamais rognee, quel que soit son format d'origine. */}
+      <div className="relative h-32 w-full rounded-xl overflow-hidden bg-[var(--color-ink-100)] flex items-center justify-center">
         {fournisseur.a_promo && (
           <span className="absolute top-1.5 left-1.5 z-10 bg-[var(--color-pink-500)] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
             Promo
           </span>
         )}
         {image ? (
-          <img src={image} alt={fournisseur.nom} className="h-full w-full object-cover" loading="lazy" />
+          <img src={image} alt={fournisseur.nom} className="h-full w-full object-contain" loading="lazy" />
         ) : (
           <div className="h-full w-full flex items-center justify-center text-[var(--color-ink-300)] text-[10px] text-center px-1">{fournisseur.nom}</div>
         )}
