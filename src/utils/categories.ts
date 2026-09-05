@@ -9,6 +9,7 @@ export interface CategorieDef {
 export const CATEGORIES: CategorieDef[] = [
   { key: "tous", label: "Tous", emoji: "🍽️" },
   { key: "restaurant", label: "Resto", emoji: "🍴" },
+  { key: "cafeteria", label: "Cafétéria", emoji: "☕" },
   { key: "epicerie", label: "Épiceries", emoji: "🛒" },
   { key: "alimentation", label: "Alimentation", emoji: "🍅" },
   { key: "boutique", label: "Boutique", emoji: "🛍️" },
@@ -44,6 +45,8 @@ const EMOJI_PRODUIT: Record<string, string> = {
   desserts: "🍰",
   epicerie: "🛒",
   "épicerie": "🛒",
+  cafeteria: "☕",
+  "cafétéria": "☕",
   alimentation: "🍅",
   boutique: "🛍️",
   viennoiserie: "🥐",
@@ -54,10 +57,10 @@ export function getEmojiCategorieProduit(categorie: string): string {
   return EMOJI_PRODUIT[categorie.trim().toLowerCase()] || "🍴";
 }
 // Catégories CÔTÉ CLIENT — uniquement les types de commerce (Tous, Resto,
-// Viennoiserie, Pâtisserie, Alimentation, Épiceries, Boutique, Parfumerie,
-// Cosmétiques). Les sous-types de plat (Burger, Pizza, Sushi...) ne sont
-// plus ici -- ils restent accessibles via TYPES_PLATS_CLIENT, le sous-filtre
-// affiché uniquement quand "Resto" est actif.
+// Cafétéria, Viennoiserie, Pâtisserie, Alimentation, Épiceries, Boutique,
+// Parfumerie, Cosmétiques). Les sous-types de plat (Burger, Pizza, Sushi...)
+// ne sont plus ici -- ils restent accessibles via TYPES_PLATS_CLIENT, le
+// sous-filtre affiché uniquement quand "Resto" est actif.
 // "couleur" = utilisée par CategoryBar pour teinter l'icône et le fond quand active.
 export interface CategorieClientDef {
   key: string;
@@ -68,6 +71,7 @@ export interface CategorieClientDef {
 export const CATEGORIES_CLIENT: CategorieClientDef[] = [
   { key: "tous", label: "Tous", emoji: "🍽️", couleur: "#131a2b" },
   { key: "restaurant", label: "Resto", emoji: "🍴", couleur: "#f5790c" },
+  { key: "cafeteria", label: "Cafétéria", emoji: "☕", couleur: "#78350f" },
   { key: "viennoiserie", label: "Viennoiserie", emoji: "🥐", couleur: "#d97706" },
   { key: "patisserie", label: "Pâtisserie", emoji: "🧁", couleur: "#db2777" },
   { key: "alimentation", label: "Alimentation", emoji: "🍅", couleur: "#dc2626" },
