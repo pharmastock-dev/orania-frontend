@@ -53,10 +53,11 @@ const EMOJI_PRODUIT: Record<string, string> = {
 export function getEmojiCategorieProduit(categorie: string): string {
   return EMOJI_PRODUIT[categorie.trim().toLowerCase()] || "🍴";
 }
-// Catégories CÔTÉ CLIENT uniquement — plus riche, mélange type de commerce et type de
-// plat, pour permettre de filtrer directement sur "Pizza" ou "Sushi" par exemple.
-// Le filtrage matche soit fournisseur.categorie (type de commerce), soit
-// fournisseur.produits_categories (types de plats réellement vendus par ce commerce).
+// Catégories CÔTÉ CLIENT — uniquement les types de commerce (Tous, Resto,
+// Viennoiserie, Pâtisserie, Alimentation, Épiceries, Boutique, Parfumerie,
+// Cosmétiques). Les sous-types de plat (Burger, Pizza, Sushi...) ne sont
+// plus ici -- ils restent accessibles via TYPES_PLATS_CLIENT, le sous-filtre
+// affiché uniquement quand "Resto" est actif.
 // "couleur" = utilisée par CategoryBar pour teinter l'icône et le fond quand active.
 export interface CategorieClientDef {
   key: string;
@@ -67,24 +68,13 @@ export interface CategorieClientDef {
 export const CATEGORIES_CLIENT: CategorieClientDef[] = [
   { key: "tous", label: "Tous", emoji: "🍽️", couleur: "#131a2b" },
   { key: "restaurant", label: "Resto", emoji: "🍴", couleur: "#f5790c" },
-  { key: "Burger", label: "Burger", emoji: "🍔", couleur: "#b45309" },
-  { key: "Pizza", label: "Pizza", emoji: "🍕", couleur: "#dc2626" },
-  { key: "Sandwich", label: "Sandwich", emoji: "🥪", couleur: "#ea580c" },
-  { key: "Sushi", label: "Sushi", emoji: "🍣", couleur: "#e11d48" },
-  { key: "Crispy", label: "Crispy", emoji: "🍗", couleur: "#d97706" },
-  { key: "Grillades", label: "Grillades", emoji: "🍖", couleur: "#9a3412" },
-  { key: "Tacos", label: "Tacos", emoji: "🌮", couleur: "#16a34a" },
-  { key: "Kebab", label: "Kebab", emoji: "🥙", couleur: "#ea580c" },
-  { key: "Plats", label: "Plats", emoji: "🍲", couleur: "#131a2b" },
-  { key: "Boissons", label: "Boissons", emoji: "🥤", couleur: "#2563eb" },
-  { key: "Desserts", label: "Desserts", emoji: "🍰", couleur: "#db2777" },
-  { key: "epicerie", label: "Épiceries", emoji: "🛒", couleur: "#16a34a" },
+  { key: "viennoiserie", label: "Viennoiserie", emoji: "🥐", couleur: "#d97706" },
+  { key: "patisserie", label: "Pâtisserie", emoji: "🧁", couleur: "#db2777" },
   { key: "alimentation", label: "Alimentation", emoji: "🍅", couleur: "#dc2626" },
+  { key: "epicerie", label: "Épiceries", emoji: "🛒", couleur: "#16a34a" },
   { key: "boutique", label: "Boutique", emoji: "🛍️", couleur: "#7c3aed" },
   { key: "parfumerie", label: "Parfumerie", emoji: "🌸", couleur: "#db2777" },
   { key: "cosmetiques", label: "Cosmétiques", emoji: "💄", couleur: "#db2777" },
-  { key: "viennoiserie", label: "Viennoiserie", emoji: "🥐", couleur: "#d97706" },
-  { key: "patisserie", label: "Pâtisserie", emoji: "🧁", couleur: "#db2777" },
 ];
 
 // Sous-types de plat, affichés uniquement quand la catégorie "Resto" est
