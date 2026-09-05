@@ -149,6 +149,28 @@ export default function ClientHomePage() {
     }
   }
 
+  // Bouton retour materiel Android : sur l'accueil client, ne doit jamais
+  // faire quitter vers l'ecran de selection des espaces. Si "Voir tout"
+  // est actif (tri/filtre), revient d'abord a la vue decouverte ; sinon,
+  // minimise l'app (comportement standard d'un ecran "accueil").
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let listenerRetour: { remove: () => void } | undefined;
+    import("@capacitor/app").then(({ App }) => {
+      App.addListener("backButton", () => {
+        if (tri !== null || filtresActifs.length > 0) {
+          setTri(null);
+          setFiltresActifs([]);
+        } else {
+          App.exitApp();
+        }
+      }).then((h) => {
+        listenerRetour = h;
+      });
+    });
+    return () => listenerRetour?.remove();
+  }, [tri, filtresActifs]);
+
   useEffect(() => {
     if (!position) return;
     let annule = false;
