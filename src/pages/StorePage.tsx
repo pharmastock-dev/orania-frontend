@@ -84,11 +84,10 @@ export default function StorePage() {
 
   const categoriesProduits = useMemo(() => Array.from(new Set(produits.map((p) => p.categorie))), [produits]);
 
-  // Les cafétérias sont en consultation de menu uniquement — aucune commande
-  // possible (ni livraison, ni retrait), quel que soit ce que le commerce a
-  // par ailleurs configuré. La règle s'applique dès que la catégorie du
-  // commerce est "cafeteria", sans exception.
-  const estCafeteria = fournisseur?.categorie === "cafeteria";
+  // Toutes les categories (y compris cafeteria, boutique, alimentation)
+  // peuvent desormais recevoir des commandes normalement -- restriction
+  // retiree.
+  const estCafeteria = false;
 
   const produitsAffiches = useMemo(() => {
     if (categorieActive === "tous") return produits;
@@ -280,12 +279,6 @@ export default function StorePage() {
             </div>
           )}
         </div>
-
-        {estCafeteria && (
-          <div className="flex items-center gap-2 bg-[var(--color-ink-100)] text-[var(--color-ink-700)] text-xs font-medium rounded-xl px-3.5 py-2.5">
-            <Coffee size={14} className="shrink-0" /> Ce commerce propose uniquement la consultation du menu — aucune commande possible.
-          </div>
-        )}
 
         <div className="flex gap-2 overflow-x-auto scroll-row pt-1">
           <button
