@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Collecte de données & Confidentialité — QREEB</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', -apple-system, Arial, sans-serif;
+    background: #f6f7fa;
+    color: #131a2b;
+    line-height: 1.7;
+  }
+  .header {
+    background: linear-gradient(135deg, #131a2b 0%, #1e2740 100%);
+    padding: 48px 24px 56px;
+    text-align: center;
+    color: white;
+  }
+  .logo {
+    width: 56px; height: 56px; border-radius: 16px;
+    background: white; color: #131a2b;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 24px;
+    margin: 0 auto 16px;
+  }
+  .header h1 { font-size: 24px; font-weight: 800; }
+  .header p { color: rgba(255,255,255,0.7); margin-top: 6px; font-size: 14px; max-width: 480px; margin-left: auto; margin-right: auto; }
+
+  .container { max-width: 680px; margin: -30px auto 0; padding: 0 20px 60px; }
+
+  .card {
+    background: white; border-radius: 20px; padding: 28px 24px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    margin-bottom: 20px;
+  }
+  .card h2 { font-size: 17px; font-weight: 800; margin-bottom: 6px; color: #131a2b; }
+  .card > p.intro { color: #6b7590; font-size: 14px; margin-bottom: 18px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th {
+    text-align: left; color: #6b7590; font-weight: 700;
+    padding: 8px 8px; border-bottom: 2px solid #eef0f4;
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.3px;
+  }
+  td { padding: 12px 8px; border-bottom: 1px solid #f2f3f6; color: #4b5568; vertical-align: top; }
+  td.donnee { font-weight: 700; color: #131a2b; }
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 700;
+    padding: 3px 9px; border-radius: 20px;
+    background: #fff4ea; color: #f5790c;
+  }
+
+  .not-collected { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f2f3f6; }
+  .not-collected:last-child { border-bottom: none; }
+  .check { color: #16a34a; font-weight: 800; }
+
+  .note {
+    background: #eef2ff; border-radius: 14px; padding: 16px 18px;
+    font-size: 14px; color: #3730a3; margin-top: 4px;
+  }
+
+  .footer { text-align: center; color: #9aa2b8; font-size: 13px; padding: 20px; }
+  .footer a { color: #6b7590; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">Q</div>
+  <h1>Collecte de données & Confidentialité</h1>
+  <p>Un aperçu clair et transparent des données que QREEB collecte, et pourquoi.</p>
+</div>
+
+<div class="container">
+
+  <div class="card">
+    <h2>Ce que QREEB collecte</h2>
+    <p class="intro">Uniquement ce qui est nécessaire au bon fonctionnement du service — jamais à des fins publicitaires ou de revente à des tiers.</p>
+    <table>
+      <tr>
+        <th>Donnée</th>
+        <th>Pourquoi</th>
+      </tr>
+      <tr>
+        <td class="donnee">Nom</td>
+        <td>Identifier votre compte, l'afficher aux commerçants pour vos commandes</td>
+      </tr>
+      <tr>
+        <td class="donnee">Numéro de téléphone</td>
+        <td>Connexion à votre compte, contact par le commerçant/livreur concernant votre commande</td>
+      </tr>
+      <tr>
+        <td class="donnee">Position (localisation)</td>
+        <td>Calculer la distance, le temps de livraison estimé, et guider le livreur jusqu'à vous</td>
+      </tr>
+      <tr>
+        <td class="donnee">Photos</td>
+        <td>Photo de votre commerce (commerçants uniquement), affichée aux clients</td>
+      </tr>
+      <tr>
+        <td class="donnee">Avis & commentaires</td>
+        <td>Publiés sur la fiche du commerce concerné, visibles par les autres utilisateurs</td>
+      </tr>
+      <tr>
+        <td class="donnee">Identifiant de l'appareil</td>
+        <td>Vous envoyer les notifications liées à vos commandes (statut, livraison)</td>
+      </tr>
+      <tr>
+        <td class="donnee">Historique de commandes</td>
+        <td>Afficher votre historique, permettre le suivi et le service après-vente</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Ce que QREEB ne fait jamais</h2>
+    <div class="not-collected"><span class="check">✓</span> Aucune vente de vos données à des tiers</div>
+    <div class="not-collected"><span class="check">✓</span> Aucun suivi publicitaire (pas de tracking cross-app)</div>
+    <div class="not-collected"><span class="check">✓</span> Aucune donnée de paiement collectée (paiement en espèces uniquement)</div>
+    <div class="not-collected"><span class="check">✓</span> Aucune donnée de santé, biométrique ou financière</div>
+    <div class="not-collected"><span class="check">✓</span> Aucun partage avec des réseaux publicitaires tiers</div>
+  </div>
+
+  <div class="card">
+    <h2>Vos droits</h2>
+    <p class="intro">Conformément aux bonnes pratiques de protection des données, vous pouvez à tout moment :</p>
+    <table>
+      <tr><td class="donnee" style="width:35%">Consulter vos données</td><td>Visibles directement dans votre profil, dans l'application</td></tr>
+      <tr><td class="donnee">Corriger vos données</td><td>Modifiables depuis votre profil (client ou commerçant)</td></tr>
+      <tr><td class="donnee">Supprimer votre compte</td><td>Directement depuis l'app — « Mon compte » ou « Mon commerce » → « Supprimer mon compte »</td></tr>
+    </table>
+    <div class="note">La suppression de compte anonymise immédiatement vos données personnelles (nom, téléphone). Votre historique de commandes est conservé sous forme anonyme, uniquement pour les obligations comptables du commerçant concerné.</div>
+  </div>
+
+  <div class="card">
+    <h2>Document complet</h2>
+    <p class="intro">Cette page résume nos pratiques de manière simple. Pour le détail juridique complet, consultez notre <a href="/confidentialite.html" style="color:#f5790c; font-weight:700;">politique de confidentialité complète</a>.</p>
+  </div>
+
+</div>
+
+<div class="footer">© 2026 QREEB — Oran, Algérie · <a href="mailto:qreebdz@gmail.com">qreebdz@gmail.com</a></div>
+
+</body>
+</html>
