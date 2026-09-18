@@ -1,22 +1,28 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, ClipboardList, User as UserIcon, Flag } from "lucide-react";
+import { LogOut, ClipboardList, User as UserIcon, Flag, Trash2, AlertTriangle } from "lucide-react";
 import BackButton from "../components/BackButton";
 import OrderCard from "../components/OrderCard";
 import { CardSkeleton } from "../components/Loading";
 import EmptyState from "../components/EmptyState";
 import Button from "../components/Button";
+import Modal from "../components/Modal";
 import ReclamationModal from "../components/ReclamationModal";
 import { useApp } from "../context/AppContext";
-import { getCommandesAcheteur } from "../api";
+import { useToast } from "../context/ToastContext";
+import { getCommandesAcheteur, supprimerCompteClient } from "../api";
+import { ApiError } from "../api/client";
 import type { Commande } from "../types";
 
 export default function AccountPage() {
   const navigate = useNavigate();
   const { client, setClient } = useApp();
+  const { showToast } = useToast();
   const [commandes, setCommandes] = useState<Commande[]>([]);
   const [loading, setLoading] = useState(true);
   const [reclamationOuverte, setReclamationOuverte] = useState(false);
+  const [suppressionOuverte, setSuppressionOuverte] = useState(false);
+  const [suppressionEnCours, setSuppressionEnCours] = useState(false);
 
   useEffect(() => {
     if (!client) {
@@ -42,6 +48,24 @@ export default function AccountPage() {
   function handleLogout() {
     setClient(null);
     navigate("/");
+  }
+
+  // Vraie suppression de compte -- exigence Apple (pas juste une page web).
+  // Confirmation obligatoire avant toute action, pour eviter une suppression
+  // accidentelle. Une fois supprime, deconnexion automatique -- le compte
+  // n'existe plus, impossible de continuer a l'utiliser.
+  async function handleSupprimerCompte() {
+    setSuppressionEnCours(true);
+    try {
+      await supprimerCompteClient(client.id);
+      showToast("Votre compte a été supprimé.", "success");
+      setClient(null);
+      navigate("/");
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : "Impossible de supprimer le compte.", "error");
+      setSuppressionEnCours(false);
+      setSuppressionOuverte(false);
+    }
   }
 
   return (
@@ -89,6 +113,15 @@ export default function AccountPage() {
         <Button variant="outline" fullWidth className="mt-3" icon={<LogOut size={16} />} onClick={handleLogout}>
           Se déconnecter
         </Button>
+
+        {/* Suppression de compte -- separee visuellement (rouge, en bas),
+            jamais confondue avec une simple deconnexion. */}
+        <button
+          onClick={() => setSuppressionOuverte(true)}
+          className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-red-600 mt-5 py-2"
+        >
+          <Trash2 size={15} /> Supprimer mon compte
+        </button>
       </div>
 
       <ReclamationModal
@@ -99,6 +132,30 @@ export default function AccountPage() {
         auteurNom={client.nom}
         auteurTelephone={client.telephone}
       />
+
+      <Modal open={suppressionOuverte} onClose={() => !suppressionEnCours && setSuppressionOuverte(false)} title="Supprimer mon compte">
+        <div className="flex items-start gap-2.5 bg-red-50 text-red-700 text-sm rounded-xl px-3.5 py-3 mb-4">
+          <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+          <span>
+            Cette action est <strong>définitive et irréversible</strong>. Votre nom et votre numéro de téléphone
+            seront supprimés. Votre historique de commandes restera visible côté commerçant (obligations comptables),
+            mais ne sera plus associé à vous.
+          </span>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" fullWidth onClick={() => setSuppressionOuverte(false)} disabled={suppressionEnCours}>
+            Annuler
+          </Button>
+          <Button
+            fullWidth
+            loading={suppressionEnCours}
+            onClick={handleSupprimerCompte}
+            className="!bg-red-600 hover:!bg-red-700"
+          >
+            Supprimer définitivement
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

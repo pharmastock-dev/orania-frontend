@@ -334,6 +334,9 @@ export const traiterReclamation = (reclamationId: number) => http.put<{ succes: 
 export const supprimerReclamation = (reclamationId: number) => http.del<{ succes: boolean }>(`/admin/reclamations/${reclamationId}`, true);
 
 // ---------- Notifications push ----------
+export const supprimerCompteClient = (acheteurId: number) =>
+  http.del<{ succes: boolean; message: string }>(`/acheteurs/${acheteurId}/compte`, "client");
+
 export const enregistrerTokenAcheteur = (acheteurId: number, deviceToken: string) =>
   http.post<{ succes: boolean }>(`/acheteurs/${acheteurId}/device-token`, { device_token: deviceToken }, "client");
 
