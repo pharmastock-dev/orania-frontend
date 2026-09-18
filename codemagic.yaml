@@ -7,43 +7,41 @@ workflows:
       groups:
         - ios_signing  # créé dans Codemagic : contient les certificats/clés Apple
       vars:
-        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+        XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
       node: latest
       xcode: latest
-      cocoapods: default
     scripts:
       - name: Installer les dépendances npm
         script: npm install
       - name: Build web (Vite)
         script: npm run build
-      - name: Regenerer la plateforme iOS si le Podfile est absent
+      - name: Regenerer la plateforme iOS si absente
         script: |
           set -e
-          if [ ! -f "ios/App/Podfile" ]; then
-            echo ">>> Podfile absent -- dossier ios probablement incomplet, regeneration complete..."
+          if [ ! -d "ios/App" ]; then
+            echo ">>> Dossier ios/App absent -- ajout de la plateforme iOS..."
             rm -rf ios
             npm install @capacitor/ios
             npx cap add ios
           else
-            echo ">>> Podfile deja present, rien a faire."
+            echo ">>> ios/App deja present, rien a faire."
           fi
           echo "=== Verification finale ==="
-          if [ -f "ios/App/Podfile" ]; then
-            echo ">>> SUCCES : Podfile confirme present."
+          if [ -d "ios/App/App.xcodeproj" ]; then
+            echo ">>> SUCCES : projet Xcode confirme present."
           else
-            echo ">>> ECHEC CRITIQUE : Podfile toujours absent apres regeneration."
+            echo ">>> ECHEC CRITIQUE : App.xcodeproj introuvable."
             exit 1
           fi
       - name: Sync Capacitor iOS
         script: npx cap sync ios
-      - name: Installer les pods iOS
-        script: |
-          cd ios/App && pod install
+      # Plus de pod install -- Capacitor 8.x utilise Swift Package Manager,
+      # les dependances se resolvent automatiquement au moment du build.
       - name: Build iOS (archive)
         script: |
           xcode-project build-ipa \
-            --workspace "$XCODE_WORKSPACE" \
+            --project "$XCODE_PROJECT" \
             --scheme "$XCODE_SCHEME"
     artifacts:
       - build/ios/ipa/*.ipa
