@@ -5,9 +5,12 @@ workflows:
     instance_type: mac_mini_m2
     environment:
       groups:
-        - ios_signing  # intégration App Store Connect API créée dans Codemagic
+        - ios_signing
       vars:
-        BUNDLE_ID: "com.orania.app"
+        # Bundle ID different de l'Android (com.orania.app deja pris par
+        # un autre developpeur dans le namespace mondial Apple, hors de
+        # notre controle). Android reste inchange.
+        BUNDLE_ID: "com.qreeb.app"
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
       node: latest
@@ -32,6 +35,13 @@ workflows:
             echo ">>> ECHEC CRITIQUE : App.xcodeproj introuvable."
             exit 1
           fi
+      - name: Changer le Bundle ID iOS uniquement
+        script: |
+          set -e
+          echo ">>> Remplacement de com.orania.app par $BUNDLE_ID dans le projet iOS..."
+          sed -i '' "s/com\.orania\.app/$BUNDLE_ID/g" ios/App/App.xcodeproj/project.pbxproj
+          echo ">>> Verification :"
+          grep -c "$BUNDLE_ID" ios/App/App.xcodeproj/project.pbxproj || echo "ATTENTION : remplacement peut-etre incomplet"
       - name: Sync Capacitor iOS
         script: npx cap sync ios
       - name: Preparer le trousseau (keychain)
