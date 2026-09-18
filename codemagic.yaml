@@ -5,7 +5,7 @@ workflows:
     instance_type: mac_mini_m2
     environment:
       groups:
-        - ios_signing  # à créer dans Codemagic : contient les certificats/clés Apple
+        - ios_signing  # créé dans Codemagic : contient les certificats/clés Apple
       vars:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
@@ -17,25 +17,13 @@ workflows:
         script: npm install
       - name: Build web (Vite)
         script: npm run build
+      - name: Ajouter la plateforme iOS si absente
+        script: |
+          if [ ! -d "ios" ]; then
+            npx cap add ios
+          fi
       - name: Sync Capacitor iOS
         script: npx cap sync ios
-      - name: Enregistrer GoogleService-Info.plist dans le projet Xcode
-        script: |
-          gem install xcodeproj --no-document
-          ruby -e '
-            require "xcodeproj"
-            project_path = "ios/App/App.xcodeproj"
-            project = Xcodeproj::Project.open(project_path)
-            target = project.targets.first
-            group = project.main_group.find_subpath("App", true)
-            plist_path = "GoogleService-Info.plist"
-            existing = group.files.find { |f| f.path == plist_path }
-            file_ref = existing || group.new_reference(plist_path)
-            unless target.resources_build_phase.files_references.include?(file_ref)
-              target.resources_build_phase.add_file_reference(file_ref)
-            end
-            project.save
-          '
       - name: Installer les pods iOS
         script: |
           cd ios/App && pod install
