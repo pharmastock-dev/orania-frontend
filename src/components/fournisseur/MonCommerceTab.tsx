@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { Info, Clock, MessageSquareText, MapPinned, Camera } from "lucide-react";
+import { Info, Clock, MessageSquareText, MapPinned, Camera, Trash2, AlertTriangle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import Modal from "../Modal";
 import Button from "../Button";
 import DeliveryMap from "../DeliveryMap";
 import { CATEGORIES } from "../../utils/categories";
 import { useApp } from "../../context/AppContext";
 import { useToast } from "../../context/ToastContext";
-import { updateFournisseur, uploadFournisseurImage, resolveImageUrl } from "../../api";
+import { updateFournisseur, uploadFournisseurImage, resolveImageUrl, supprimerCompteFournisseur } from "../../api";
 import { ApiError } from "../../api/client";
 import { nettoyerTelephone } from "../../utils/format";
 import type { Fournisseur, Coordonnees } from "../../types";
@@ -13,6 +15,9 @@ import type { Fournisseur, Coordonnees } from "../../types";
 export default function MonCommerceTab() {
   const { fournisseurConnecte, setFournisseurConnecte } = useApp();
   const { showToast } = useToast();
+  const navigate = useNavigate();
+  const [suppressionOuverte, setSuppressionOuverte] = useState(false);
+  const [suppressionEnCours, setSuppressionEnCours] = useState(false);
   const [form, setForm] = useState<Fournisseur | null>(fournisseurConnecte);
   const [enregistrement, setEnregistrement] = useState(false);
   const [photoEnCours, setPhotoEnCours] = useState(false);
@@ -79,6 +84,21 @@ export default function MonCommerceTab() {
       showToast(err instanceof ApiError ? err.message : "Impossible d'enregistrer les modifications.", "error");
     } finally {
       setEnregistrement(false);
+    }
+  }
+
+  async function handleSupprimerCompte() {
+    if (!fournisseurConnecte) return;
+    setSuppressionEnCours(true);
+    try {
+      await supprimerCompteFournisseur(fournisseurConnecte.id);
+      showToast("Votre compte a ete supprime.", "success");
+      setFournisseurConnecte(null);
+      navigate("/");
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : "Impossible de supprimer le compte.", "error");
+      setSuppressionEnCours(false);
+      setSuppressionOuverte(false);
     }
   }
 
@@ -204,6 +224,32 @@ export default function MonCommerceTab() {
       </div>
 
       <Button onClick={enregistrer} loading={enregistrement}>Enregistrer les modifications</Button>
+
+      <button
+        onClick={() => setSuppressionOuverte(true)}
+        className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-red-600 mt-2 py-2"
+      >
+        <Trash2 size={15} /> Supprimer mon compte commercant
+      </button>
+
+      <Modal open={suppressionOuverte} onClose={() => !suppressionEnCours && setSuppressionOuverte(false)} title="Supprimer mon compte">
+        <div className="flex items-start gap-2.5 bg-red-50 text-red-700 text-sm rounded-xl px-3.5 py-3 mb-4">
+          <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+          <span>
+            Cette action est <strong>definitive et irreversible</strong>. Votre commerce disparaitra immediatement
+            de la liste cote client. Votre historique de commandes reste conserve (obligations comptables), mais
+            ne sera plus associe a vos informations personnelles.
+          </span>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" fullWidth onClick={() => setSuppressionOuverte(false)} disabled={suppressionEnCours}>
+            Annuler
+          </Button>
+          <Button fullWidth loading={suppressionEnCours} onClick={handleSupprimerCompte} className="!bg-red-600 hover:!bg-red-700">
+            Supprimer definitivement
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }
