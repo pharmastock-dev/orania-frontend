@@ -19,8 +19,22 @@ workflows:
         script: npm run build
       - name: Ajouter la plateforme iOS si absente
         script: |
+          set -e
+          echo "=== Verification du dossier ios ==="
           if [ ! -d "ios" ]; then
+            echo ">>> Installation du paquet @capacitor/ios..."
+            npm install @capacitor/ios
+            echo ">>> Ajout de la plateforme iOS..."
             npx cap add ios
+          else
+            echo ">>> Dossier ios deja present, rien a faire."
+          fi
+          echo "=== Verification finale ==="
+          if [ -d "ios/App" ]; then
+            echo ">>> SUCCES : ios/App existe bien."
+          else
+            echo ">>> ECHEC CRITIQUE : ios/App n'existe toujours pas."
+            exit 1
           fi
       - name: Sync Capacitor iOS
         script: npx cap sync ios
