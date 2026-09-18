@@ -7,9 +7,6 @@ workflows:
       groups:
         - ios_signing
       vars:
-        # Bundle ID different de l'Android (com.orania.app deja pris par
-        # un autre developpeur dans le namespace mondial Apple, hors de
-        # notre controle). Android reste inchange.
         BUNDLE_ID: "com.qreeb.app"
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
@@ -24,12 +21,9 @@ workflows:
         script: |
           set -e
           if [ ! -d "ios/App" ]; then
-            echo ">>> Dossier ios/App absent -- ajout de la plateforme iOS..."
             rm -rf ios
             npm install @capacitor/ios
             npx cap add ios
-          else
-            echo ">>> ios/App deja present, rien a faire."
           fi
           if [ ! -d "ios/App/App.xcodeproj" ]; then
             echo ">>> ECHEC CRITIQUE : App.xcodeproj introuvable."
@@ -38,10 +32,7 @@ workflows:
       - name: Changer le Bundle ID iOS uniquement
         script: |
           set -e
-          echo ">>> Remplacement de com.orania.app par $BUNDLE_ID dans le projet iOS..."
           sed -i '' "s/com\.orania\.app/$BUNDLE_ID/g" ios/App/App.xcodeproj/project.pbxproj
-          echo ">>> Verification :"
-          grep -c "$BUNDLE_ID" ios/App/App.xcodeproj/project.pbxproj || echo "ATTENTION : remplacement peut-etre incomplet"
       - name: Sync Capacitor iOS
         script: npx cap sync ios
       - name: Preparer le trousseau (keychain)
@@ -62,10 +53,9 @@ workflows:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
     publishing:
-      # Décommente une fois prêt à envoyer automatiquement vers TestFlight
-      # app_store_connect:
-      #   auth: integration
-      #   submit_to_testflight: true
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
       email:
         recipients:
           - kichounacer2003@gmail.com
