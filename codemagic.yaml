@@ -37,6 +37,27 @@ workflows:
           sed -i '' "s/com\.orania\.app/$BUNDLE_ID/g" ios/App/App.xcodeproj/project.pbxproj
       - name: Sync Capacitor iOS
         script: npx cap sync ios
+      - name: Capture d'ecran automatique (simulateur)
+        script: |
+          set -e
+          echo ">>> Recherche d'un simulateur iPhone 15 Pro Max disponible..."
+          SIM_ID=$(xcrun simctl list devices available | grep "iPhone 15 Pro Max" | head -1 | grep -oE '[0-9A-F-]{36}')
+          if [ -z "$SIM_ID" ]; then
+            echo ">>> Aucun simulateur trouve, capture ignoree (non bloquant)."
+          else
+            echo ">>> Simulateur trouve : $SIM_ID"
+            xcrun simctl boot "$SIM_ID" || true
+            xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" \
+              -sdk iphonesimulator -derivedDataPath build_sim \
+              -destination "id=$SIM_ID" build
+            APP_PATH=$(find build_sim -name "App.app" -path "*iphonesimulator*" | head -1)
+            xcrun simctl install "$SIM_ID" "$APP_PATH"
+            xcrun simctl launch "$SIM_ID" "$BUNDLE_ID"
+            sleep 8
+            mkdir -p screenshots
+            xcrun simctl io "$SIM_ID" screenshot screenshots/qreeb_accueil.png
+            echo ">>> Capture enregistree : screenshots/qreeb_accueil.png"
+          fi
       - name: Preparer le trousseau (keychain)
         script: keychain initialize
       - name: Recuperer les fichiers de signature
@@ -53,6 +74,7 @@ workflows:
             --scheme "$XCODE_SCHEME"
     artifacts:
       - build/ios/ipa/*.ipa
+      - screenshots/*.png
       - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
