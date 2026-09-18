@@ -17,23 +17,22 @@ workflows:
         script: npm install
       - name: Build web (Vite)
         script: npm run build
-      - name: Ajouter la plateforme iOS si absente
+      - name: Regenerer la plateforme iOS si le Podfile est absent
         script: |
           set -e
-          echo "=== Verification du dossier ios ==="
-          if [ ! -d "ios" ]; then
-            echo ">>> Installation du paquet @capacitor/ios..."
+          if [ ! -f "ios/App/Podfile" ]; then
+            echo ">>> Podfile absent -- dossier ios probablement incomplet, regeneration complete..."
+            rm -rf ios
             npm install @capacitor/ios
-            echo ">>> Ajout de la plateforme iOS..."
             npx cap add ios
           else
-            echo ">>> Dossier ios deja present, rien a faire."
+            echo ">>> Podfile deja present, rien a faire."
           fi
           echo "=== Verification finale ==="
-          if [ -d "ios/App" ]; then
-            echo ">>> SUCCES : ios/App existe bien."
+          if [ -f "ios/App/Podfile" ]; then
+            echo ">>> SUCCES : Podfile confirme present."
           else
-            echo ">>> ECHEC CRITIQUE : ios/App n'existe toujours pas."
+            echo ">>> ECHEC CRITIQUE : Podfile toujours absent apres regeneration."
             exit 1
           fi
       - name: Sync Capacitor iOS
