@@ -5,8 +5,9 @@ workflows:
     instance_type: mac_mini_m2
     environment:
       groups:
-        - ios_signing  # créé dans Codemagic : contient les certificats/clés Apple
+        - ios_signing  # intégration App Store Connect API créée dans Codemagic
       vars:
+        BUNDLE_ID: "com.orania.app"
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
       node: latest
@@ -27,17 +28,21 @@ workflows:
           else
             echo ">>> ios/App deja present, rien a faire."
           fi
-          echo "=== Verification finale ==="
-          if [ -d "ios/App/App.xcodeproj" ]; then
-            echo ">>> SUCCES : projet Xcode confirme present."
-          else
+          if [ ! -d "ios/App/App.xcodeproj" ]; then
             echo ">>> ECHEC CRITIQUE : App.xcodeproj introuvable."
             exit 1
           fi
       - name: Sync Capacitor iOS
         script: npx cap sync ios
-      # Plus de pod install -- Capacitor 8.x utilise Swift Package Manager,
-      # les dependances se resolvent automatiquement au moment du build.
+      - name: Preparer le trousseau (keychain)
+        script: keychain initialize
+      - name: Recuperer les fichiers de signature
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+      - name: Ajouter le certificat au trousseau
+        script: keychain add-certificates
+      - name: Appliquer la signature au projet Xcode
+        script: xcode-project use-profiles
       - name: Build iOS (archive)
         script: |
           xcode-project build-ipa \
