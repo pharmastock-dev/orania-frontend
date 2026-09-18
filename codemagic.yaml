@@ -40,8 +40,9 @@ workflows:
       - name: Capture d'ecran automatique (simulateur)
         script: |
           set -e
-          echo ">>> Recherche d'un simulateur iPhone 15 Pro Max disponible..."
-          SIM_ID=$(xcrun simctl list devices available | grep "iPhone 15 Pro Max" | head -1 | grep -oE '[0-9A-F-]{36}')
+          echo ">>> Simulateurs iPhone disponibles :"
+          xcrun simctl list devices available | grep -E "iPhone [0-9]+" || echo "Aucun trouve avec ce filtre"
+          SIM_ID=$(xcrun simctl list devices available | grep -E "iPhone [0-9]+" | head -1 | grep -oE '[0-9A-F-]{36}')
           if [ -z "$SIM_ID" ]; then
             echo ">>> Aucun simulateur trouve, capture ignoree (non bloquant)."
           else
