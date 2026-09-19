@@ -37,6 +37,14 @@ workflows:
         script: |
           set -e
           sed -i '' "s/com\.orania\.app/$BUNDLE_ID/g" ios/App/App.xcodeproj/project.pbxproj
+      - name: Retirer le support iPad (iPhone uniquement)
+        script: |
+          set -e
+          echo ">>> Avant :"
+          grep "TARGETED_DEVICE_FAMILY" ios/App/App.xcodeproj/project.pbxproj
+          sed -i '' 's/TARGETED_DEVICE_FAMILY = "1,2"/TARGETED_DEVICE_FAMILY = "1"/g' ios/App/App.xcodeproj/project.pbxproj
+          echo ">>> Apres :"
+          grep "TARGETED_DEVICE_FAMILY" ios/App/App.xcodeproj/project.pbxproj
       - name: Ajouter les textes d'autorisation de localisation
         script: |
           set -e
