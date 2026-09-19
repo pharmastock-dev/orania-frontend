@@ -50,6 +50,23 @@ workflows:
           /usr/libexec/PlistBuddy -c "Print :NSLocationAlwaysAndWhenInUseUsageDescription" "$PLIST"
       - name: Sync Capacitor iOS
         script: npx cap sync ios
+      - name: Integrer la vraie icone QREEB
+        script: |
+          set -e
+          ICONSET="ios/App/App/Assets.xcassets/AppIcon.appiconset"
+          echo ">>> Contenu actuel du dossier icone :"
+          ls -la "$ICONSET"
+          echo ">>> Contenu de Contents.json :"
+          cat "$ICONSET/Contents.json"
+          echo ">>> Remplacement de toutes les images par notre icone (redimensionnee) :"
+          for f in "$ICONSET"/*.png; do
+            if [ -f "$f" ]; then
+              SIZE=$(sips -g pixelWidth "$f" | tail -1 | awk '{print $2}')
+              echo "    -> $f (${SIZE}x${SIZE})"
+              sips -z "$SIZE" "$SIZE" ios-assets/qreeb_icon_1024.png --out "$f" > /dev/null
+            fi
+          done
+          echo ">>> Icone integree avec succes."
       - name: Capture d'ecran automatique (simulateur)
         script: |
           set -e
