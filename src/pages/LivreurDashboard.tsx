@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bike, Power, MapPin, Phone, Store, Wallet, RefreshCw, LogOut, Navigation, CheckCircle2, History, PackageCheck, PackageX } from "lucide-react";
+import { Bike, Power, MapPin, Phone, Store, Wallet, RefreshCw, LogOut, Navigation, CheckCircle2, History, PackageCheck, PackageX, Trash2, AlertTriangle } from "lucide-react";
+import Modal from "../components/Modal";
 import DashboardHeader from "../components/DashboardHeader";
 import Button from "../components/Button";
 import { useApp } from "../context/AppContext";
@@ -15,6 +16,7 @@ import {
   marquerCommandeLivree,
   marquerCommandeNonLivree,
   getHistoriqueLivreur,
+  supprimerCompteLivreur,
 } from "../api";
 import { getPositionActuelle } from "../utils/geo";
 import { formatPrix } from "../utils/format";
@@ -53,6 +55,8 @@ export default function LivreurDashboard() {
   const [actionEnCours, setActionEnCours] = useState<number | null>(null);
   const [historique, setHistorique] = useState<HistoriqueLivreurItem[]>([]);
   const [chargementHistorique, setChargementHistorique] = useState(false);
+  const [suppressionOuverte, setSuppressionOuverte] = useState(false);
+  const [suppressionEnCours, setSuppressionEnCours] = useState(false);
   const intervalRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -123,6 +127,21 @@ export default function LivreurDashboard() {
       .catch(() => showToast("Impossible de charger l'historique.", "error"))
       .finally(() => setChargementHistorique(false));
   }, [onglet, livreurConnecte, showToast]);
+
+  async function handleSupprimerCompte() {
+    if (!livreurConnecte) return;
+    setSuppressionEnCours(true);
+    try {
+      await supprimerCompteLivreur(livreurConnecte.id);
+      showToast("Votre compte a ete supprime.", "success");
+      setLivreurConnecte(null);
+      navigate("/");
+    } catch (err) {
+      showToast("Impossible de supprimer le compte.", "error");
+      setSuppressionEnCours(false);
+      setSuppressionOuverte(false);
+    }
+  }
 
   async function handleAccepter(commande: CommandeDisponible) {
     if (!livreurConnecte) return;

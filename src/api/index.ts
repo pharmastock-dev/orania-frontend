@@ -362,6 +362,9 @@ export const connexionLivreurMarketplace = (telephone: string, mot_de_passe: str
 export const majPositionLivreur = (livreurId: number, latitude: number, longitude: number) =>
   http.put<{ succes: boolean }>(`/livreurs-marketplace/${livreurId}/position`, { latitude, longitude }, "livreur");
 
+export const supprimerCompteLivreur = (livreurId: number) =>
+  http.del<{ succes: boolean; message: string }>(`/livreurs_marketplace/${livreurId}/compte`, "livreur");
+
 export const majStatutLivreur = (livreurId: number, en_ligne: boolean) =>
   http.put<{ succes: boolean }>(`/livreurs-marketplace/${livreurId}/statut`, { en_ligne }, "livreur");
 
