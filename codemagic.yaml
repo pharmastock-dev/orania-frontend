@@ -20,18 +20,19 @@ workflows:
         script: npm install
       - name: Build web (Vite)
         script: npm run build
-      - name: Regenerer la plateforme iOS si absente
+      - name: Regenerer la plateforme iOS (toujours, jamais reutilisee)
         script: |
           set -e
-          if [ ! -d "ios/App" ]; then
-            rm -rf ios
-            npm install @capacitor/ios
-            npx cap add ios
-          fi
+          echo ">>> Suppression de tout ancien dossier ios (evite le cache/nom fige)..."
+          rm -rf ios
+          npm install @capacitor/ios
+          npx cap add ios
           if [ ! -d "ios/App/App.xcodeproj" ]; then
             echo ">>> ECHEC CRITIQUE : App.xcodeproj introuvable."
             exit 1
           fi
+          echo ">>> Verification du nom de l'app dans Info.plist :"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleDisplayName" ios/App/App/Info.plist 2>/dev/null || echo "CFBundleDisplayName absent (utilise CFBundleName)"
       - name: Changer le Bundle ID iOS uniquement
         script: |
           set -e
