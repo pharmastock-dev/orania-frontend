@@ -54,11 +54,19 @@ workflows:
               -destination "id=$SIM_ID" build
             APP_PATH=$(find build_sim -name "App.app" -path "*iphonesimulator*" | head -1)
             xcrun simctl install "$SIM_ID" "$APP_PATH"
-            xcrun simctl launch "$SIM_ID" "$BUNDLE_ID"
-            sleep 8
             mkdir -p screenshots
+            # Demarre la capture des vrais logs de l'app en arriere-plan,
+            # pour diagnostiquer une eventuelle erreur JS/WebView au lancement.
+            xcrun simctl spawn "$SIM_ID" log stream --level debug \
+              --predicate "process == \"App\"" > screenshots/logs_lancement.txt 2>&1 &
+            LOG_PID=$!
+            xcrun simctl launch "$SIM_ID" "$BUNDLE_ID"
+            echo ">>> Attente 25s pour le chargement complet..."
+            sleep 25
             xcrun simctl io "$SIM_ID" screenshot screenshots/qreeb_accueil.png
+            kill $LOG_PID 2>/dev/null || true
             echo ">>> Capture enregistree : screenshots/qreeb_accueil.png"
+            echo ">>> Logs enregistres : screenshots/logs_lancement.txt"
           fi
       - name: Preparer le trousseau (keychain)
         script: keychain initialize
