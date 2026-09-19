@@ -10,6 +10,7 @@ workflows:
         - ios_signing
       vars:
         BUNDLE_ID: "com.qreeb.app"
+        APP_STORE_APPLE_ID: "6813695042"
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
       node: latest
@@ -68,6 +69,15 @@ workflows:
         script: keychain add-certificates
       - name: Appliquer la signature au projet Xcode
         script: xcode-project use-profiles
+      - name: Incrementer le numero de build automatiquement
+        script: |
+          set -e
+          cd ios/App
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || echo 0)
+          echo ">>> Dernier build TestFlight : $LATEST"
+          NOUVEAU=$((LATEST + 1))
+          echo ">>> Nouveau numero de build : $NOUVEAU"
+          agvtool new-version -all "$NOUVEAU"
       - name: Build iOS (archive)
         script: |
           xcode-project build-ipa \
