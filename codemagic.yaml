@@ -37,6 +37,17 @@ workflows:
         script: |
           set -e
           sed -i '' "s/com\.orania\.app/$BUNDLE_ID/g" ios/App/App.xcodeproj/project.pbxproj
+      - name: Ajouter les textes d'autorisation de localisation
+        script: |
+          set -e
+          PLIST="ios/App/App/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string 'QREEB utilise votre position pour vous montrer les commerces les plus proches et calculer le temps de livraison estime.'" "$PLIST" 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Set :NSLocationWhenInUseUsageDescription 'QREEB utilise votre position pour vous montrer les commerces les plus proches et calculer le temps de livraison estime.'" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :NSLocationAlwaysAndWhenInUseUsageDescription string 'QREEB utilise votre position pour vous montrer les commerces les plus proches et, pour les livreurs, permettre le suivi de livraison en temps reel.'" "$PLIST" 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Set :NSLocationAlwaysAndWhenInUseUsageDescription 'QREEB utilise votre position pour vous montrer les commerces les plus proches et, pour les livreurs, permettre le suivi de livraison en temps reel.'" "$PLIST"
+          echo ">>> Verification :"
+          /usr/libexec/PlistBuddy -c "Print :NSLocationWhenInUseUsageDescription" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Print :NSLocationAlwaysAndWhenInUseUsageDescription" "$PLIST"
       - name: Sync Capacitor iOS
         script: npx cap sync ios
       - name: Capture d'ecran automatique (simulateur)
