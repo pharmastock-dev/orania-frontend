@@ -416,5 +416,32 @@ export default function LivreurDashboard() {
         )}
       </div>
     </div>
+
+        <button
+          onClick={() => setSuppressionOuverte(true)}
+          className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-red-600 mt-6 py-2"
+        >
+          <Trash2 size={15} /> Supprimer mon compte livreur
+        </button>
+      </div>
+
+      <Modal open={suppressionOuverte} onClose={() => !suppressionEnCours && setSuppressionOuverte(false)} title="Supprimer mon compte">
+        <div className="flex items-start gap-2.5 bg-red-50 text-red-700 text-sm rounded-xl px-3.5 py-3 mb-4">
+          <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+          <span>
+            Cette action est <strong>definitive et irreversible</strong>. Votre historique de livraisons reste
+            conserve (obligations comptables), mais ne sera plus associe a vos informations personnelles.
+          </span>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" fullWidth onClick={() => setSuppressionOuverte(false)} disabled={suppressionEnCours}>
+            Annuler
+          </Button>
+          <Button fullWidth loading={suppressionEnCours} onClick={handleSupprimerCompte} className="!bg-red-600 hover:!bg-red-700">
+            Supprimer definitivement
+          </Button>
+        </div>
+      </Modal>
+    </div>
   );
 }
