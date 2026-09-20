@@ -415,7 +415,6 @@ export default function LivreurDashboard() {
           </>
         )}
       </div>
-    </div>
 
         <button
           onClick={() => setSuppressionOuverte(true)}
@@ -442,6 +441,5 @@ export default function LivreurDashboard() {
           </Button>
         </div>
       </Modal>
-    </div>
   );
 }
