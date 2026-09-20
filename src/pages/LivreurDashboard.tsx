@@ -422,7 +422,6 @@ export default function LivreurDashboard() {
         >
           <Trash2 size={15} /> Supprimer mon compte livreur
         </button>
-      </div>
 
       <Modal open={suppressionOuverte} onClose={() => !suppressionEnCours && setSuppressionOuverte(false)} title="Supprimer mon compte">
         <div className="flex items-start gap-2.5 bg-red-50 text-red-700 text-sm rounded-xl px-3.5 py-3 mb-4">
