@@ -74,3 +74,24 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
+
+
+/* Corrige l'effet "rubber-band" (rebond elastique) d'iOS -- empeche
+   tout l'ecran de bouger/rebondir au toucher. html/body restent fixes,
+   #root gere seul le vrai defilement avec inertie tactile native. */
+html, body {
+  position: fixed;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  overscroll-behavior: none;
+}
+#root {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
