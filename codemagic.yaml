@@ -100,10 +100,16 @@ workflows:
             xcrun simctl spawn "$SIM_ID" log stream --level debug \
               --predicate "process == \"App\"" > screenshots/logs_lancement.txt 2>&1 &
             LOG_PID=$!
+            echo ">>> Demarrage de l'enregistrement video..."
+            xcrun simctl io "$SIM_ID" recordVideo screenshots/qreeb_demo.mov &
+            REC_PID=$!
+            sleep 2
             xcrun simctl launch "$SIM_ID" "$BUNDLE_ID"
-            echo ">>> Attente 25s pour le chargement complet..."
-            sleep 25
+            echo ">>> Attente 45s (lancement + affichage) pour la video..."
+            sleep 45
             xcrun simctl io "$SIM_ID" screenshot screenshots/qreeb_accueil.png
+            kill -INT $REC_PID 2>/dev/null || true
+            sleep 3
             kill $LOG_PID 2>/dev/null || true
             echo ">>> Capture enregistree : screenshots/qreeb_accueil.png"
             echo ">>> Logs enregistres : screenshots/logs_lancement.txt"
@@ -134,6 +140,7 @@ workflows:
     artifacts:
       - build/ios/ipa/*.ipa
       - screenshots/*.png
+      - screenshots/*.mov
       - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
