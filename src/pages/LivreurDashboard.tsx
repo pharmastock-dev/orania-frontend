@@ -441,5 +441,6 @@ export default function LivreurDashboard() {
           </Button>
         </div>
       </Modal>
+    </div>
   );
 }
