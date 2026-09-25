@@ -1,4 +1,3 @@
-workflows:
   qreeb-ios:
     name: QREEB - Build iOS
     max_build_duration: 60
@@ -16,7 +15,7 @@ workflows:
       node: latest
       xcode: latest
     scripts:
-      - name: Installer les dépendances npm
+      - name: Installer les dependances npm
         script: npm install
       - name: Build web (Vite)
         script: npm run build
@@ -95,8 +94,6 @@ workflows:
             APP_PATH=$(find build_sim -name "App.app" -path "*iphonesimulator*" | head -1)
             xcrun simctl install "$SIM_ID" "$APP_PATH"
             mkdir -p screenshots
-            # Demarre la capture des vrais logs de l'app en arriere-plan,
-            # pour diagnostiquer une eventuelle erreur JS/WebView au lancement.
             xcrun simctl spawn "$SIM_ID" log stream --level debug \
               --predicate "process == \"App\"" > screenshots/logs_lancement.txt 2>&1 &
             LOG_PID=$!
@@ -132,6 +129,8 @@ workflows:
           NOUVEAU=$((LATEST + 1))
           echo ">>> Nouveau numero de build : $NOUVEAU"
           agvtool new-version -all "$NOUVEAU"
+          echo ">>> Mise a jour de la version marketing vers 1.0.1..."
+          agvtool new-marketing-version 1.0.1
       - name: Build iOS (archive)
         script: |
           xcode-project build-ipa \
