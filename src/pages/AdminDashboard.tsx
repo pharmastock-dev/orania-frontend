@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, AlertTriangle, Store, Bell, Ban, Play, Plus, Flag, Check, KeyRound, Search, Trash2, Bike } from "lucide-react";
+import { LogOut, AlertTriangle, Store, Bell, Ban, Play, Plus, Flag, Check, KeyRound, Search, Trash2, Bike, RefreshCw } from "lucide-react";
 import DashboardHeader from "../components/DashboardHeader";
 import { CardSkeleton } from "../components/Loading";
 import Modal from "../components/Modal";
@@ -40,10 +40,17 @@ export default function AdminDashboard() {
   const [suppressionCommerce, setSuppressionCommerce] = useState<Fournisseur | null>(null);
   const [suppressionLivreur, setSuppressionLivreur] = useState<LivreurMarketplaceAdmin | null>(null);
   const [rechercheCommerce, setRechercheCommerce] = useState("");
-  // Date d'activation choisie par l'admin pour chaque demande en attente
-  // (commerce ou livreur) — vide = activation immédiate, comme avant.
-  const [dateActivationCommerce, setDateActivationCommerce] = useState<Record<number, string>>({});
-  const [dateActivationLivreur, setDateActivationLivreur] = useState<Record<number, string>>({});
+  const [rechercheDemandeCommerce, setRechercheDemandeCommerce] = useState("");
+  const [rechercheDemandeLivreur, setRechercheDemandeLivreur] = useState("");
+  const [rechercheLivreur, setRechercheLivreur] = useState("");
+  // Tri des listes "actifs" : par date de début (date_creation) ou de fin
+  // d'abonnement (abonnement_fin), toujours du plus récent au plus ancien.
+  const [triCommerce, setTriCommerce] = useState<"debut" | "fin">("fin");
+  const [triLivreur, setTriLivreur] = useState<"debut" | "fin">("fin");
+  // 4 sections regroupées en onglets (une seule affichée à la fois) au lieu
+  // d'une longue page qui scrolle.
+  type Onglet = "demandesCommerces" | "commerces" | "demandesLivreurs" | "livreurs";
+  const [onglet, setOnglet] = useState<Onglet>("demandesCommerces");
 
   function charger() {
     setLoading(true);
@@ -58,11 +65,10 @@ export default function AdminDashboard() {
 
   async function handleValiderLivreur(l: LivreurMarketplaceAdmin) {
     setActionEnCours(l.id);
-    const date = dateActivationLivreur[l.id];
     try {
-      const res = await adminValiderLivreurMarketplace(l.id, date || undefined);
+      const res = await adminValiderLivreurMarketplace(l.id);
       setLivreursMarketplace((prev) => prev.map((x) => (x.id === l.id ? { ...x, valide: true, abonnement_fin: res.abonnement_fin ?? x.abonnement_fin } : x)));
-      showToast(`${l.nom} validé${date ? ` — activation le ${date}` : " — accès actif pour 1 an."}`, "success");
+      showToast(`${l.nom} activé pour 1 an — en haut de la liste des livreurs actifs.`, "success");
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : "Impossible de valider ce livreur.", "error");
     } finally {
@@ -78,6 +84,22 @@ export default function AdminDashboard() {
       showToast(`Abonnement de ${l.nom} prolongé d'1 an.`, "success");
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : "Impossible de prolonger cet abonnement.", "error");
+    } finally {
+      setActionEnCours(null);
+    }
+  }
+
+  // Rejeter une demande d'inscription livreur (pas encore validée) — plus
+  // léger qu'une suppression définitive, pas besoin de la modale de confirmation.
+  async function handleRejeterDemandeLivreur(l: LivreurMarketplaceAdmin) {
+    if (!window.confirm(`Rejeter la demande d'inscription de "${l.nom}" ?`)) return;
+    setActionEnCours(l.id);
+    try {
+      await adminSupprimerLivreurMarketplace(l.id);
+      setLivreursMarketplace((prev) => prev.filter((x) => x.id !== l.id));
+      showToast(`Demande de ${l.nom} rejetée.`, "success");
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : "Impossible de rejeter cette demande.", "error");
     } finally {
       setActionEnCours(null);
     }
@@ -135,29 +157,49 @@ export default function AdminDashboard() {
     navigate("/");
   }
 
-  const reclamationsCommercants = reclamations.filter((r) => r.type_auteur !== "client");
-  const reclamationsClients = reclamations.filter((r) => r.type_auteur === "client");
-  const livreursEnAttente = livreursMarketplace.filter((l) => !l.valide);
-  const livreursValides = livreursMarketplace.filter((l) => l.valide);
+  // Réclamations : toujours la plus récente en premier (seule date dispo : date_creation).
+  function parDateRecente<T extends { date_creation?: string | null }>(a: T, b: T) {
+    return (b.date_creation || "").localeCompare(a.date_creation || "");
+  }
+  const reclamationsCommercants = reclamations.filter((r) => r.type_auteur !== "client").sort(parDateRecente);
+  const reclamationsClients = reclamations.filter((r) => r.type_auteur === "client").sort(parDateRecente);
 
-  const demandes = fournisseurs
-    .filter((f) => f.valide === false)
-    .sort((a, b) => (a.date_creation || "").localeCompare(b.date_creation || ""));
-  const commercesValides = fournisseurs
-    .filter((f) => f.valide !== false)
-    .filter((f) => {
-      if (!rechercheCommerce.trim()) return true;
-      const q = rechercheCommerce.trim().toLowerCase();
-      return f.nom.toLowerCase().includes(q) || f.telephone.toLowerCase().includes(q) || (f.adresse || "").toLowerCase().includes(q);
-    })
+  // Recherche par nom (+ téléphone/adresse quand dispo) — appliquée après le
+  // tri chronologique, indépendamment dans chacune des 4 sections/onglets.
+  function correspond(recherche: string, ...valeurs: (string | null | undefined)[]) {
+    if (!recherche.trim()) return true;
+    const q = recherche.trim().toLowerCase();
+    return valeurs.some((v) => (v || "").toLowerCase().includes(q));
+  }
+
+  const livreursEnAttenteToutes = livreursMarketplace.filter((l) => !l.valide).sort(parDateRecente);
+  const livreursEnAttente = livreursEnAttenteToutes.filter((l) => correspond(rechercheDemandeLivreur, l.nom, l.telephone));
+
+  const livreursValidesToutes = livreursMarketplace
+    .filter((l) => l.valide)
     .sort((a, b) => {
-      // Ordre chronologique par fin d'abonnement — les plus récemment activés
-      // (donc les plus loin dans le futur) en premier.
-      if (!a.abonnement_fin && !b.abonnement_fin) return b.id - a.id;
-      if (!a.abonnement_fin) return 1;
-      if (!b.abonnement_fin) return -1;
-      return new Date(b.abonnement_fin).getTime() - new Date(a.abonnement_fin).getTime();
+      const champ = triLivreur === "debut" ? "date_creation" : "abonnement_fin";
+      return ((b as any)[champ] || "").localeCompare((a as any)[champ] || "");
     });
+  const livreursValides = livreursValidesToutes.filter((l) => correspond(rechercheLivreur, l.nom, l.telephone));
+
+  const demandesToutes = fournisseurs.filter((f) => f.valide === false).sort(parDateRecente);
+  const demandes = demandesToutes.filter((d) => correspond(rechercheDemandeCommerce, d.nom, d.telephone, d.adresse));
+
+  const commercesValidesToutes = fournisseurs
+    .filter((f) => f.valide !== false)
+    .sort((a, b) => {
+      // Tri configurable : date de début (date_creation) ou de fin (abonnement_fin)
+      // d'abonnement, toujours du plus récent au plus ancien.
+      const champ = triCommerce === "debut" ? "date_creation" : "abonnement_fin";
+      const va = (a as any)[champ] as string | null | undefined;
+      const vb = (b as any)[champ] as string | null | undefined;
+      if (!va && !vb) return b.id - a.id;
+      if (!va) return 1;
+      if (!vb) return -1;
+      return new Date(vb).getTime() - new Date(va).getTime();
+    });
+  const commercesValides = commercesValidesToutes.filter((f) => correspond(rechercheCommerce, f.nom, f.telephone, f.adresse));
 
   function estExpire(f: Fournisseur) {
     return f.abonnement_fin ? new Date(f.abonnement_fin) < new Date() : true;
@@ -165,13 +207,28 @@ export default function AdminDashboard() {
 
   async function handleValider(f: Fournisseur) {
     setActionEnCours(f.id);
-    const date = dateActivationCommerce[f.id];
     try {
-      const res = await validerFournisseur(f.id, date || undefined);
+      const res = await validerFournisseur(f.id);
       setFournisseurs((prev) => prev.map((x) => (x.id === f.id ? { ...x, valide: true, actif: true, abonnement_fin: res.abonnement_fin } : x)));
-      showToast(`${f.nom} validé${date ? ` — activation le ${date}` : " et activé pour 1 an"}`, "success");
+      showToast(`${f.nom} activé pour 1 an — en haut de la liste des commerces.`, "success");
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : "Impossible de valider ce commerce.", "error");
+    } finally {
+      setActionEnCours(null);
+    }
+  }
+
+  // Rejeter une demande d'inscription commerce (pas encore validée) — plus
+  // léger qu'une suppression définitive, pas besoin de la modale de confirmation.
+  async function handleRejeterDemandeCommerce(f: Fournisseur) {
+    if (!window.confirm(`Rejeter la demande d'inscription de "${f.nom}" ?`)) return;
+    setActionEnCours(f.id);
+    try {
+      await supprimerFournisseurAdmin(f.id);
+      setFournisseurs((prev) => prev.filter((x) => x.id !== f.id));
+      showToast(`Demande de ${f.nom} rejetée.`, "success");
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : "Impossible de rejeter cette demande.", "error");
     } finally {
       setActionEnCours(null);
     }
@@ -357,14 +414,50 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* ---------- Onglets : Inscriptions commerces / Commerces / Inscriptions livreurs / Livreurs actifs ---------- */}
+        <div className="flex flex-wrap gap-2 mt-7 mb-5">
+          {([
+            { id: "demandesCommerces", label: "Inscriptions commerces", count: demandesToutes.length },
+            { id: "commerces", label: "Commerces", count: commercesValidesToutes.length },
+            { id: "demandesLivreurs", label: "Inscriptions livreurs", count: livreursEnAttenteToutes.length },
+            { id: "livreurs", label: "Livreurs actifs", count: livreursValidesToutes.length },
+          ] as { id: Onglet; label: string; count: number }[]).map((o) => (
+            <button
+              key={o.id}
+              onClick={() => setOnglet(o.id)}
+              className={`flex items-center gap-1.5 text-sm font-semibold px-3.5 py-2 rounded-xl ${onglet === o.id ? "bg-[var(--color-navy-900)] text-white" : "bg-white border border-[var(--color-ink-100)] text-[var(--color-ink-700)]"}`}
+            >
+              {o.label}
+              {o.count > 0 && (
+                <span className={`h-5 min-w-5 px-1 rounded-full text-xs font-bold flex items-center justify-center ${onglet === o.id ? "bg-white/20 text-white" : "bg-red-500 text-white"}`}>
+                  {o.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
         {/* ---------- Inscriptions commerces (en attente) ---------- */}
-        <div className="flex items-center gap-2 mt-7 mb-3">
+        {onglet === "demandesCommerces" && (
+        <>
+        <div className="flex items-center gap-2 mt-1 mb-3">
           <Bell size={16} className="text-[var(--color-ink-500)]" />
           <p className="font-bold text-[var(--color-ink-900)]">Inscriptions commerces</p>
           {demandes.length > 0 && (
             <span className="h-5 min-w-5 px-1 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">{demandes.length}</span>
           )}
         </div>
+
+        <div className="flex items-center gap-2 bg-white border border-[var(--color-ink-100)] rounded-xl px-3.5 py-2.5 mb-3">
+          <Search size={16} className="text-[var(--color-ink-500)] shrink-0" />
+          <input
+            value={rechercheDemandeCommerce}
+            onChange={(e) => setRechercheDemandeCommerce(e.target.value)}
+            placeholder="Chercher une demande (nom, téléphone, adresse)..."
+            className="flex-1 min-w-0 bg-transparent outline-none text-sm placeholder:text-[var(--color-ink-500)]"
+          />
+        </div>
+
         {loading ? (
           <CardSkeleton />
         ) : demandes.length === 0 ? (
@@ -387,29 +480,50 @@ export default function AdminDashboard() {
                 </div>
                 {d.categorie && <span className="inline-block mt-2 text-xs font-medium px-2 py-1 rounded-full bg-[var(--color-ink-100)] text-[var(--color-ink-700)]">{getCategorieLabel(d.categorie)}</span>}
                 <div className="flex items-center gap-2 mt-3">
-                  <label className="text-xs text-[var(--color-ink-500)] shrink-0">Activer le :</label>
-                  <input
-                    type="date"
-                    value={dateActivationCommerce[d.id] || ""}
-                    onChange={(e) => setDateActivationCommerce((prev) => ({ ...prev, [d.id]: e.target.value }))}
-                    className="flex-1 text-sm border border-[var(--color-ink-100)] rounded-lg px-2 py-1.5"
-                  />
+                  <button
+                    onClick={() => handleValider(d)}
+                    disabled={actionEnCours === d.id}
+                    className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold text-white bg-[var(--color-green-500)] hover:bg-[var(--color-green-600)] rounded-xl px-3 py-2.5 disabled:opacity-60"
+                    title="Active l'inscription maintenant, pour 1 an — elle remonte en haut de la liste des commerces"
+                  >
+                    <RefreshCw size={14} /> Réinitialiser
+                  </button>
+                  <button
+                    onClick={() => handleRejeterDemandeCommerce(d)}
+                    disabled={actionEnCours === d.id}
+                    className="flex items-center justify-center gap-1 text-sm font-semibold text-red-500 hover:bg-red-50 rounded-xl px-3 py-2.5 disabled:opacity-60 border border-red-200"
+                  >
+                    <Trash2 size={14} /> Rejeter
+                  </button>
                 </div>
-                <button
-                  onClick={() => handleValider(d)}
-                  disabled={actionEnCours === d.id}
-                  className="w-full flex items-center justify-center gap-1.5 text-sm font-semibold text-white bg-[var(--color-green-500)] hover:bg-[var(--color-green-600)] rounded-xl px-3 py-2.5 disabled:opacity-60 mt-3"
-                >
-                  ✓ Valider & activer {dateActivationCommerce[d.id] ? `le ${dateActivationCommerce[d.id]}` : "(1 an, immédiat)"}
-                </button>
               </div>
             ))}
           </div>
         )}
+        </>
+        )}
 
-        <div className="flex items-center gap-2 mt-7 mb-3">
+        {/* ---------- Commerces actifs (gestion) ---------- */}
+        {onglet === "commerces" && (
+        <>
+        <div className="flex items-center gap-2 mt-1 mb-3">
           <Store size={16} className="text-[var(--color-ink-500)]" />
           <p className="font-bold text-[var(--color-ink-900)]">Commerces ({commercesValides.length})</p>
+        </div>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-xs text-[var(--color-ink-500)]">Trier par :</span>
+          <button
+            onClick={() => setTriCommerce("debut")}
+            className={`text-xs font-semibold px-2.5 py-1 rounded-full ${triCommerce === "debut" ? "bg-[var(--color-navy-900)] text-white" : "bg-[var(--color-ink-100)] text-[var(--color-ink-700)]"}`}
+          >
+            Début d'abonnement
+          </button>
+          <button
+            onClick={() => setTriCommerce("fin")}
+            className={`text-xs font-semibold px-2.5 py-1 rounded-full ${triCommerce === "fin" ? "bg-[var(--color-navy-900)] text-white" : "bg-[var(--color-ink-100)] text-[var(--color-ink-700)]"}`}
+          >
+            Fin d'abonnement
+          </button>
         </div>
 
         <div className="flex items-center gap-2 bg-white border border-[var(--color-ink-100)] rounded-xl px-3.5 py-2.5 mb-3">
@@ -449,13 +563,21 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-4 gap-2 mt-3">
+                  <div className="grid grid-cols-3 gap-2 mt-3">
                     <button
                       onClick={() => handleProlonger(f)}
                       disabled={actionEnCours === f.id}
                       className="flex items-center justify-center gap-1 text-xs font-semibold px-2 py-2 rounded-lg bg-[var(--color-green-100)] text-[var(--color-green-600)] disabled:opacity-60"
                     >
                       <Plus size={13} /> 1 an
+                    </button>
+                    <button
+                      onClick={() => handleValider(f)}
+                      disabled={actionEnCours === f.id}
+                      className="flex items-center justify-center gap-1 text-xs font-semibold px-2 py-2 rounded-lg bg-blue-50 text-blue-700 disabled:opacity-60"
+                      title="Repart à zéro : abonnement fixé à aujourd'hui + 1 an, même s'il est actif depuis longtemps"
+                    >
+                      <RefreshCw size={13} /> Réinit.
                     </button>
                     <button
                       onClick={() => handleToggleActif(f)}
@@ -484,11 +606,15 @@ export default function AdminDashboard() {
             })
           )}
         </div>
+        </>
+        )}
       </div>
 
       {/* ---------- Inscriptions livreurs (en attente) ---------- */}
       <div className="max-w-3xl mx-auto px-4">
-        <div className="flex items-center gap-2 mt-7 mb-3">
+        {onglet === "demandesLivreurs" && (
+        <>
+        <div className="flex items-center gap-2 mt-1 mb-3">
           <Bike size={16} className="text-[var(--color-ink-500)]" />
           <p className="font-bold text-[var(--color-ink-900)]">Inscriptions livreurs</p>
           {livreursEnAttente.length > 0 && (
@@ -496,6 +622,16 @@ export default function AdminDashboard() {
               {livreursEnAttente.length}
             </span>
           )}
+        </div>
+
+        <div className="flex items-center gap-2 bg-white border border-[var(--color-ink-100)] rounded-xl px-3.5 py-2.5 mb-3">
+          <Search size={16} className="text-[var(--color-ink-500)] shrink-0" />
+          <input
+            value={rechercheDemandeLivreur}
+            onChange={(e) => setRechercheDemandeLivreur(e.target.value)}
+            placeholder="Chercher une demande (nom, téléphone)..."
+            className="flex-1 min-w-0 bg-transparent outline-none text-sm placeholder:text-[var(--color-ink-500)]"
+          />
         </div>
 
         {livreursEnAttente.length === 0 ? (
@@ -511,40 +647,61 @@ export default function AdminDashboard() {
                   </div>
                   <span className="text-xs font-semibold px-2 py-1 rounded-full bg-[var(--color-orange-100)] text-[var(--color-orange-600)]">En attente</span>
                 </div>
-                <div className="flex items-center gap-2 mt-3">
-                  <label className="text-xs text-[var(--color-ink-500)] shrink-0">Activer le :</label>
-                  <input
-                    type="date"
-                    value={dateActivationLivreur[l.id] || ""}
-                    onChange={(e) => setDateActivationLivreur((prev) => ({ ...prev, [l.id]: e.target.value }))}
-                    className="flex-1 text-sm border border-[var(--color-ink-100)] rounded-lg px-2 py-1.5"
-                  />
-                </div>
                 <div className="flex gap-2 mt-3">
                   <button
                     onClick={() => handleValiderLivreur(l)}
                     disabled={actionEnCours === l.id}
                     className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold text-white bg-[var(--color-green-500)] hover:bg-[var(--color-green-600)] rounded-xl px-3 py-2.5 disabled:opacity-60"
+                    title="Active l'inscription maintenant, pour 1 an — elle remonte en haut de la liste des livreurs actifs"
                   >
-                    <Check size={14} /> Valider {dateActivationLivreur[l.id] ? `le ${dateActivationLivreur[l.id]}` : "(1 an, immédiat)"}
+                    <RefreshCw size={14} /> Réinitialiser
                   </button>
                   <button
-                    onClick={() => setSuppressionLivreur(l)}
+                    onClick={() => handleRejeterDemandeLivreur(l)}
                     disabled={actionEnCours === l.id}
-                    className="flex items-center justify-center gap-1 text-xs font-semibold px-3 py-2 rounded-xl bg-red-50 text-red-600 disabled:opacity-60"
+                    className="flex items-center justify-center gap-1 text-sm font-semibold text-red-500 hover:bg-red-50 rounded-xl px-3 py-2.5 disabled:opacity-60 border border-red-200"
                   >
-                    <Trash2 size={13} />
+                    <Trash2 size={14} /> Rejeter
                   </button>
                 </div>
               </div>
             ))}
           </div>
         )}
+        </>
+        )}
 
         {/* ---------- Livreurs actifs (gestion) ---------- */}
-        <div className="flex items-center gap-2 mt-7 mb-3">
+        {onglet === "livreurs" && (
+        <>
+        <div className="flex items-center gap-2 mt-1 mb-3">
           <Bike size={16} className="text-[var(--color-ink-500)]" />
           <p className="font-bold text-[var(--color-ink-900)]">Livreurs actifs ({livreursValides.length})</p>
+        </div>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-xs text-[var(--color-ink-500)]">Trier par :</span>
+          <button
+            onClick={() => setTriLivreur("debut")}
+            className={`text-xs font-semibold px-2.5 py-1 rounded-full ${triLivreur === "debut" ? "bg-[var(--color-navy-900)] text-white" : "bg-[var(--color-ink-100)] text-[var(--color-ink-700)]"}`}
+          >
+            Début d'abonnement
+          </button>
+          <button
+            onClick={() => setTriLivreur("fin")}
+            className={`text-xs font-semibold px-2.5 py-1 rounded-full ${triLivreur === "fin" ? "bg-[var(--color-navy-900)] text-white" : "bg-[var(--color-ink-100)] text-[var(--color-ink-700)]"}`}
+          >
+            Fin d'abonnement
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 bg-white border border-[var(--color-ink-100)] rounded-xl px-3.5 py-2.5 mb-3">
+          <Search size={16} className="text-[var(--color-ink-500)] shrink-0" />
+          <input
+            value={rechercheLivreur}
+            onChange={(e) => setRechercheLivreur(e.target.value)}
+            placeholder="Chercher un livreur (nom, téléphone)..."
+            className="flex-1 min-w-0 bg-transparent outline-none text-sm placeholder:text-[var(--color-ink-500)]"
+          />
         </div>
 
         {livreursValides.length === 0 ? (
@@ -552,36 +709,42 @@ export default function AdminDashboard() {
         ) : (
           <div className="flex flex-col gap-2">
             {livreursValides.map((l) => (
-              <div key={l.id} className="bg-white rounded-xl border border-[var(--color-ink-100)] p-3.5 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold text-sm text-[var(--color-ink-900)] truncate">{l.nom}</p>
-                    {l.en_ligne ? (
-                      <span className="text-[10px] font-bold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full">En ligne</span>
-                    ) : (
-                      <span className="text-[10px] font-bold text-[var(--color-ink-500)] bg-[var(--color-ink-100)] px-1.5 py-0.5 rounded-full">Hors ligne</span>
-                    )}
-                  </div>
-                  <p className="text-xs text-[var(--color-ink-500)]">{l.telephone}</p>
-                  {l.abonnement_fin && (
-                    <p className="text-[11px] text-[var(--color-ink-500)] mt-0.5">
-                      Abonnement jusqu'au {new Date(l.abonnement_fin).toLocaleDateString("fr-FR")}
-                    </p>
+              <div key={l.id} className="bg-white rounded-xl border border-[var(--color-ink-100)] p-3.5">
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-sm text-[var(--color-ink-900)] truncate">{l.nom}</p>
+                  {l.en_ligne ? (
+                    <span className="text-[10px] font-bold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full">En ligne</span>
+                  ) : (
+                    <span className="text-[10px] font-bold text-[var(--color-ink-500)] bg-[var(--color-ink-100)] px-1.5 py-0.5 rounded-full">Hors ligne</span>
                   )}
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <p className="text-xs text-[var(--color-ink-500)]">{l.telephone}</p>
+                {l.abonnement_fin && (
+                  <p className="text-[11px] text-[var(--color-ink-500)] mt-0.5">
+                    Abonnement jusqu'au {new Date(l.abonnement_fin).toLocaleDateString("fr-FR")}
+                  </p>
+                )}
+                <div className="grid grid-cols-3 gap-2 mt-3">
                   <button
                     onClick={() => handleProlongerLivreur(l)}
                     disabled={actionEnCours === l.id}
-                    className="flex items-center gap-1 text-xs font-semibold px-2.5 py-2 rounded-lg bg-blue-50 text-blue-700 disabled:opacity-60"
+                    className="flex items-center justify-center gap-1 text-xs font-semibold px-2 py-2 rounded-lg bg-blue-50 text-blue-700 disabled:opacity-60"
                     title="Prolonger l'abonnement d'1 an"
                   >
                     <Plus size={13} /> +1 an
                   </button>
                   <button
+                    onClick={() => handleValiderLivreur(l)}
+                    disabled={actionEnCours === l.id}
+                    className="flex items-center justify-center gap-1 text-xs font-semibold px-2 py-2 rounded-lg bg-[var(--color-ink-100)] text-[var(--color-ink-700)] disabled:opacity-60"
+                    title="Repart à zéro : abonnement fixé à aujourd'hui + 1 an, même s'il est actif depuis longtemps"
+                  >
+                    <RefreshCw size={13} /> Réinit.
+                  </button>
+                  <button
                     onClick={() => setSuppressionLivreur(l)}
                     disabled={actionEnCours === l.id}
-                    className="flex items-center gap-1 text-xs font-semibold px-2.5 py-2 rounded-lg bg-red-50 text-red-600 disabled:opacity-60"
+                    className="flex items-center justify-center gap-1 text-xs font-semibold px-2 py-2 rounded-lg bg-red-50 text-red-600 disabled:opacity-60"
                   >
                     <Trash2 size={13} /> Suppr.
                   </button>
@@ -589,6 +752,8 @@ export default function AdminDashboard() {
               </div>
             ))}
           </div>
+        )}
+        </>
         )}
       </div>
 
