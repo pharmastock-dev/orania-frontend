@@ -292,9 +292,12 @@ export function estConnecteAdmin() {
 
 export const getFournisseursAdmin = () => http.get<Fournisseur[]>("/admin/fournisseurs", true);
 
-export const validerFournisseur = (fournisseurId: number) =>
-  http.put<{ succes: boolean; abonnement_fin?: string; message?: string }>(`/admin/fournisseurs/${fournisseurId}/valider`, undefined, true);
-
+export const validerFournisseur = (fournisseurId: number, dateActivation?: string) =>
+  http.put<{ succes: boolean; abonnement_fin?: string; message?: string }>(
+    `/admin/fournisseurs/${fournisseurId}/valider`,
+    dateActivation ? { date_activation: dateActivation } : undefined,
+    true
+  );
 export const prolongerAbonnement = (fournisseurId: number) =>
   http.put<{ succes: boolean; abonnement_fin?: string; message?: string }>(`/admin/fournisseurs/${fournisseurId}/abonnement`, undefined, true);
 
@@ -399,9 +402,12 @@ export const getHistoriqueLivreur = (livreurId: number) =>
 export const adminListeLivreursMarketplace = () =>
   http.get<LivreurMarketplaceAdmin[]>("/admin/livreurs-marketplace", true);
 
-export const adminValiderLivreurMarketplace = (livreurId: number) =>
-  http.put<{ succes: boolean; message: string; abonnement_fin?: string }>(`/admin/livreurs-marketplace/${livreurId}/valider`, undefined, true);
-
+export const adminValiderLivreurMarketplace = (livreurId: number, dateActivation?: string) =>
+  http.put<{ succes: boolean; message: string; abonnement_fin?: string }>(
+    `/admin/livreurs-marketplace/${livreurId}/valider`,
+    dateActivation ? { date_activation: dateActivation } : undefined,
+    true
+  );
 export const adminProlongerAbonnementLivreur = (livreurId: number) =>
   http.put<{ succes: boolean; message: string; abonnement_fin?: string }>(`/admin/livreurs-marketplace/${livreurId}/abonnement`, undefined, true);
 

@@ -40,6 +40,10 @@ export default function AdminDashboard() {
   const [suppressionCommerce, setSuppressionCommerce] = useState<Fournisseur | null>(null);
   const [suppressionLivreur, setSuppressionLivreur] = useState<LivreurMarketplaceAdmin | null>(null);
   const [rechercheCommerce, setRechercheCommerce] = useState("");
+  // Date d'activation choisie par l'admin pour chaque demande en attente
+  // (commerce ou livreur) — vide = activation immédiate, comme avant.
+  const [dateActivationCommerce, setDateActivationCommerce] = useState<Record<number, string>>({});
+  const [dateActivationLivreur, setDateActivationLivreur] = useState<Record<number, string>>({});
 
   function charger() {
     setLoading(true);
@@ -54,10 +58,11 @@ export default function AdminDashboard() {
 
   async function handleValiderLivreur(l: LivreurMarketplaceAdmin) {
     setActionEnCours(l.id);
+    const date = dateActivationLivreur[l.id];
     try {
-      const res = await adminValiderLivreurMarketplace(l.id);
+      const res = await adminValiderLivreurMarketplace(l.id, date || undefined);
       setLivreursMarketplace((prev) => prev.map((x) => (x.id === l.id ? { ...x, valide: true, abonnement_fin: res.abonnement_fin ?? x.abonnement_fin } : x)));
-      showToast(`${l.nom} validé — accès actif pour 1 an.`, "success");
+      showToast(`${l.nom} validé${date ? ` — activation le ${date}` : " — accès actif pour 1 an."}`, "success");
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : "Impossible de valider ce livreur.", "error");
     } finally {
@@ -130,6 +135,11 @@ export default function AdminDashboard() {
     navigate("/");
   }
 
+  const reclamationsCommercants = reclamations.filter((r) => r.type_auteur !== "client");
+  const reclamationsClients = reclamations.filter((r) => r.type_auteur === "client");
+  const livreursEnAttente = livreursMarketplace.filter((l) => !l.valide);
+  const livreursValides = livreursMarketplace.filter((l) => l.valide);
+
   const demandes = fournisseurs
     .filter((f) => f.valide === false)
     .sort((a, b) => (a.date_creation || "").localeCompare(b.date_creation || ""));
@@ -155,10 +165,11 @@ export default function AdminDashboard() {
 
   async function handleValider(f: Fournisseur) {
     setActionEnCours(f.id);
+    const date = dateActivationCommerce[f.id];
     try {
-      const res = await validerFournisseur(f.id);
+      const res = await validerFournisseur(f.id, date || undefined);
       setFournisseurs((prev) => prev.map((x) => (x.id === f.id ? { ...x, valide: true, actif: true, abonnement_fin: res.abonnement_fin } : x)));
-      showToast(`${f.nom} validé et activé pour 1 an`, "success");
+      showToast(`${f.nom} validé${date ? ` — activation le ${date}` : " et activé pour 1 an"}`, "success");
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : "Impossible de valider ce commerce.", "error");
     } finally {
@@ -254,28 +265,27 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* ---------- Réclamations commerçants ---------- */}
         <div className="flex items-center gap-2 mt-6 mb-3">
           <Flag size={16} className="text-[var(--color-ink-500)]" />
-          <p className="font-bold text-[var(--color-ink-900)]">Réclamations</p>
-          {reclamations.filter((r) => !r.traitee).length > 0 && (
+          <p className="font-bold text-[var(--color-ink-900)]">Réclamations commerçants</p>
+          {reclamationsCommercants.filter((r) => !r.traitee).length > 0 && (
             <span className="h-5 min-w-5 px-1 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">
-              {reclamations.filter((r) => !r.traitee).length}
+              {reclamationsCommercants.filter((r) => !r.traitee).length}
             </span>
           )}
         </div>
         {loading ? (
           <CardSkeleton />
-        ) : reclamations.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-[var(--color-ink-100)] p-4 text-sm text-[var(--color-ink-500)]">Aucune réclamation</div>
+        ) : reclamationsCommercants.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-[var(--color-ink-100)] p-4 text-sm text-[var(--color-ink-500)]">Aucune réclamation commerçant</div>
         ) : (
           <div className="flex flex-col gap-2.5">
-            {reclamations.map((r) => (
+            {reclamationsCommercants.map((r) => (
               <div key={r.id} className={`bg-white rounded-2xl border p-4 ${r.traitee ? "border-[var(--color-ink-100)] opacity-70" : "border-2 border-red-200"}`}>
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="text-xs font-semibold text-[var(--color-ink-500)]">
-                      {r.type_auteur === "client" ? "👤 Client" : "🏪 Commerçant"} · {r.auteur_nom || `#${r.auteur_id}`}
-                    </p>
+                    <p className="text-xs font-semibold text-[var(--color-ink-500)]">🏪 {r.auteur_nom || `#${r.auteur_id}`}</p>
                     {r.auteur_telephone && (
                       <a href={`tel:${r.auteur_telephone}`} className="text-xs text-blue-600 hover:underline">📞 {r.auteur_telephone}</a>
                     )}
@@ -301,9 +311,56 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* ---------- Réclamations clients ---------- */}
+        <div className="flex items-center gap-2 mt-7 mb-3">
+          <Flag size={16} className="text-[var(--color-ink-500)]" />
+          <p className="font-bold text-[var(--color-ink-900)]">Réclamations clients</p>
+          {reclamationsClients.filter((r) => !r.traitee).length > 0 && (
+            <span className="h-5 min-w-5 px-1 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">
+              {reclamationsClients.filter((r) => !r.traitee).length}
+            </span>
+          )}
+        </div>
+        {loading ? (
+          <CardSkeleton />
+        ) : reclamationsClients.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-[var(--color-ink-100)] p-4 text-sm text-[var(--color-ink-500)]">Aucune réclamation client</div>
+        ) : (
+          <div className="flex flex-col gap-2.5">
+            {reclamationsClients.map((r) => (
+              <div key={r.id} className={`bg-white rounded-2xl border p-4 ${r.traitee ? "border-[var(--color-ink-100)] opacity-70" : "border-2 border-red-200"}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-xs font-semibold text-[var(--color-ink-500)]">👤 {r.auteur_nom || `#${r.auteur_id}`}</p>
+                    {r.auteur_telephone && (
+                      <a href={`tel:${r.auteur_telephone}`} className="text-xs text-blue-600 hover:underline">📞 {r.auteur_telephone}</a>
+                    )}
+                  </div>
+                  <span className={`shrink-0 text-xs font-semibold px-2 py-1 rounded-full ${r.traitee ? "bg-[var(--color-green-100)] text-[var(--color-green-600)]" : "bg-[var(--color-orange-100)] text-[var(--color-orange-600)]"}`}>
+                    {r.traitee ? "Traitée" : "En attente"}
+                  </span>
+                </div>
+                <p className="text-sm text-[var(--color-ink-700)] mt-2 whitespace-pre-line">{r.message}</p>
+                {r.date_creation && <p className="text-xs text-[var(--color-ink-500)] mt-1">{new Date(r.date_creation).toLocaleString("fr-FR")}</p>}
+                <div className="flex gap-2 mt-3">
+                  {!r.traitee && (
+                    <button onClick={() => handleTraiter(r)} className="flex items-center gap-1.5 text-xs font-semibold text-[var(--color-green-600)]">
+                      <Check size={13} /> Marquer comme traitée
+                    </button>
+                  )}
+                  <button onClick={() => handleSupprimerReclamation(r)} className="flex items-center gap-1.5 text-xs font-semibold text-red-500 ml-auto">
+                    <Trash2 size={13} /> Supprimer
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ---------- Inscriptions commerces (en attente) ---------- */}
         <div className="flex items-center gap-2 mt-7 mb-3">
           <Bell size={16} className="text-[var(--color-ink-500)]" />
-          <p className="font-bold text-[var(--color-ink-900)]">Nouvelles demandes</p>
+          <p className="font-bold text-[var(--color-ink-900)]">Inscriptions commerces</p>
           {demandes.length > 0 && (
             <span className="h-5 min-w-5 px-1 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">{demandes.length}</span>
           )}
@@ -329,12 +386,21 @@ export default function AdminDashboard() {
                   <span className="text-xs font-semibold px-2 py-1 rounded-full bg-[var(--color-orange-100)] text-[var(--color-orange-600)]">En attente</span>
                 </div>
                 {d.categorie && <span className="inline-block mt-2 text-xs font-medium px-2 py-1 rounded-full bg-[var(--color-ink-100)] text-[var(--color-ink-700)]">{getCategorieLabel(d.categorie)}</span>}
+                <div className="flex items-center gap-2 mt-3">
+                  <label className="text-xs text-[var(--color-ink-500)] shrink-0">Activer le :</label>
+                  <input
+                    type="date"
+                    value={dateActivationCommerce[d.id] || ""}
+                    onChange={(e) => setDateActivationCommerce((prev) => ({ ...prev, [d.id]: e.target.value }))}
+                    className="flex-1 text-sm border border-[var(--color-ink-100)] rounded-lg px-2 py-1.5"
+                  />
+                </div>
                 <button
                   onClick={() => handleValider(d)}
                   disabled={actionEnCours === d.id}
                   className="w-full flex items-center justify-center gap-1.5 text-sm font-semibold text-white bg-[var(--color-green-500)] hover:bg-[var(--color-green-600)] rounded-xl px-3 py-2.5 disabled:opacity-60 mt-3"
                 >
-                  ✓ Valider & activer (1 an)
+                  ✓ Valider & activer {dateActivationCommerce[d.id] ? `le ${dateActivationCommerce[d.id]}` : "(1 an, immédiat)"}
                 </button>
               </div>
             ))}
@@ -420,35 +486,80 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Livreurs marché ouvert — validation et suppression */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <Bike size={18} className="text-[var(--color-navy-900)]" />
-          <p className="font-display font-bold text-[15px] text-[var(--color-ink-900)]">Livreurs (marché ouvert)</p>
-          {livreursMarketplace.filter((l) => !l.valide).length > 0 && (
-            <span className="text-xs font-bold bg-[var(--color-orange-100)] text-[var(--color-orange-600)] px-2 py-0.5 rounded-full">
-              {livreursMarketplace.filter((l) => !l.valide).length} en attente
+      {/* ---------- Inscriptions livreurs (en attente) ---------- */}
+      <div className="max-w-3xl mx-auto px-4">
+        <div className="flex items-center gap-2 mt-7 mb-3">
+          <Bike size={16} className="text-[var(--color-ink-500)]" />
+          <p className="font-bold text-[var(--color-ink-900)]">Inscriptions livreurs</p>
+          {livreursEnAttente.length > 0 && (
+            <span className="h-5 min-w-5 px-1 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">
+              {livreursEnAttente.length}
             </span>
           )}
         </div>
 
-        {livreursMarketplace.length === 0 ? (
-          <p className="text-sm text-[var(--color-ink-500)]">Aucun livreur inscrit pour l'instant.</p>
+        {livreursEnAttente.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-[var(--color-ink-100)] p-4 text-sm text-[var(--color-ink-500)]">Aucune inscription livreur en attente</div>
+        ) : (
+          <div className="flex flex-col gap-2.5">
+            {livreursEnAttente.map((l) => (
+              <div key={l.id} className="bg-white rounded-2xl border-2 border-[var(--color-orange-400)] p-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="font-bold text-[var(--color-ink-900)]">{l.nom}</p>
+                    <p className="text-sm text-[var(--color-ink-500)]">{l.telephone}</p>
+                  </div>
+                  <span className="text-xs font-semibold px-2 py-1 rounded-full bg-[var(--color-orange-100)] text-[var(--color-orange-600)]">En attente</span>
+                </div>
+                <div className="flex items-center gap-2 mt-3">
+                  <label className="text-xs text-[var(--color-ink-500)] shrink-0">Activer le :</label>
+                  <input
+                    type="date"
+                    value={dateActivationLivreur[l.id] || ""}
+                    onChange={(e) => setDateActivationLivreur((prev) => ({ ...prev, [l.id]: e.target.value }))}
+                    className="flex-1 text-sm border border-[var(--color-ink-100)] rounded-lg px-2 py-1.5"
+                  />
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={() => handleValiderLivreur(l)}
+                    disabled={actionEnCours === l.id}
+                    className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold text-white bg-[var(--color-green-500)] hover:bg-[var(--color-green-600)] rounded-xl px-3 py-2.5 disabled:opacity-60"
+                  >
+                    <Check size={14} /> Valider {dateActivationLivreur[l.id] ? `le ${dateActivationLivreur[l.id]}` : "(1 an, immédiat)"}
+                  </button>
+                  <button
+                    onClick={() => setSuppressionLivreur(l)}
+                    disabled={actionEnCours === l.id}
+                    className="flex items-center justify-center gap-1 text-xs font-semibold px-3 py-2 rounded-xl bg-red-50 text-red-600 disabled:opacity-60"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ---------- Livreurs actifs (gestion) ---------- */}
+        <div className="flex items-center gap-2 mt-7 mb-3">
+          <Bike size={16} className="text-[var(--color-ink-500)]" />
+          <p className="font-bold text-[var(--color-ink-900)]">Livreurs actifs ({livreursValides.length})</p>
+        </div>
+
+        {livreursValides.length === 0 ? (
+          <p className="text-sm text-[var(--color-ink-500)]">Aucun livreur actif pour l'instant.</p>
         ) : (
           <div className="flex flex-col gap-2">
-            {livreursMarketplace.map((l) => (
+            {livreursValides.map((l) => (
               <div key={l.id} className="bg-white rounded-xl border border-[var(--color-ink-100)] p-3.5 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-semibold text-sm text-[var(--color-ink-900)] truncate">{l.nom}</p>
-                    {l.valide ? (
-                      l.en_ligne ? (
-                        <span className="text-[10px] font-bold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full">En ligne</span>
-                      ) : (
-                        <span className="text-[10px] font-bold text-[var(--color-ink-500)] bg-[var(--color-ink-100)] px-1.5 py-0.5 rounded-full">Hors ligne</span>
-                      )
+                    {l.en_ligne ? (
+                      <span className="text-[10px] font-bold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full">En ligne</span>
                     ) : (
-                      <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full">En attente</span>
+                      <span className="text-[10px] font-bold text-[var(--color-ink-500)] bg-[var(--color-ink-100)] px-1.5 py-0.5 rounded-full">Hors ligne</span>
                     )}
                   </div>
                   <p className="text-xs text-[var(--color-ink-500)]">{l.telephone}</p>
@@ -459,25 +570,14 @@ export default function AdminDashboard() {
                   )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  {!l.valide && (
-                    <button
-                      onClick={() => handleValiderLivreur(l)}
-                      disabled={actionEnCours === l.id}
-                      className="flex items-center gap-1 text-xs font-semibold px-2.5 py-2 rounded-lg bg-green-50 text-green-700 disabled:opacity-60"
-                    >
-                      <Check size={13} /> Valider
-                    </button>
-                  )}
-                  {l.valide && (
-                    <button
-                      onClick={() => handleProlongerLivreur(l)}
-                      disabled={actionEnCours === l.id}
-                      className="flex items-center gap-1 text-xs font-semibold px-2.5 py-2 rounded-lg bg-blue-50 text-blue-700 disabled:opacity-60"
-                      title="Prolonger l'abonnement d'1 an"
-                    >
-                      <Plus size={13} /> +1 an
-                    </button>
-                  )}
+                  <button
+                    onClick={() => handleProlongerLivreur(l)}
+                    disabled={actionEnCours === l.id}
+                    className="flex items-center gap-1 text-xs font-semibold px-2.5 py-2 rounded-lg bg-blue-50 text-blue-700 disabled:opacity-60"
+                    title="Prolonger l'abonnement d'1 an"
+                  >
+                    <Plus size={13} /> +1 an
+                  </button>
                   <button
                     onClick={() => setSuppressionLivreur(l)}
                     disabled={actionEnCours === l.id}
