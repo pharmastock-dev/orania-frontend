@@ -82,9 +82,33 @@ export const loginFournisseur = async (telephone: string, mot_de_passe: string) 
 };
 
 // ---------- Authentification client ----------
-// "Trouver ou créer" par téléphone, aucun mot de passe côté client.
+// Ancien système "trouver ou créer" par téléphone, sans mot de passe —
+// conservé pour compatibilité mais plus utilisé par ClientLoginPage
+// (remplacé par email + mot de passe ci-dessous).
 export const loginClient = (nom: string, telephone: string) =>
   http.post<{ succes: boolean; id: number; nom: string; telephone: string; token?: string }>("/client/login", { nom, telephone });
+
+export interface ReponseAuthClient {
+  succes: boolean;
+  message?: string;
+  id?: number;
+  nom?: string;
+  telephone?: string;
+  email?: string;
+  token?: string;
+}
+
+export const inscrireClient = (data: { nom: string; telephone: string; email: string; mot_de_passe: string }) =>
+  http.post<ReponseAuthClient>("/client/inscription", data);
+
+export const connecterClient = (email: string, mot_de_passe: string) =>
+  http.post<ReponseAuthClient>("/client/connexion", { email, mot_de_passe });
+
+export const demanderReinitialisationClient = (email: string) =>
+  http.post<{ succes: boolean; message?: string }>("/client/mot-de-passe-oublie", { email });
+
+export const reinitialiserMotDePasseClient = (email: string, code: string, nouveau_mot_de_passe: string) =>
+  http.post<{ succes: boolean; message?: string }>("/client/reinitialiser-mot-de-passe", { email, code, nouveau_mot_de_passe });
 
 // ---------- Fournisseurs (commerces) ----------
 // GET /fournisseurs ne renvoie QUE les commerces validés + abonnement actif
