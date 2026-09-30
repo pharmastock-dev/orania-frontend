@@ -131,12 +131,10 @@ export default function ProductDetailSheet({ produit, onClose, onAdd, lectureSeu
                   );
                 })}
               </div>
-              {quantite > 1 && (
-                <div className="mt-2 text-xs text-[var(--color-ink-500)] bg-[var(--color-ink-50)] rounded-lg px-3 py-2">
-                  <p>Pour mettre un supplément sur certaines unités seulement, ajoutez-les une par une.</p>
-                  <p dir="rtl" className="mt-0.5">باش تحط الإضافة (supplément) غير على بعض القطع، زيدهم وحدة وحدة.</p>
-                </div>
-              )}
+              <div className="mt-2 text-xs text-[var(--color-ink-500)] bg-[var(--color-ink-50)] rounded-lg px-3 py-2">
+                <p>Pour mettre un supplément sur certaines unités seulement, ajoutez-les une par une.</p>
+                <p dir="rtl" className="mt-0.5">باش تحط الإضافة (supplément) غير على بعض القطع، زيدهم وحدة وحدة.</p>
+              </div>
             </div>
           )}
 
