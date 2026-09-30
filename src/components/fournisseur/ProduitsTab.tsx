@@ -1,16 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Pencil, Trash2, Camera, PackageX, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, Camera, PackageX, AlertTriangle, Tag, X } from "lucide-react";
 import Button from "../Button";
 import Modal from "../Modal";
 import { CardSkeleton } from "../Loading";
 import EmptyState from "../EmptyState";
 import { useToast } from "../../context/ToastContext";
 import { useApp } from "../../context/AppContext";
-import { getProduits, createProduit, updateProduit, deleteProduit, uploadProduitImage, resolveImageUrl, updateFournisseur } from "../../api";
+import {
+  getProduits,
+  createProduit,
+  updateProduit,
+  deleteProduit,
+  uploadProduitImage,
+  resolveImageUrl,
+  updateFournisseur,
+  getSupplements,
+  createSupplement,
+  updateSupplement,
+  deleteSupplement,
+} from "../../api";
 import { ApiError } from "../../api/client";
 import { formatPrix } from "../../utils/format";
 import { SUGGESTIONS_PRODUITS, getEmojiCategorieProduit } from "../../utils/categories";
-import type { Produit } from "../../types";
+import type { Produit, Supplement } from "../../types";
 
 export default function ProduitsTab({ fournisseurId }: { fournisseurId: number }) {
   const { showToast } = useToast();
@@ -44,6 +56,75 @@ export default function ProduitsTab({ fournisseurId }: { fournisseurId: number }
   const [suppressionProduit, setSuppressionProduit] = useState<Produit | null>(null);
   const [categorieActive, setCategorieActive] = useState<string>("tous");
   const fileInputs = useRef<Record<number, HTMLInputElement | null>>({});
+
+  // ---- Suppléments (options) du produit ouvert dans la modal ----
+  const [produitSupplements, setProduitSupplements] = useState<Produit | null>(null);
+  const [supplements, setSupplements] = useState<Supplement[]>([]);
+  const [chargementSupplements, setChargementSupplements] = useState(false);
+  const [nomSupplement, setNomSupplement] = useState("");
+  const [prixSupplement, setPrixSupplement] = useState("");
+  const [ajoutSupplementEnCours, setAjoutSupplementEnCours] = useState(false);
+  const [editionSupplement, setEditionSupplement] = useState<Supplement | null>(null);
+
+  function ouvrirSupplements(p: Produit) {
+    setProduitSupplements(p);
+    setChargementSupplements(true);
+    getSupplements(p.id)
+      .then((liste) => setSupplements(liste || []))
+      .catch((err) => showToast(err instanceof ApiError ? err.message : "Impossible de charger les suppléments.", "error"))
+      .finally(() => setChargementSupplements(false));
+  }
+
+  function fermerSupplements() {
+    setProduitSupplements(null);
+    setSupplements([]);
+    setNomSupplement("");
+    setPrixSupplement("");
+    setEditionSupplement(null);
+  }
+
+  async function handleAjouterSupplement(e: React.FormEvent) {
+    e.preventDefault();
+    if (!produitSupplements || !nomSupplement.trim() || !prixSupplement) {
+      showToast("Nom et prix du supplément sont obligatoires.", "error");
+      return;
+    }
+    setAjoutSupplementEnCours(true);
+    try {
+      const nouveau = await createSupplement(produitSupplements.id, { nom: nomSupplement.trim(), prix: Number(prixSupplement) });
+      setSupplements((prev) => [...prev, nouveau]);
+      setNomSupplement("");
+      setPrixSupplement("");
+      showToast("Supplément ajouté", "success");
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : "Impossible d'ajouter le supplément.", "error");
+    } finally {
+      setAjoutSupplementEnCours(false);
+    }
+  }
+
+  async function handleEnregistrerEditionSupplement() {
+    if (!editionSupplement) return;
+    try {
+      await updateSupplement(editionSupplement.id, { nom: editionSupplement.nom, prix: editionSupplement.prix });
+      setSupplements((prev) => prev.map((s) => (s.id === editionSupplement.id ? editionSupplement : s)));
+      showToast("Supplément modifié", "success");
+      setEditionSupplement(null);
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : "Impossible de modifier le supplément.", "error");
+    }
+  }
+
+  async function handleSupprimerSupplement(s: Supplement) {
+    if (!window.confirm(`Supprimer le supplément « ${s.nom} » ?`)) return;
+    try {
+      await deleteSupplement(s.id);
+      setSupplements((prev) => prev.filter((x) => x.id !== s.id));
+      showToast("Supplément supprimé", "success");
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : "Impossible de supprimer le supplément.", "error");
+    }
+  }
 
   function charger() {
     setLoading(true);
@@ -289,6 +370,9 @@ export default function ProduitsTab({ fournisseurId }: { fournisseurId: number }
                       {p.disponible ? "🟢 Disponible" : "⚪ Indisponible"}
                     </button>
                     <div className="flex gap-1.5">
+                      <button onClick={() => ouvrirSupplements(p)} className="h-7 w-7 rounded-full bg-[var(--color-orange-100)] flex items-center justify-center text-[var(--color-orange-600)]" title="Suppléments">
+                        <Tag size={13} />
+                      </button>
                       <button onClick={() => setEditionProduit(p)} className="h-7 w-7 rounded-full bg-[var(--color-ink-50)] flex items-center justify-center text-[var(--color-ink-700)]">
                         <Pencil size={13} />
                       </button>
@@ -341,6 +425,77 @@ export default function ProduitsTab({ fournisseurId }: { fournisseurId: number }
               className="bg-[var(--color-ink-50)] border border-[var(--color-ink-100)] rounded-xl px-4 py-3 outline-none"
             />
             <Button onClick={handleEnregistrerEdition}>Enregistrer</Button>
+          </div>
+        )}
+      </Modal>
+
+      <Modal open={!!produitSupplements} onClose={fermerSupplements} title={`Suppléments — ${produitSupplements?.nom ?? ""}`}>
+        <p className="text-sm text-[var(--color-ink-500)] mb-3">
+          Le client pourra cocher un ou plusieurs de ces suppléments sur la fiche du produit, le prix s'ajoute automatiquement.
+        </p>
+
+        <form onSubmit={handleAjouterSupplement} className="flex gap-2 mb-4">
+          <input
+            value={nomSupplement}
+            onChange={(e) => setNomSupplement(e.target.value)}
+            placeholder="Nom (ex: Extra fromage)"
+            className="flex-1 min-w-0 bg-[var(--color-ink-50)] border border-[var(--color-ink-100)] rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-[var(--color-orange-500)]"
+          />
+          <input
+            value={prixSupplement}
+            onChange={(e) => setPrixSupplement(e.target.value)}
+            type="number"
+            min="0"
+            placeholder="Prix (DA)"
+            className="w-28 bg-[var(--color-ink-50)] border border-[var(--color-ink-100)] rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-[var(--color-orange-500)]"
+          />
+          <Button type="submit" loading={ajoutSupplementEnCours} icon={<Plus size={15} />}>
+            Ajouter
+          </Button>
+        </form>
+
+        {chargementSupplements ? (
+          <CardSkeleton />
+        ) : supplements.length === 0 ? (
+          <p className="text-sm text-[var(--color-ink-500)] text-center py-4">Aucun supplément pour ce produit.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {supplements.map((s) => (
+              <div key={s.id} className="flex items-center justify-between gap-2 bg-[var(--color-ink-50)] rounded-xl px-3.5 py-2.5">
+                {editionSupplement?.id === s.id ? (
+                  <>
+                    <input
+                      value={editionSupplement.nom}
+                      onChange={(e) => setEditionSupplement({ ...editionSupplement, nom: e.target.value })}
+                      className="flex-1 min-w-0 bg-white border border-[var(--color-ink-100)] rounded-lg px-2.5 py-1.5 text-sm outline-none"
+                    />
+                    <input
+                      value={editionSupplement.prix}
+                      onChange={(e) => setEditionSupplement({ ...editionSupplement, prix: Number(e.target.value) })}
+                      type="number"
+                      className="w-20 bg-white border border-[var(--color-ink-100)] rounded-lg px-2.5 py-1.5 text-sm outline-none"
+                    />
+                    <button onClick={handleEnregistrerEditionSupplement} className="text-xs font-bold text-[var(--color-orange-600)] shrink-0">
+                      OK
+                    </button>
+                    <button onClick={() => setEditionSupplement(null)} className="text-[var(--color-ink-500)] shrink-0">
+                      <X size={15} />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-sm font-semibold text-[var(--color-ink-900)] truncate">{s.nom}</span>
+                    <span className="text-sm font-bold text-[var(--color-ink-700)] shrink-0">{formatPrix(s.prix)}</span>
+                    <button onClick={() => setEditionSupplement(s)} className="h-7 w-7 rounded-full bg-white flex items-center justify-center text-[var(--color-ink-700)] shrink-0">
+                      <Pencil size={12} />
+                    </button>
+                    <button onClick={() => handleSupprimerSupplement(s)} className="h-7 w-7 rounded-full bg-red-50 flex items-center justify-center text-red-500 shrink-0">
+                      <Trash2 size={12} />
+                    </button>
+                  </>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </Modal>
