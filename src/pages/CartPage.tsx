@@ -6,6 +6,7 @@ import EmptyState from "../components/EmptyState";
 import { useApp } from "../context/AppContext";
 import { formatPrix } from "../utils/format";
 import { resolveImageUrl } from "../api";
+import { prixSupplements } from "../utils/cart";
 
 export default function CartPage() {
   const navigate = useNavigate();
@@ -35,28 +36,33 @@ export default function CartPage() {
             <p className="text-sm text-[var(--color-ink-500)] mt-4">{cart.fournisseurNom}</p>
 
             <div className="flex flex-col gap-2.5 mt-3">
-              {cart.items.map(({ produit, quantite }) => {
-                const prix = produit.prix_promo ?? produit.prix;
+              {cart.items.map(({ cle, produit, quantite, supplements }) => {
+                const prix = (produit.prix_promo ?? produit.prix) + prixSupplements(supplements);
                 const image = resolveImageUrl(produit.photo);
                 return (
-                  <div key={produit.id} className="flex items-center gap-3 bg-white rounded-2xl border border-[var(--color-ink-100)] p-2.5">
+                  <div key={cle} className="flex items-center gap-3 bg-white rounded-2xl border border-[var(--color-ink-100)] p-2.5">
                     <div className="h-14 w-14 rounded-xl bg-[var(--color-ink-100)] overflow-hidden shrink-0">
                       {image && <img src={image} alt={produit.nom} className="h-full w-full object-cover" />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-[var(--color-ink-900)] truncate">{produit.nom}</p>
+                      {supplements && supplements.length > 0 && (
+                        <p className="text-xs text-[var(--color-ink-500)] truncate">
+                          + {supplements.map((s) => s.nom).join(", ")}
+                        </p>
+                      )}
                       <p className="text-sm text-[var(--color-ink-500)]">{formatPrix(prix)}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <button
-                        onClick={() => (quantite <= 1 ? removeFromCart(produit.id) : updateQuantite(produit.id, quantite - 1))}
+                        onClick={() => (quantite <= 1 ? removeFromCart(cle) : updateQuantite(cle, quantite - 1))}
                         className="h-8 w-8 rounded-full bg-[var(--color-ink-50)] border border-[var(--color-ink-100)] flex items-center justify-center"
                       >
                         {quantite <= 1 ? <Trash2 size={14} className="text-red-500" /> : <Minus size={14} />}
                       </button>
                       <span className="w-5 text-center font-semibold">{quantite}</span>
                       <button
-                        onClick={() => updateQuantite(produit.id, quantite + 1)}
+                        onClick={() => updateQuantite(cle, quantite + 1)}
                         className="h-8 w-8 rounded-full bg-[var(--color-ink-50)] border border-[var(--color-ink-100)] flex items-center justify-center"
                       >
                         <Plus size={14} />

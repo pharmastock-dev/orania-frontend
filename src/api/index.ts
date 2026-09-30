@@ -9,7 +9,7 @@
 // ============================================================
 
 import { http, BASE_URL, CLE_TOKEN_ADMIN } from "./client";
-import type { Fournisseur, Produit, ProduitRecherche, Commande, Avis, Livreur, Statistiques, StatutCommande, Reclamation, LigneCommande, CommandeDisponible, StatutPublicationCommande, HistoriqueLivreurItem, LivreurMarketplaceAdmin, AssistantResultat, CriteresAssistant } from "../types";
+import type { Fournisseur, Produit, ProduitRecherche, Commande, Avis, Livreur, Statistiques, StatutCommande, Reclamation, LigneCommande, CommandeDisponible, StatutPublicationCommande, HistoriqueLivreurItem, LivreurMarketplaceAdmin, AssistantResultat, CriteresAssistant, Supplement } from "../types";
 
 // ---------- Santé ----------
 export const checkHealth = () => http.get<{ status: string }>("/health");
@@ -143,6 +143,20 @@ export const updateProduit = (produitId: number, data: Partial<Produit>) =>
 
 export const deleteProduit = (produitId: number) => http.del<{ succes: boolean; message?: string }>(`/produits/${produitId}`);
 
+// ---------- Suppléments (options) d'un produit ----------
+// Lecture publique (fiche produit côté client) ; création/modification/
+// suppression réservées au commerçant propriétaire (jeton "fournisseur").
+export const getSupplements = (produitId: number) => http.get<Supplement[]>(`/produits/${produitId}/supplements`);
+
+export const createSupplement = (produitId: number, data: { nom: string; prix: number }) =>
+  http.post<Supplement>(`/produits/${produitId}/supplements`, data, "fournisseur");
+
+export const updateSupplement = (supplementId: number, data: { nom?: string; prix?: number }) =>
+  http.put<{ succes: boolean; message?: string }>(`/supplements/${supplementId}`, data, "fournisseur");
+
+export const deleteSupplement = (supplementId: number) =>
+  http.del<{ succes: boolean; message?: string }>(`/supplements/${supplementId}`, "fournisseur");
+
 export const uploadProduitImage = (produitId: number, file: File) => {
   const formData = new FormData();
   formData.append("file", file);
@@ -170,7 +184,7 @@ export const createCommande = (data: {
   avec_livraison: boolean;
   latitude?: number;
   longitude?: number;
-  produits: { produit_id: number; quantite: number; note?: string }[];
+  produits: { produit_id: number; quantite: number; note?: string; supplements?: { nom: string; prix: number }[] }[];
 }) => http.post<{ id?: number; commande_id?: number; code_confirmation: string; statut?: string; prix_total?: number; succes?: boolean; message?: string }>("/commandes", data, "client");
 
 export const updateCommandeStatut = (commandeId: number, statut: StatutCommande) =>

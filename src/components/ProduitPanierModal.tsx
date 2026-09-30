@@ -2,12 +2,14 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { resolveImageUrl } from "../api";
 import { formatPrix } from "../utils/format";
-import type { Produit } from "../types";
+import { prixSupplements } from "../utils/cart";
+import type { Produit, Supplement } from "../types";
 
 interface ProduitPanierModalProps {
   produit: Produit;
   quantite: number;
   noteActuelle?: string;
+  supplements?: Supplement[];
   onClose: () => void;
   onEnregistrer: (note: string) => void;
 }
@@ -17,7 +19,7 @@ interface ProduitPanierModalProps {
 // particuliere pour ce produit precis (ex: "sans oignons", "bien cuit"),
 // deja prevue par la structure de donnees (note par article) mais jamais
 // exposee dans l'interface jusqu'ici.
-export default function ProduitPanierModal({ produit, quantite, noteActuelle, onClose, onEnregistrer }: ProduitPanierModalProps) {
+export default function ProduitPanierModal({ produit, quantite, noteActuelle, supplements, onClose, onEnregistrer }: ProduitPanierModalProps) {
   const [note, setNote] = useState(noteActuelle || "");
   const image = resolveImageUrl(produit.photo);
 
@@ -54,7 +56,14 @@ export default function ProduitPanierModal({ produit, quantite, noteActuelle, on
                 x{quantite}
               </span>
             </div>
-            <p className="text-[var(--color-orange-600)] font-bold mt-1">{formatPrix(produit.prix_promo ?? produit.prix)}</p>
+            <p className="text-[var(--color-orange-600)] font-bold mt-1">
+              {formatPrix((produit.prix_promo ?? produit.prix) + prixSupplements(supplements))}
+            </p>
+            {supplements && supplements.length > 0 && (
+              <p className="text-xs text-[var(--color-ink-500)] mt-1">
+                Suppléments : {supplements.map((s) => s.nom).join(", ")}
+              </p>
+            )}
           </div>
 
           {produit.ingredients && (

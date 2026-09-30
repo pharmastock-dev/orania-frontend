@@ -105,6 +105,16 @@ export interface Produit {
   photo?: string | null;
 }
 
+// Supplément (option) d'un produit — ex: "Extra fromage" à 150 DA sur une
+// pizza. Géré par le commerçant depuis son espace produit, choisi par le
+// client (plusieurs à la fois possible) sur la fiche du produit.
+export interface Supplement {
+  id: number;
+  produit_id: number;
+  nom: string;
+  prix: number;
+}
+
 // Résultat de recherche produit (barre de recherche client) — un Produit
 // enrichi du nom du commerce qui le vend, pour affichage + navigation directe.
 export interface ProduitRecherche extends Produit {
@@ -126,6 +136,10 @@ export interface LigneCommande {
   quantite: number;
   prix_unitaire?: number;
   note?: string | null;
+  // Suppléments choisis par le client pour cette ligne, figés au moment de
+  // la commande (nom + prix à l'instant T, même si le commerçant modifie ou
+  // supprime le supplément ensuite).
+  supplements?: { nom: string; prix: number }[];
 }
 
 export interface Commande {
@@ -204,9 +218,14 @@ export interface Coordonnees {
 
 // ---- Panier (local, lié à un seul commerce) ----
 export interface CartItem {
+  // Identifiant unique de la ligne = produit + combinaison exacte de
+  // suppléments choisis, pour que le même produit avec des suppléments
+  // différents forme deux lignes séparées dans le panier (voir utils/cart.ts).
+  cle: string;
   produit: Produit;
   quantite: number;
   note?: string;
+  supplements?: Supplement[];
 }
 
 export interface Cart {

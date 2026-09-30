@@ -1,13 +1,14 @@
-import { useState } from "react";
-import { X, Minus, Plus, MessageSquarePlus } from "lucide-react";
-import { resolveImageUrl } from "../api";
+import { useEffect, useState } from "react";
+import { X, Minus, Plus, MessageSquarePlus, Check } from "lucide-react";
+import { resolveImageUrl, getSupplements } from "../api";
 import { formatPrix } from "../utils/format";
-import type { Produit } from "../types";
+import { prixSupplements } from "../utils/cart";
+import type { Produit, Supplement } from "../types";
 
 interface ProductDetailSheetProps {
   produit: Produit | null;
   onClose: () => void;
-  onAdd: (produit: Produit, quantite: number, note: string) => void;
+  onAdd: (produit: Produit, quantite: number, note: string, supplements: Supplement[]) => void;
   lectureSeule?: boolean; // mode cafétéria — consultation du menu uniquement
 }
 
@@ -15,22 +16,40 @@ export default function ProductDetailSheet({ produit, onClose, onAdd, lectureSeu
   const [quantite, setQuantite] = useState(1);
   const [note, setNote] = useState("");
   const [noteOuverte, setNoteOuverte] = useState(false);
+  const [supplements, setSupplements] = useState<Supplement[]>([]);
+  const [selection, setSelection] = useState<number[]>([]);
+
+  useEffect(() => {
+    if (!produit) return;
+    setSupplements([]);
+    setSelection([]);
+    getSupplements(produit.id)
+      .then((liste) => setSupplements(liste || []))
+      .catch(() => {});
+  }, [produit?.id]);
 
   if (!produit) return null;
 
   const prixUnitaire = produit.prix_promo ?? produit.prix;
   const enPromo = produit.prix_promo != null && produit.prix_promo < produit.prix;
   const image = resolveImageUrl(produit.photo);
+  const supplementsChoisis = supplements.filter((s) => selection.includes(s.id));
+  const prixAvecSupplements = prixUnitaire + prixSupplements(supplementsChoisis);
+
+  function toggleSupplement(id: number) {
+    setSelection((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
 
   function fermer() {
     setQuantite(1);
     setNote("");
     setNoteOuverte(false);
+    setSelection([]);
     onClose();
   }
 
   function ajouter() {
-    onAdd(produit!, quantite, note.trim());
+    onAdd(produit!, quantite, note.trim(), supplementsChoisis);
     fermer();
   }
 
@@ -76,6 +95,42 @@ export default function ProductDetailSheet({ produit, onClose, onAdd, lectureSeu
             <div className="mt-4">
               <p className="text-xs font-bold text-[var(--color-ink-500)] uppercase tracking-wide mb-1">Ingrédients</p>
               <p className="text-sm text-[var(--color-ink-700)] leading-relaxed">{produit.ingredients}</p>
+            </div>
+          )}
+
+          {/* Suppléments — pas de commande possible en mode cafétéria */}
+          {!lectureSeule && supplements.length > 0 && (
+            <div className="mt-5">
+              <p className="text-xs font-bold text-[var(--color-ink-500)] uppercase tracking-wide mb-1.5">
+                Suppléments (facultatif)
+              </p>
+              <div className="flex flex-col gap-2">
+                {supplements.map((s) => {
+                  const coche = selection.includes(s.id);
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => toggleSupplement(s.id)}
+                      className={`w-full flex items-center justify-between rounded-xl border px-3.5 py-2.5 text-left ${
+                        coche ? "border-[var(--color-orange-500)] bg-[var(--color-orange-100)]" : "border-[var(--color-ink-100)] bg-white"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2.5 min-w-0">
+                        <span
+                          className={`h-5 w-5 rounded-md border flex items-center justify-center shrink-0 ${
+                            coche ? "bg-[var(--color-orange-500)] border-[var(--color-orange-500)] text-white" : "border-[var(--color-ink-300)]"
+                          }`}
+                        >
+                          {coche && <Check size={13} />}
+                        </span>
+                        <span className="text-sm font-semibold text-[var(--color-ink-900)] truncate">{s.nom}</span>
+                      </span>
+                      <span className="text-sm font-bold text-[var(--color-ink-700)] shrink-0 ml-2">+{formatPrix(s.prix)}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -139,7 +194,7 @@ export default function ProductDetailSheet({ produit, onClose, onAdd, lectureSeu
               className="w-full flex items-center justify-between bg-[var(--color-orange-500)] disabled:bg-[var(--color-ink-300)] text-white font-bold rounded-2xl px-5 py-3.5 mt-6"
             >
               <span>{produit.disponible ? "Ajouter au panier" : "Indisponible"}</span>
-              {produit.disponible && <span>{formatPrix(prixUnitaire * quantite)}</span>}
+              {produit.disponible && <span>{formatPrix(prixAvecSupplements * quantite)}</span>}
             </button>
           )}
         </div>

@@ -10,10 +10,11 @@ import { useToast } from "../context/ToastContext";
 import { createCommande, getFournisseurInfos } from "../api";
 import { ApiError } from "../api/client";
 import { formatPrix } from "../utils/format";
-import type { ModeReception, Coordonnees, Produit } from "../types";
+import { prixSupplements } from "../utils/cart";
+import type { ModeReception, Coordonnees, CartItem } from "../types";
 export default function CheckoutPage() {
   const navigate = useNavigate();
-  const { client, cart, cartTotal, clearCart, position, setPosition, addToCart } = useApp();
+  const { client, cart, cartTotal, clearCart, position, setPosition, updateNote } = useApp();
   const { showToast } = useToast();
 
   const [mode, setMode] = useState<ModeReception>("livraison");
@@ -21,7 +22,7 @@ export default function CheckoutPage() {
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<{ commande_id: number; code_confirmation: string } | null>(null);
-  const [produitOuvert, setProduitOuvert] = useState<Produit | null>(null);
+  const [ligneOuverte, setLigneOuverte] = useState<CartItem | null>(null);
 
   useEffect(() => {if (!cart.fournisseurId) return;
     getFournisseurInfos(cart.fournisseurId)
@@ -34,11 +35,8 @@ export default function CheckoutPage() {
   }
 
   function handleEnregistrerNote(note: string) {
-    if (!produitOuvert || !cart.fournisseurNom) return;
-    // Rappelle addToCart avec quantite: 0 -- ne change pas la quantite deja
-    // presente, met seulement la note a jour (logique deja geree ainsi
-    // dans AppContext).
-    addToCart(produitOuvert, cart.fournisseurNom, 0, note);
+    if (!ligneOuverte) return;
+    updateNote(ligneOuverte.cle, note);
   }
 
   async function handleCommander() {
@@ -56,7 +54,12 @@ export default function CheckoutPage() {
         avec_livraison: mode === "livraison",
         latitude: mode === "livraison" ? position?.latitude : undefined,
         longitude: mode === "livraison" ? position?.longitude : undefined,
-        produits: cart.items.map((i) => ({ produit_id: i.produit.id, quantite: i.quantite, note: i.note || undefined })),
+        produits: cart.items.map((i) => ({
+          produit_id: i.produit.id,
+          quantite: i.quantite,
+          note: i.note || undefined,
+          supplements: i.supplements?.length ? i.supplements.map((s) => ({ nom: s.nom, prix: s.prix })) : undefined,
+        })),
       });
       if (res.succes === false || !res.id) {
         setErreur(res.message || "Impossible de créer la commande.");
@@ -110,18 +113,25 @@ export default function CheckoutPage() {
         <div className="mt-5 bg-white rounded-2xl border border-[var(--color-ink-100)] p-4">
           {cart.items.map((i) => (
             <button
-              key={i.produit.id}
-              onClick={() => setProduitOuvert(i.produit)}
+              key={i.cle}
+              onClick={() => setLigneOuverte(i)}
               className="w-full flex justify-between items-center text-sm py-2 text-[var(--color-ink-700)] text-left"
             >
               <span className="flex items-center gap-2 min-w-0">
                 <span className="h-5 w-5 rounded-full bg-[var(--color-orange-100)] text-[var(--color-orange-600)] text-xs font-bold flex items-center justify-center shrink-0">
                   {i.quantite}
                 </span>
-                <span className="truncate">{i.produit.nom}</span>
+                <span className="truncate">
+                  {i.produit.nom}
+                  {i.supplements && i.supplements.length > 0 && (
+                    <span className="text-[var(--color-ink-500)]"> + {i.supplements.map((s) => s.nom).join(", ")}</span>
+                  )}
+                </span>
                 {i.note && <MessageSquare size={13} className="text-[var(--color-orange-500)] shrink-0" />}
               </span>
-              <span className="shrink-0 ml-2">{formatPrix((i.produit.prix_promo ?? i.produit.prix) * i.quantite)}</span>
+              <span className="shrink-0 ml-2">
+                {formatPrix(((i.produit.prix_promo ?? i.produit.prix) + prixSupplements(i.supplements)) * i.quantite)}
+              </span>
             </button>
           ))}
           <div className="flex justify-between font-bold text-[var(--color-ink-900)] border-t border-[var(--color-ink-100)] mt-2 pt-2">
@@ -181,12 +191,13 @@ export default function CheckoutPage() {
         )}
       </div>
 
-      {produitOuvert && (
+      {ligneOuverte && (
         <ProduitPanierModal
-          produit={produitOuvert}
-          quantite={cart.items.find((i) => i.produit.id === produitOuvert.id)?.quantite || 1}
-          noteActuelle={cart.items.find((i) => i.produit.id === produitOuvert.id)?.note}
-          onClose={() => setProduitOuvert(null)}
+          produit={ligneOuverte.produit}
+          quantite={ligneOuverte.quantite}
+          noteActuelle={ligneOuverte.note}
+          supplements={ligneOuverte.supplements}
+          onClose={() => setLigneOuverte(null)}
           onEnregistrer={handleEnregistrerNote}
         />
       )}

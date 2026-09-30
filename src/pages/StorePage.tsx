@@ -22,7 +22,8 @@ import { ApiError } from "../api/client";
 import { formatHoraires, estOuvertMaintenant } from "../utils/format";
 import { getCategorieLabel } from "../utils/categories";
 import { distanceMetres, estimerTempsLivraison } from "../utils/geo";
-import type { Fournisseur, Produit, Avis } from "../types";
+import { cleCartItem } from "../utils/cart";
+import type { Fournisseur, Produit, Avis, Supplement } from "../types";
 
 const pinIcon = L.divIcon({
   className: "",
@@ -122,21 +123,26 @@ export default function StorePage() {
 
   const [produitOuvert, setProduitOuvert] = useState<Produit | null>(null);
 
-  function handleAddDepuisFiche(produit: Produit, quantite: number, note: string) {
+  function handleAddDepuisFiche(produit: Produit, quantite: number, note: string, supplements: Supplement[]) {
     if (!fournisseur) return;
-    const res = addToCart(produit, fournisseur.nom, quantite, note || undefined);
+    const res = addToCart(produit, fournisseur.nom, quantite, note || undefined, supplements.length ? supplements : undefined);
     if (res === "conflit") setConflit(produit);
     else showToast(`${produit.nom} ajouté au panier`, "success");
   }
 
+  // Le stepper +/- rapide sur la carte produit agit uniquement sur la ligne
+  // "sans supplément" (cohérent avec handleAdd ci-dessus) — pour choisir des
+  // suppléments, le client passe par la fiche produit.
   function handleIncrement(produit: Produit) {
-    const item = cart.items.find((i) => i.produit.id === produit.id);
-    updateQuantite(produit.id, (item?.quantite || 0) + 1);
+    const cle = cleCartItem(produit.id);
+    const item = cart.items.find((i) => i.cle === cle);
+    updateQuantite(cle, (item?.quantite || 0) + 1);
   }
 
   function handleDecrement(produit: Produit) {
-    const item = cart.items.find((i) => i.produit.id === produit.id);
-    updateQuantite(produit.id, (item?.quantite || 0) - 1);
+    const cle = cleCartItem(produit.id);
+    const item = cart.items.find((i) => i.cle === cle);
+    updateQuantite(cle, (item?.quantite || 0) - 1);
   }
 
   function confirmerRemplacement() {
@@ -325,7 +331,7 @@ export default function StorePage() {
                   <ProductCard
                     key={p.id}
                     produit={{ ...p, disponible: p.disponible && ouvert }}
-                    quantite={cart.items.find((i) => i.produit.id === p.id)?.quantite || 0}
+                    quantite={cart.items.find((i) => i.cle === cleCartItem(p.id))?.quantite || 0}
                     onAdd={handleAdd}
                     onIncrement={handleIncrement}
                     onDecrement={handleDecrement}
