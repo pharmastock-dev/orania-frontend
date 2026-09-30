@@ -23,6 +23,7 @@ import {
   adminValiderLivreurMarketplace,
   adminProlongerAbonnementLivreur,
   adminSupprimerLivreurMarketplace,
+  adminReinitialiserMotDePasseLivreur,
 } from "../api";
 import { ApiError } from "../api/client";
 import { getCategorieLabel } from "../utils/categories";
@@ -117,6 +118,23 @@ export default function AdminDashboard() {
     } finally {
       setActionEnCours(null);
       setSuppressionLivreur(null);
+    }
+  }
+
+  // Le vrai backend exige que l'admin choisisse lui-même le nouveau mot de
+  // passe (pas de génération automatique côté serveur) — même logique que
+  // handleReinitialiserMdp pour les commerces.
+  async function handleReinitialiserMdpLivreur(l: LivreurMarketplaceAdmin) {
+    const nouveau = window.prompt(`Nouveau mot de passe pour "${l.nom}" :`, "");
+    if (!nouveau || !nouveau.trim()) return;
+    setActionEnCours(l.id);
+    try {
+      await adminReinitialiserMotDePasseLivreur(l.id, nouveau.trim());
+      showToast(`Mot de passe de ${l.nom} réinitialisé — communique-le lui : ${nouveau.trim()}`, "success");
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : "Impossible de réinitialiser le mot de passe.", "error");
+    } finally {
+      setActionEnCours(null);
     }
   }
 
@@ -484,9 +502,9 @@ export default function AdminDashboard() {
                     onClick={() => handleValider(d)}
                     disabled={actionEnCours === d.id}
                     className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold text-white bg-[var(--color-green-500)] hover:bg-[var(--color-green-600)] rounded-xl px-3 py-2.5 disabled:opacity-60"
-                    title="Active l'inscription maintenant, pour 1 an — elle remonte en haut de la liste des commerces"
+                    title="Le commerce devient membre inscrit sur QREEB, visible par les clients, qui peuvent commander dans son menu"
                   >
-                    <RefreshCw size={14} /> Réinitialiser
+                    <Check size={14} /> Valider
                   </button>
                   <button
                     onClick={() => handleRejeterDemandeCommerce(d)}
@@ -652,9 +670,9 @@ export default function AdminDashboard() {
                     onClick={() => handleValiderLivreur(l)}
                     disabled={actionEnCours === l.id}
                     className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold text-white bg-[var(--color-green-500)] hover:bg-[var(--color-green-600)] rounded-xl px-3 py-2.5 disabled:opacity-60"
-                    title="Active l'inscription maintenant, pour 1 an — elle remonte en haut de la liste des livreurs actifs"
+                    title="Le livreur devient membre inscrit sur QREEB, visible par les clients"
                   >
-                    <RefreshCw size={14} /> Réinitialiser
+                    <Check size={14} /> Valider
                   </button>
                   <button
                     onClick={() => handleRejeterDemandeLivreur(l)}
@@ -724,7 +742,7 @@ export default function AdminDashboard() {
                     Abonnement jusqu'au {new Date(l.abonnement_fin).toLocaleDateString("fr-FR")}
                   </p>
                 )}
-                <div className="grid grid-cols-3 gap-2 mt-3">
+                <div className="grid grid-cols-4 gap-2 mt-3">
                   <button
                     onClick={() => handleProlongerLivreur(l)}
                     disabled={actionEnCours === l.id}
@@ -736,10 +754,17 @@ export default function AdminDashboard() {
                   <button
                     onClick={() => handleValiderLivreur(l)}
                     disabled={actionEnCours === l.id}
-                    className="flex items-center justify-center gap-1 text-xs font-semibold px-2 py-2 rounded-lg bg-[var(--color-ink-100)] text-[var(--color-ink-700)] disabled:opacity-60"
+                    className="flex items-center justify-center gap-1 text-xs font-semibold px-2 py-2 rounded-lg bg-[var(--color-green-100)] text-[var(--color-green-600)] disabled:opacity-60"
                     title="Repart à zéro : abonnement fixé à aujourd'hui + 1 an, même s'il est actif depuis longtemps"
                   >
                     <RefreshCw size={13} /> Réinit.
+                  </button>
+                  <button
+                    onClick={() => handleReinitialiserMdpLivreur(l)}
+                    disabled={actionEnCours === l.id}
+                    className="flex items-center justify-center gap-1 text-xs font-semibold px-2 py-2 rounded-lg bg-[var(--color-ink-100)] text-[var(--color-ink-700)] disabled:opacity-60"
+                  >
+                    <KeyRound size={13} /> Mdp
                   </button>
                   <button
                     onClick={() => setSuppressionLivreur(l)}
