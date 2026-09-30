@@ -298,6 +298,7 @@ export const validerFournisseur = (fournisseurId: number, dateActivation?: strin
     dateActivation ? { date_activation: dateActivation } : undefined,
     true
   );
+
 export const prolongerAbonnement = (fournisseurId: number) =>
   http.put<{ succes: boolean; abonnement_fin?: string; message?: string }>(`/admin/fournisseurs/${fournisseurId}/abonnement`, undefined, true);
 
@@ -408,11 +409,19 @@ export const adminValiderLivreurMarketplace = (livreurId: number, dateActivation
     dateActivation ? { date_activation: dateActivation } : undefined,
     true
   );
+
 export const adminProlongerAbonnementLivreur = (livreurId: number) =>
   http.put<{ succes: boolean; message: string; abonnement_fin?: string }>(`/admin/livreurs-marketplace/${livreurId}/abonnement`, undefined, true);
 
 export const adminSupprimerLivreurMarketplace = (livreurId: number) =>
   http.del<{ succes: boolean; message: string }>(`/admin/livreurs-marketplace/${livreurId}`, true);
+
+export const adminReinitialiserMotDePasseLivreur = (livreurId: number, nouveauMotDePasse: string) =>
+  http.put<{ succes: boolean; message?: string }>(
+    `/admin/livreurs-marketplace/${livreurId}/motdepasse`,
+    { nouveau_mot_de_passe: nouveauMotDePasse },
+    true
+  );
 
 export const getStatutPublicationCommande = (commandeId: number) =>
   http.get<StatutPublicationCommande>(`/commandes/${commandeId}/statut-publication`);
